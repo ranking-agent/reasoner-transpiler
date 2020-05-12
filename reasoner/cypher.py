@@ -118,7 +118,7 @@ class EdgeReference():
 
     def __str__(self):
         """Return the cypher edge reference."""
-        return '-[{0}{1}]-'.format(
+        return '-[`{0}`{1}]-'.format(
             self.name,
             ':' + self.label if self.label else '',
         ) + ('>' if self.directed else '')
@@ -193,19 +193,19 @@ def get_query(qgraph, **kwargs):
 
     # collects sets in WITH clause
     node_id_accessor = [
-        'collect(DISTINCT {0}.id) AS {0}'.format(qnode['id'])
+        'collect(DISTINCT `{0}`.id) AS `{0}`'.format(qnode['id'])
         if qnode.get('set', False) else
-        '[{0}.id] AS {0}'.format(qnode['id'])
+        '[`{0}`.id] AS `{0}`'.format(qnode['id'])
         for qnode in qnodes
     ]
     if kwargs.get('relationship_id', 'property') == 'internal':
         edge_id_accessor = [
-            'collect(DISTINCT toString(id({0}))) AS {0}'.format(qedge['id'])
+            'collect(DISTINCT toString(id({0}))) AS `{0}`'.format(qedge['id'])
             for qedge in qedges
         ]
     else:
         edge_id_accessor = [
-            'collect(DISTINCT {0}.id) AS {0}'.format(qedge['id'])
+            'collect(DISTINCT `{0}`.id) AS `{0}`'.format(qedge['id'])
             for qedge in qedges
         ]
     if node_id_accessor or edge_id_accessor:
@@ -215,11 +215,11 @@ def get_query(qgraph, **kwargs):
 
     # add RETURN clause
     node_dicts = [
-        '[ni IN {0} | {{qg_id:"{0}", kg_id:ni}}]'.format(qnode['id'])
+        '[ni IN `{0}` | {{qg_id:"{0}", kg_id:ni}}]'.format(qnode['id'])
         for qnode in qnodes
     ]
     edge_dicts = [
-        '[ei IN {0} | {{qg_id:"{0}", kg_id:ei}}]'.format(qedge['id'])
+        '[ei IN `{0}` | {{qg_id:"{0}", kg_id:ei}}]'.format(qedge['id'])
         for qedge in qedges
     ]
     answer_return_string = (
