@@ -183,7 +183,7 @@ def get_query(qgraph, **kwargs):
 
     clauses = []
 
-    # get MATCH clause
+    # find matches
     match_string = get_match_clause(
         qgraph,
         max_connectivity=kwargs.pop('max_connectivity', -1)
@@ -191,49 +191,72 @@ def get_query(qgraph, **kwargs):
     if match_string:
         clauses.append(match_string)
 
-    # collects sets in WITH clause
-    node_id_accessor = [
-        'collect(DISTINCT `{0}`.id) AS `{0}`'.format(qnode['id'])
-        if qnode.get('set', False) else
-        '[`{0}`.id] AS `{0}`'.format(qnode['id'])
+    # assemble result (bindings) and associated (result) kgraph
+    node_bindings = [
+        (
+            '[ni IN collect(DISTINCT `{0}`.id) '
+            '| {{qg_id:"{0}", kg_id:ni}}]'
+        ).format(
+            qnode['id'],
+        ) if qnode.get('set', False) else
+        '[{{qg_id:"{0}", kg_id:`{0}`.id}}]'.format(qnode['id'])
         for qnode in qnodes
     ]
-    if kwargs.get('relationship_id', 'property') == 'internal':
-        edge_id_accessor = [
-            'collect(DISTINCT toString(id({0}))) AS `{0}`'.format(qedge['id'])
-            for qedge in qedges
-        ]
-    else:
-        edge_id_accessor = [
-            'collect(DISTINCT `{0}`.id) AS `{0}`'.format(qedge['id'])
-            for qedge in qedges
-        ]
-    if node_id_accessor or edge_id_accessor:
-        clauses.append('WITH {0}'.format(
-            ', '.join(node_id_accessor + edge_id_accessor)
-        ))
-
-    # add RETURN clause
-    node_dicts = [
-        '[ni IN `{0}` | {{qg_id:"{0}", kg_id:ni}}]'.format(qnode['id'])
-        for qnode in qnodes
-    ]
-    edge_dicts = [
-        '[ei IN `{0}` | {{qg_id:"{0}", kg_id:ei}}]'.format(qedge['id'])
+    edge_bindings = [
+        (
+            '[ei IN collect(DISTINCT toString(id(`{0}`))) '
+            '| {{qg_id:"{0}", kg_id:ei}}]'
+        ).format(
+            qedge['id'],
+        ) if kwargs.get('relationship_id', 'property') == 'internal' else
+        (
+            '[ei IN collect(DISTINCT `{0}`.id) '
+            '| {{qg_id:"{0}", kg_id:ei}}]'
+        ).format(
+            qedge['id'],
+        )
         for qedge in qedges
     ]
-    answer_return_string = (
-        'RETURN {0} AS node_bindings, {1} AS edge_bindings'
+    knodes = ' + '.join([
+        'collect(DISTINCT `{0}`)'.format(qnode['id'])
+        for qnode in qnodes
+    ])
+    kedges = ' + '.join([
+        'collect(DISTINCT `{0}`)'.format(qedge['id'])
+        for qedge in qedges
+    ])
+    assemble_clause = (
+        'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
+        '{{nodes:{2}, edges: {3}}} as knowledge_graph'
     ).format(
-        ' + '.join(node_dicts) or '[]',
-        ' + '.join(edge_dicts) or '[]',
+        ' + '.join(node_bindings) or '[]',
+        ' + '.join(edge_bindings) or '[]',
+        knodes,
+        kedges,
     )
-    clauses.append(answer_return_string)
+    clauses.append(assemble_clause)
 
     # add SKIP and LIMIT sub-clauses
     if 'skip' in kwargs:
         clauses.append(f'SKIP {kwargs["skip"]}')
     if 'limit' in kwargs:
         clauses.append(f'LIMIT {kwargs["limit"]}')
+
+    # collect results and aggregate kgraphs
+    # also fetch extra knode/kedge properties
+    aggregate_clause = (
+        'UNWIND knowledge_graph.nodes as knode '
+        'UNWIND knowledge_graph.edges as kedge '
+        'WITH collect(DISTINCT result) AS results, {'
+        'nodes: [n IN collect(DISTINCT knode) | n{.*, type:labels(n)}], '
+        'edges: [e IN collect(DISTINCT kedge) | e{.*, type:type(e), '
+        'source_id: startNode(e).id, target_id: endNode(e).id}]'
+        '} as knowledge_graph'
+    )
+    clauses.append(aggregate_clause)
+
+    # return results and knowledge graph
+    return_clause = 'RETURN results, knowledge_graph'
+    clauses.append(return_clause)
 
     return ' '.join(clauses)
