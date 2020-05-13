@@ -62,7 +62,7 @@ class NodeReference():
 
         self.prop_string = ' {' + ', '.join([
             f'`{key}`: {cypher_prop_string(props[key])}' for key in props
-        ]) + '}'
+        ]) + '}' if props else ''
         self._extras = ''
         if curie:
             self._extras = f' USING INDEX {self.name}:{self.labels[0]}(id)'
@@ -227,7 +227,7 @@ def get_query(qgraph, **kwargs):
     ])
     assemble_clause = (
         'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
-        '{{nodes:{2}, edges: {3}}} as knowledge_graph'
+        '{{nodes:{2}, edges: {3}}} AS knowledge_graph'
     ).format(
         ' + '.join(node_bindings) or '[]',
         ' + '.join(edge_bindings) or '[]',
@@ -245,13 +245,13 @@ def get_query(qgraph, **kwargs):
     # collect results and aggregate kgraphs
     # also fetch extra knode/kedge properties
     aggregate_clause = (
-        'UNWIND knowledge_graph.nodes as knode '
-        'UNWIND knowledge_graph.edges as kedge '
+        'UNWIND knowledge_graph.nodes AS knode '
+        'UNWIND knowledge_graph.edges AS kedge '
         'WITH collect(DISTINCT result) AS results, {'
         'nodes: [n IN collect(DISTINCT knode) | n{.*, type:labels(n)}], '
         'edges: [e IN collect(DISTINCT kedge) | e{.*, type:type(e), '
         'source_id: startNode(e).id, target_id: endNode(e).id}]'
-        '} as knowledge_graph'
+        '} AS knowledge_graph'
     )
     clauses.append(aggregate_clause)
 
