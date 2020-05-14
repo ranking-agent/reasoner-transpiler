@@ -1,4 +1,7 @@
 """Tools for compiling QGraph into Cypher query."""
+import re
+
+from jinja2 import Template
 
 
 def cypher_prop_string(value):
@@ -98,6 +101,15 @@ class NodeReference():
         return self._extras
 
 
+class MissingReference(NodeReference):
+    """Missing node reference object."""
+
+    def __init__(self, name):  # pylint: disable=super-init-not-called
+        """Initialize."""
+        self.name = f'`{name}`'
+        self._num = 1
+
+
 class EdgeReference():
     """Edge reference object."""
 
@@ -143,9 +155,12 @@ def get_match_clause(qgraph, max_connectivity=-1):
         + [e['target_id'] for e in edges]
     )
     orphaned_nodes = all_nodes - all_referenced_nodes
+    missing_nodes = all_referenced_nodes - all_nodes
+    for node_id in missing_nodes:
+        node_references[node_id] = MissingReference(node_id)
     for node_id in orphaned_nodes:
         clauses.append(
-            f'MATCH {node_references[node_id]}'
+            f'OPTIONAL MATCH {node_references[node_id]}'
             + node_references[node_id].extras
         )
         if node_references[node_id].filters:
@@ -157,7 +172,7 @@ def get_match_clause(qgraph, max_connectivity=-1):
         source_node = node_references[edge['source_id']]
         target_node = node_references[edge['target_id']]
         clauses.append(
-            f'MATCH {source_node}{eref}{target_node}'
+            f'OPTIONAL MATCH {source_node}{eref}{target_node}'
             + source_node.extras + target_node.extras
         )
         filters = [f'({c})' for c in [
@@ -171,7 +186,28 @@ def get_match_clause(qgraph, max_connectivity=-1):
         if filters:
             clauses.append('WHERE ' + ' AND '.join(filters))
 
-    return ' '.join(clauses)
+    return ' '.join(clauses), list(orphaned_nodes) + [edge['id'] for edge in edges]
+
+
+def parse_compound(qgraph, prefix=''):
+    """Parse compound qgraph.
+
+    Return the logical string and a map of simple qgraphs.
+    """
+    if isinstance(qgraph, list):
+        expression = f' {qgraph[0]} '.join(
+            parse_compound(
+                sub_qgraph,
+                prefix=f'{prefix}_{idx + 1}' if prefix else str(idx + 1)
+            )
+            for idx, sub_qgraph in enumerate(qgraph[1:])
+        )
+        if prefix:
+            return f'({expression})'
+        else:
+            return expression
+    else:
+        return f'{{{{ qg_{prefix} }}}}'
 
 
 def get_query(qgraph, **kwargs):
@@ -179,17 +215,48 @@ def get_query(qgraph, **kwargs):
 
     Returns the query as a string.
     """
-    qnodes, qedges = qgraph['nodes'], qgraph['edges']
-
     clauses = []
-
-    # find matches
-    match_string = get_match_clause(
-        qgraph,
-        max_connectivity=kwargs.pop('max_connectivity', -1)
-    )
-    if match_string:
-        clauses.append(match_string)
+    if isinstance(qgraph, list):
+        expr = parse_compound(qgraph)
+        matches = re.finditer(r'{{ (qg_(?:\d+(?:_\d+)*)*) }}', expr)
+        sub_qgraphs = dict()
+        qids = dict()
+        clauses = []
+        for match in matches:
+            sub_qgraph = qgraph
+            for idx in match[1].split('_')[1:]:
+                sub_qgraph = sub_qgraph[int(idx)]
+            sub_qgraphs[match[1]] = sub_qgraph
+            match_string, sub_qids = get_match_clause(
+                sub_qgraph,
+                max_connectivity=kwargs.pop('max_connectivity', -1)
+            )
+            qids[match[1]] = sub_qids
+            clauses.append(match_string)
+        template = Template(expr)
+        qnodes = [
+            el
+            for value in sub_qgraphs.values()
+            for el in value['nodes']
+        ]
+        qedges = [
+            el
+            for value in sub_qgraphs.values()
+            for el in value['edges']
+        ]
+        clauses.append('WITH ' + ', '.join(
+            el['id'] for el in qnodes + qedges
+        ))
+        clauses.append('WHERE ' + template.render(**{
+            key: '(' + ' AND '.join(
+                f'({qid} IS NOT NULL)'
+                for qid in value
+            ) + ')'
+            for key, value in qids.items()
+        }))
+    else:
+        qnodes = qgraph['nodes']
+        qedges = qgraph['edges']
 
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
