@@ -192,7 +192,7 @@ def get_match_clause(qgraph, max_connectivity=-1, **kwargs):
     all_edges = {edge['id'] for edge in edges}
     return Query(
         ' '.join(clauses),
-        qids={nid: nid for nid in all_nodes | all_edges},
+        qids=all_nodes | all_edges,
         references=all_nodes | all_referenced_nodes | all_edges,
     )
 
@@ -244,24 +244,17 @@ class Query():
         """Get qids."""
         return self._qids
 
-    def with_clause(self):
-        """Get WITH clause."""
-        return 'WITH ' + ', '.join(
-            qid if qid == accessor else f'{accessor} AS {qid}'
-            for qid, accessor in self.qids.items()
-        )
-
     def where_clause(self, context=None):
         """Get WHERE clause."""
         if context is None:
             context = set()
-        return self.with_clause() + ' WHERE ' + self.logic
+        return 'WHERE ' + self.logic
 
     def return_clause(self, context=None):
         """Get RETURN clause."""
         if context is None:
             context = set()
-        return 'RETURN ' + ', '.join(set(self.qids) - set(context))
+        return 'RETURN ' + ', '.join(self.qids - context)
 
     def __and__(self, other):
         """AND two queries together."""
@@ -290,10 +283,10 @@ class CompoundQuery(Query):
     @property
     def qids(self):
         """Get qids."""
-        return dict(ChainMap(*(
-            subquery.qids
-            for subquery in self.subqueries
-        )))
+        return reduce(
+            or_,
+            [subquery.qids for subquery in self.subqueries]
+        )
 
     @property
     def logic(self):
@@ -320,19 +313,12 @@ class WrapQuery(CompoundQuery):
         assert len(args) == 1
         super().__init__(*args, **kwargs)
 
-    @property
-    def qids(self):
-        """Get qids."""
-        return {
-            qid: f'value.{qid}'
-            for qid in super().qids
-        }
-
     def compile(self, context=None):
         """Wrap a Cypher query in apoc.cypher.run()."""
         return (
             'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
-            'YIELD value'
+            'YIELD value '
+            'WITH {accessors}'
         ).format(
             query=(
                 self.subqueries[0].compile(context)
@@ -343,6 +329,12 @@ class WrapQuery(CompoundQuery):
                 f'`id({var})`: id({var})'
                 for var in context & self.subqueries[0].references
             ),
+            accessors=', '.join(
+                [
+                    f'value.{qid} AS {qid}' for qid in self.subqueries[0].qids
+                ]
+                + list(context - self.subqueries[0].qids)
+            )
         )
 
 
@@ -366,7 +358,7 @@ class AndQuery(CompoundQuery):
         subquery_strings = []
         for query in self.subqueries:
             subquery_strings.append(query.compile(context))
-            context = context | set(query.qids)
+            context = context | query.qids
         return ' '.join(subquery_strings)
 
 
