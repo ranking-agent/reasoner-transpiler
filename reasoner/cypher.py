@@ -1,7 +1,7 @@
 """Tools for compiling QGraph into Cypher query."""
 from collections import ChainMap
 from functools import reduce
-from operator import and_
+from operator import and_, or_
 import re
 
 from jinja2 import Template
@@ -189,10 +189,11 @@ def get_match_clause(qgraph, max_connectivity=-1, **kwargs):
         if filters:
             clauses.append('WHERE ' + ' AND '.join(filters))
 
+    all_edges = {edge['id'] for edge in edges}
     return Query(
         ' '.join(clauses),
-        nodes={node['id']: node['id'] for node in qgraph['nodes']},
-        edges={edge['id']: edge['id'] for edge in qgraph['edges']},
+        qids={nid: nid for nid in all_nodes | all_edges},
+        references=all_nodes | all_referenced_nodes | all_edges,
     )
 
 
@@ -208,12 +209,13 @@ class Query():
     def __init__(
             self,
             string,
-            nodes=None, edges=None,
+            qids=None,
+            references=None,
     ):
         """Initialize."""
         self._string = string
-        self._nodes = nodes
-        self._edges = edges
+        self._qids = qids
+        self._references = references
         self.context = None
 
     @property
@@ -233,19 +235,14 @@ class Query():
         return self._string
 
     @property
-    def nodes(self):
-        """Get nodes."""
-        return self._nodes
-
-    @property
-    def edges(self):
-        """Get edges."""
-        return self._edges
+    def references(self):
+        """Get references."""
+        return self._references
 
     @property
     def qids(self):
-        """Return all qids."""
-        return {**self.nodes, **self.edges}
+        """Get qids."""
+        return self._qids
 
     def with_clause(self):
         """Get WITH clause."""
@@ -291,18 +288,10 @@ class CompoundQuery(Query):
         self.subqueries = subqueries
 
     @property
-    def nodes(self):
-        """Get nodes."""
+    def qids(self):
+        """Get qids."""
         return dict(ChainMap(*(
-            subquery.nodes
-            for subquery in self.subqueries
-        )))
-
-    @property
-    def edges(self):
-        """Get edges."""
-        return dict(ChainMap(*(
-            subquery.edges
+            subquery.qids
             for subquery in self.subqueries
         )))
 
@@ -312,6 +301,14 @@ class CompoundQuery(Query):
         return ' AND '.join(
             query.logic for query in self.subqueries
             if query.logic
+        )
+
+    @property
+    def references(self):
+        """Get references."""
+        return reduce(
+            or_,
+            (query.references for query in self.subqueries),
         )
 
 
@@ -324,19 +321,11 @@ class WrapQuery(CompoundQuery):
         super().__init__(*args, **kwargs)
 
     @property
-    def nodes(self):
-        """Get nodes."""
+    def qids(self):
+        """Get qids."""
         return {
             qid: f'value.{qid}'
-            for qid in super().nodes
-        }
-
-    @property
-    def edges(self):
-        """Get edges."""
-        return {
-            qid: f'value.{qid}'
-            for qid in super().edges
+            for qid in super().qids
         }
 
     def compile(self, context=None):
@@ -352,7 +341,7 @@ class WrapQuery(CompoundQuery):
             ),
             params=', '.join(
                 f'`id({var})`: id({var})'
-                for var in context
+                for var in context & self.subqueries[0].references
             ),
         )
 
@@ -377,7 +366,7 @@ class AndQuery(CompoundQuery):
         subquery_strings = []
         for query in self.subqueries:
             subquery_strings.append(query.compile(context))
-            context = context | set(query.nodes)
+            context = context | set(query.qids)
         return ' '.join(subquery_strings)
 
 
@@ -399,7 +388,7 @@ def union_string(query0, query1, context=None):
     if context is not None:
         prefix = ''.join(
             f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var} '
-            for var in context
+            for var in context & query0.references
         )
     else:
         prefix = ''
