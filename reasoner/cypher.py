@@ -285,10 +285,6 @@ class Query():
         """XOR queries."""
         return XorQuery(self, other)
 
-    def set_context(self, context):
-        """Set context."""
-        self.context = context
-
 
 class CompoundQuery(Query):
     """Compound query."""
@@ -330,13 +326,12 @@ class WrapQuery(CompoundQuery):
         assert len(args) == 1
         super().__init__(*args, **kwargs)
 
-    @property
-    def params(self):
+    def params(self, context=None):
         """Get params."""
-        if self.context is not None:
+        if context is not None:
             return ', '.join(
                 f'`id({var})`: id({var})'
-                for var in self.context
+                for var in context
             )
         else:
             return ''
@@ -357,14 +352,14 @@ class WrapQuery(CompoundQuery):
             for qid in super().edges
         }
 
-    def __str__(self, **kwargs):
+    def compile(self, context=None):
         """Wrap a Cypher query in apoc.cypher.run()."""
         return (
             'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
             'YIELD value'
         ).format(
-            query=str(self.subqueries[0]).replace('\\', '\\\\').replace('\'', '\\\''),
-            params=self.params,
+            query=self.subqueries[0].compile(context).replace('\\', '\\\\').replace('\'', '\\\''),
+            params=self.params(context),
         )
 
 
@@ -377,25 +372,27 @@ class AndQuery(CompoundQuery):
 
         self.subqueries = []
         for query in subqueries:
-            query.set_context(self.nodes)
             if isinstance(query, (OrQuery, XorQuery)):
                 query = WrapQuery(query)
-                query.set_context(self.nodes)
             self.subqueries.append(query)
 
-    def __str__(self):
+    def compile(self, context=None):
         """Get query string."""
-        return ' '.join(
-            str(query) for query in self.subqueries
-        )
+        if context is None:
+            context = set()
+        subquery_strings = []
+        for query in self.subqueries:
+            subquery_strings.append(query.compile(context))
+            context = context | set(query.nodes)
+        return ' '.join(subquery_strings)
 
 
 class NotQuery(CompoundQuery):
     """Not query segment."""
 
-    def __str__(self):
+    def compile(self, context=None):
         """Return query string."""
-        return str(self.subqueries[0])
+        return self.subqueries[0].compile(context)
 
     @property
     def logic(self):
@@ -418,8 +415,8 @@ def union_string(query0, query1, context=None):
         '{prefix}{query1}'
     ).format(
         prefix=prefix,
-        query0=' '.join((str(query0), query0.return_clause(context))),
-        query1=' '.join((str(query1), query1.return_clause(context))),
+        query0=' '.join((query0.compile(context), query0.return_clause(context))),
+        query1=' '.join((query1.compile(context), query1.return_clause(context))),
     )
 
 
@@ -434,11 +431,11 @@ class OrQuery(CompoundQuery):
         query1 = AndQuery(args[1], args[0])
         self._subqueries = [query0, query1]
 
-    def __str__(self):
+    def compile(self, context=None):
         """Get query string."""
         return union_string(
             *self._subqueries,
-            context=self.context,
+            context=context,
         )
 
     @property
@@ -460,11 +457,11 @@ class XorQuery(CompoundQuery):
         query1 = AndQuery(args[1], args[0])
         self._subqueries = [query0, query1]
 
-    def __str__(self):
+    def compile(self, context=None):
         """Get query string."""
         return union_string(
             *self._subqueries,
-            context=self.context,
+            context=context,
         )
 
     @property
