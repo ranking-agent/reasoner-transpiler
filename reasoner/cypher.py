@@ -216,11 +216,17 @@ class Query():
         self._edges = edges
         self.context = None
 
-    def requires(self, qid):
+    @property
+    def logic(self):
         """Return whether qid is required."""
-        if qid in self.qids:
-            return True
-        return None
+        conditions = [
+            f'{qid} IS NOT null' for qid in self.qids
+        ]
+        if len(self.qids) > 1:
+            conditions = [
+                f'({condition})' for condition in conditions
+            ]
+        return ' AND '.join(conditions)
 
     def __str__(self):
         """Return query string."""
@@ -245,24 +251,13 @@ class Query():
         """Get WHERE clause."""
         if context is None:
             context = set()
-        return str(self) + ' WHERE ' + ' AND '.join(
-            '({0} {1} null)'.format(
-                qid,
-                'IS NOT' if self.requires(qid) else 'IS',
-            )
-            for qid in set(self.qids) - set(context)
-            if self.requires(qid) is not None
-        )
+        return 'WHERE ' + self.logic
 
     def return_clause(self, context=None):
         """Get RETURN clause."""
         if context is None:
             context = set()
         return 'RETURN ' + ', '.join(set(self.qids) - set(context))
-
-    def deobligate(self):
-        """Remove all logical obligations."""
-        return OptionalQuery(self)
 
     def __and__(self, other):
         """AND two queries together."""
@@ -311,13 +306,13 @@ class CompoundQuery(Query):
             for subquery in self.subqueries
         )))
 
-    def requires(self, qid):
+    @property
+    def logic(self):
         """Return whether qid is required."""
-        for query in self.subqueries:
-            val = query.requires(qid)
-            if val is not None:
-                return val
-        return None
+        return ' AND '.join(
+            query.logic for query in self.subqueries
+            if query.logic
+        )
 
 
 class WrapQuery(CompoundQuery):
@@ -398,21 +393,10 @@ class NotQuery(CompoundQuery):
         """Return query string."""
         return str(self.subqueries[0])
 
-    def requires(self, qid):
+    @property
+    def logic(self):
         """Return whether qid is required."""
-        return not super().requires(qid)
-
-
-class OptionalQuery(CompoundQuery):
-    """Optional query segment."""
-
-    def __str__(self):
-        """Return query string."""
-        return str(self.subqueries[0])
-
-    def requires(self, qid):
-        """Return whether qid is required."""
-        return None
+        return f'NOT ({super().logic})'
 
 
 def union_string(query0, query1, context=None):
@@ -430,8 +414,8 @@ def union_string(query0, query1, context=None):
         '{prefix}{query1}'
     ).format(
         prefix=prefix,
-        query0=' '.join((str(query0), query0.where_clause(), query0.return_clause(context))),
-        query1=' '.join((str(query1), query1.where_clause(), query1.return_clause(context))),
+        query0=' '.join((str(query0), query0.return_clause(context))),
+        query1=' '.join((str(query1), query1.return_clause(context))),
     )
 
 
@@ -441,15 +425,23 @@ class OrQuery(CompoundQuery):
     def __init__(self, *args):
         """Initialize."""
         assert len(args) == 2
-        query0 = AndQuery(args[0], args[1].deobligate())
-        query1 = AndQuery(args[1], args[0].deobligate())
-        self.subqueries = [query0, query1]
+        super().__init__(*args)
+        query0 = AndQuery(args[0], args[1])
+        query1 = AndQuery(args[1], args[0])
+        self._subqueries = [query0, query1]
 
     def __str__(self):
         """Get query string."""
         return union_string(
-            *self.subqueries,
+            *self._subqueries,
             context=self.context,
+        )
+
+    @property
+    def logic(self):
+        """Get conditions."""
+        return ' OR '.join(
+            f'({query.logic})' for query in self.subqueries
         )
 
 
@@ -459,15 +451,23 @@ class XorQuery(CompoundQuery):
     def __init__(self, *args):
         """Initialize."""
         assert len(args) == 2
-        query0 = AndQuery(args[0], ~args[1])
-        query1 = AndQuery(args[1], ~args[0])
-        self.subqueries = [query0, query1]
+        super().__init__(*args)
+        query0 = AndQuery(args[0], args[1])
+        query1 = AndQuery(args[1], args[0])
+        self._subqueries = [query0, query1]
 
     def __str__(self):
         """Get query string."""
         return union_string(
-            *self.subqueries,
+            *self._subqueries,
             context=self.context,
+        )
+
+    @property
+    def logic(self):
+        """Get conditions."""
+        return ' XOR '.join(
+            f'({query.logic})' for query in self.subqueries
         )
 
 
