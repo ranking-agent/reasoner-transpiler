@@ -1,5 +1,4 @@
 """Tools for compiling QGraph into Cypher query."""
-from collections import ChainMap
 from functools import reduce
 from operator import and_, or_
 import re
@@ -144,12 +143,15 @@ def get_match_clause(qgraph, max_connectivity=-1, **kwargs):
 
     Returns the query fragment as a string.
     """
+    duplicates = False
     nodes, edges = qgraph['nodes'], qgraph['edges']
 
     # generate internal node and edge variable names
     node_references = {n['id']: NodeReference(n) for n in nodes}
 
     clauses = []
+    filters = []
+    extras = []
 
     # match orphaned nodes
     all_nodes = {n['id'] for n in nodes}
@@ -162,36 +164,62 @@ def get_match_clause(qgraph, max_connectivity=-1, **kwargs):
     for node_id in missing_nodes:
         node_references[node_id] = MissingReference(node_id)
     for node_id in orphaned_nodes:
-        clauses.append(
-            f'OPTIONAL MATCH {node_references[node_id]}'
-            + node_references[node_id].extras
-        )
-        if node_references[node_id].filters:
-            clauses.append('WHERE ' + node_references[node_id].filters)
+        if duplicates:
+            clauses.append(
+                f'OPTIONAL MATCH {node_references[node_id]}'
+                + node_references[node_id].extras
+            )
+            if node_references[node_id].filters:
+                clauses.append('WHERE ' + node_references[node_id].filters)
+        else:
+            clauses.append(
+                f'{node_references[node_id]}'
+            )
+            extras.append(node_references[node_id].extras)
+            if node_references[node_id].filters:
+                filters.extend(node_references[node_id].filters)
 
     # match edges
     for edge in edges:
         eref = EdgeReference(edge)
         source_node = node_references[edge['source_id']]
         target_node = node_references[edge['target_id']]
-        clauses.append(
-            f'OPTIONAL MATCH {source_node}{eref}{target_node}'
-            + source_node.extras + target_node.extras
-        )
-        filters = [f'({c})' for c in [
+        if duplicates:
+            clauses.append(
+                f'OPTIONAL MATCH {source_node}{eref}{target_node}'
+                + source_node.extras + target_node.extras
+            )
+        else:
+            clauses.append(
+                f'{source_node}{eref}{target_node}'
+            )
+            extras.append(source_node.extras)
+            extras.append(target_node.extras)
+        edge_filters = [f'({c})' for c in [
             source_node.filters, target_node.filters, eref.filters
         ] if c]
         if max_connectivity > -1:
-            filters.append('(size( {0}-[]-() ) < {1})'.format(
+            edge_filters.append('(size( {0}-[]-() ) < {1})'.format(
                 target_node,
                 max_connectivity,
             ))
         if filters:
-            clauses.append('WHERE ' + ' AND '.join(filters))
+            if duplicates:
+                clauses.append('WHERE ' + ' AND '.join(filters))
+            else:
+                filters.extend(edge_filters)
 
     all_edges = {edge['id'] for edge in edges}
+    if duplicates:
+        query = ' '.join(clauses)
+    else:
+        query = 'OPTIONAL MATCH ' + ', '.join(clauses)
+        if extras:
+            query += ''.join(extras)
+        if filters:
+            query += ' WHERE ' + ' AND '.join(filters)
     return Query(
-        ' '.join(clauses),
+        query,
         qids=all_nodes | all_edges,
         references=all_nodes | all_referenced_nodes | all_edges,
     )
@@ -291,10 +319,15 @@ class CompoundQuery(Query):
     @property
     def logic(self):
         """Return whether qid is required."""
-        return ' AND '.join(
+        conditions = [
             query.logic for query in self.subqueries
             if query.logic
-        )
+        ]
+        if len(conditions) > 1:
+            conditions = [
+                f'({condition})' for condition in conditions
+            ]
+        return ' AND '.join(conditions)
 
     @property
     def references(self):
@@ -313,7 +346,7 @@ class WrapQuery(CompoundQuery):
         assert len(args) == 1
         super().__init__(*args, **kwargs)
 
-    def compile(self, context=None):
+    def compile(self, context=None, **kwargs):
         """Wrap a Cypher query in apoc.cypher.run()."""
         return (
             'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
@@ -321,7 +354,11 @@ class WrapQuery(CompoundQuery):
             'WITH {accessors}'
         ).format(
             query=(
-                self.subqueries[0].compile(context)
+                self.subqueries[0].compile(
+                    context=context,
+                    wrapped=True,
+                    **kwargs,
+                )
                 .replace('\\', '\\\\')
                 .replace('\'', '\\\'')
             ),
@@ -351,23 +388,26 @@ class AndQuery(CompoundQuery):
                 query = WrapQuery(query)
             self.subqueries.append(query)
 
-    def compile(self, context=None):
+    def compile(self, context=None, **kwargs):
         """Get query string."""
-        if context is None:
-            context = set()
+        if context is not None:
+            _context = context
+        else:
+            _context = set()
         subquery_strings = []
         for query in self.subqueries:
-            subquery_strings.append(query.compile(context))
-            context = context | query.qids
+            subquery_strings.append(query.compile(_context, **kwargs))
+            _context = _context | query.qids
+
         return ' '.join(subquery_strings)
 
 
 class NotQuery(CompoundQuery):
     """Not query segment."""
 
-    def compile(self, context=None):
+    def compile(self, context=None, **kwargs):
         """Return query string."""
-        return self.subqueries[0].compile(context)
+        return self.subqueries[0].compile(context, **kwargs)
 
     @property
     def logic(self):
@@ -375,48 +415,67 @@ class NotQuery(CompoundQuery):
         return f'NOT ({super().logic})'
 
 
-def union_string(query0, query1, context=None):
+def union_string(query0, query1, wrapped=False, **kwargs):
     """Assemble UNION query."""
-    if context is not None:
-        prefix = ''.join(
-            f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var} '
-            for var in context & query0.references
-        )
+    if wrapped:
+        query0_string = wrap_string(query0, **kwargs)
+        query1_string = wrap_string(query1, **kwargs)
     else:
-        prefix = ''
+        query0_string = query0.compile(**kwargs)
+        query1_string = query1.compile(**kwargs)
     return (
-        '{prefix}{query0}'
+        '{query0}'
         ' UNION '
-        '{prefix}{query1}'
+        '{query1}'
     ).format(
-        prefix=prefix,
-        query0=' '.join((
-            query0.compile(context),
-            query0.return_clause(context),
-        )),
-        query1=' '.join((
-            query1.compile(context),
-            query1.return_clause(context),
-        )),
+        query0=query0_string,
+        query1=query1_string,
     )
 
 
-class OrQuery(CompoundQuery):
-    """OR query."""
+def wrap_string(query, context=None, **kwargs):
+    """Wrap a query for packaging in apoc.cypher.run()."""
+    return ' '.join([
+        f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var}'
+        for var in context & query.references
+    ] + [query.compile(context=context, **kwargs), query.return_clause(context)])
+
+
+class AltQuery(CompoundQuery):
+    """Alternative query.
+
+    Superclass for OrQuery and XorQuery.
+    """
 
     def __init__(self, *args):
         """Initialize."""
         assert len(args) == 2
         super().__init__(*args)
 
-    def compile(self, context=None):
+    def compile(self, **kwargs):
+        """Get query string."""
+        # return self._compile_union(**kwargs)
+        if self.subqueries[0].qids & self.subqueries[1].qids:
+            return self._compile_union(**kwargs)
+        else:
+            query = AndQuery(self.subqueries[0], self.subqueries[1])
+            if kwargs.pop('wrapped', False):
+                return wrap_string(query, **kwargs)
+            else:
+                return query.compile(**kwargs)
+
+    def _compile_union(self, **kwargs):
         """Get query string."""
         query0 = AndQuery(self.subqueries[0], self.subqueries[1])
         query1 = AndQuery(self.subqueries[1], self.subqueries[0])
         return union_string(
             query0, query1,
-            context=context,
+            **kwargs,
         )
+
+
+class OrQuery(AltQuery):
+    """OR query."""
 
     @property
     def logic(self):
@@ -426,22 +485,8 @@ class OrQuery(CompoundQuery):
         )
 
 
-class XorQuery(CompoundQuery):
+class XorQuery(AltQuery):
     """XOR query."""
-
-    def __init__(self, *args):
-        """Initialize."""
-        assert len(args) == 2
-        super().__init__(*args)
-
-    def compile(self, context=None):
-        """Get query string."""
-        query0 = AndQuery(self.subqueries[0], self.subqueries[1])
-        query1 = AndQuery(self.subqueries[1], self.subqueries[0])
-        return union_string(
-            query0, query1,
-            context=context,
-        )
 
     @property
     def logic(self):
@@ -467,8 +512,8 @@ def transpile_compound(qgraph, **kwargs):
             return [operator, *args]
 
     if isinstance(qgraph, list):
-        # if qgraph[0] in ('OR', 'XOR'):
-        #     qgraph = nest_op(*qgraph)
+        if qgraph[0] in ('OR', 'XOR'):
+            qgraph = nest_op(*qgraph)
 
         args = [
             transpile_compound(arg)
