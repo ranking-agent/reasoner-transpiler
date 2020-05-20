@@ -1,4 +1,7 @@
 """Tools for compiling QGraph into Cypher query."""
+from collections import ChainMap
+from functools import reduce
+from operator import and_
 import re
 
 from jinja2 import Template
@@ -136,7 +139,7 @@ class EdgeReference():
         ) + ('>' if self.directed else '')
 
 
-def get_match_clause(qgraph, max_connectivity=-1):
+def get_match_clause(qgraph, max_connectivity=-1, **kwargs):
     """Generate a Cypher MATCH clause.
 
     Returns the query fragment as a string.
@@ -186,28 +189,326 @@ def get_match_clause(qgraph, max_connectivity=-1):
         if filters:
             clauses.append('WHERE ' + ' AND '.join(filters))
 
-    return ' '.join(clauses), list(orphaned_nodes) + [edge['id'] for edge in edges]
+    return Query(
+        ' '.join(clauses),
+        nodes={node['id']: node['id'] for node in qgraph['nodes']},
+        edges={edge['id']: edge['id'] for edge in qgraph['edges']},
+    )
 
 
-def parse_compound(qgraph, prefix=''):
-    """Parse compound qgraph.
+def get_qids(qgraph):
+    """Get all qids in qgraph."""
+    return {node['id'] for node in qgraph['nodes']} \
+        | {edge['id'] for edge in qgraph['edges']}
 
-    Return the logical string and a map of simple qgraphs.
-    """
-    if isinstance(qgraph, list):
-        expression = f' {qgraph[0]} '.join(
-            parse_compound(
-                sub_qgraph,
-                prefix=f'{prefix}_{idx + 1}' if prefix else str(idx + 1)
+
+class Query():
+    """Cypher query segment."""
+
+    def __init__(
+            self,
+            string,
+            nodes=None, edges=None,
+    ):
+        """Initialize."""
+        self._string = string
+        self._nodes = nodes
+        self._edges = edges
+        self.context = None
+
+    def requires(self, qid):
+        """Return whether qid is required."""
+        if qid in self.qids:
+            return True
+        return None
+
+    def __str__(self):
+        """Return query string."""
+        return self._string
+
+    @property
+    def nodes(self):
+        """Get nodes."""
+        return self._nodes
+
+    @property
+    def edges(self):
+        """Get edges."""
+        return self._edges
+
+    @property
+    def qids(self):
+        """Return all qids."""
+        return {**self.nodes, **self.edges}
+
+    def where_clause(self, context=None):
+        """Get WHERE clause."""
+        if context is None:
+            context = set()
+        return str(self) + ' WHERE ' + ' AND '.join(
+            '({0} {1} null)'.format(
+                qid,
+                'IS NOT' if self.requires(qid) else 'IS',
             )
-            for idx, sub_qgraph in enumerate(qgraph[1:])
+            for qid in set(self.qids) - set(context)
+            if self.requires(qid) is not None
         )
-        if prefix:
-            return f'({expression})'
+
+    def return_clause(self, context=None):
+        """Get RETURN clause."""
+        if context is None:
+            context = set()
+        return 'RETURN ' + ', '.join(set(self.qids) - set(context))
+
+    def deobligate(self):
+        """Remove all logical obligations."""
+        return OptionalQuery(self)
+
+    def __and__(self, other):
+        """AND two queries together."""
+        return AndQuery(self, other)
+
+    def __invert__(self):
+        """NOT query."""
+        return NotQuery(self)
+
+    def add_context(self, context):
+        """Add nodes to query context."""
+
+    def __or__(self, other):
+        """OR queries."""
+        return OrQuery(self, other)
+
+    def __xor__(self, other):
+        """XOR queries."""
+        return XorQuery(self, other)
+
+    def set_context(self, context):
+        """Set context."""
+        self.context = context
+
+
+class CompoundQuery(Query):
+    """Compound query."""
+
+    def __init__(self, *subqueries):
+        """Initialize."""
+        self.subqueries = subqueries
+
+    @property
+    def nodes(self):
+        """Get nodes."""
+        return dict(ChainMap(*(
+            subquery.nodes
+            for subquery in self.subqueries
+        )))
+
+    @property
+    def edges(self):
+        """Get edges."""
+        return dict(ChainMap(*(
+            subquery.edges
+            for subquery in self.subqueries
+        )))
+
+    def requires(self, qid):
+        """Return whether qid is required."""
+        for query in self.subqueries:
+            val = query.requires(qid)
+            if val is not None:
+                return val
+        return None
+
+
+class WrapQuery(CompoundQuery):
+    """Query wrapped in apoc.cypher.run()."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize."""
+        super().__init__(*args, **kwargs)
+        assert len(self.subqueries) == 1
+
+    @property
+    def params(self):
+        """Get params."""
+        if self.context is not None:
+            return ', '.join(
+                f'`id({var})`: id({var})'
+                for var in self.context
+            )
         else:
-            return expression
+            return ''
+
+    @property
+    def nodes(self):
+        """Get nodes."""
+        return {
+            qid: f'value.{qid}'
+            for qid in super().nodes
+        }
+
+    @property
+    def edges(self):
+        """Get edges."""
+        return {
+            qid: f'value.{qid}'
+            for qid in super().edges
+        }
+
+    def __str__(self, **kwargs):
+        """Wrap a Cypher query in apoc.cypher.run()."""
+        return (
+            'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
+            'YIELD value'
+        ).format(
+            query=str(self.subqueries[0]).replace('\\', '\\\\').replace('\'', '\\\''),
+            params=self.params,
+        )
+
+
+class AndQuery(CompoundQuery):
+    """Compound query segment."""
+
+    def __init__(self, *subqueries):
+        """Initialize."""
+        # super().__init__(*subqueries)
+
+        self.subqueries = []
+        for query in subqueries:
+            query.set_context(self.nodes)
+            if isinstance(query, (OrQuery, XorQuery)):
+                query = WrapQuery(query)
+                query.set_context(self.nodes)
+            self.subqueries.append(query)
+
+    def __str__(self):
+        """Get query string."""
+        return ' '.join(
+            str(query) for query in self.subqueries
+        ) + ' WITH ' + ', '.join(
+            qid if qid == accessor else f'{accessor} AS {qid}'
+            for qid, accessor in self.qids.items()
+        )
+
+
+class NotQuery(CompoundQuery):
+    """Not query segment."""
+
+    def __str__(self):
+        """Return query string."""
+        return str(self.subqueries[0])
+
+    def requires(self, qid):
+        """Return whether qid is required."""
+        return not super().requires(qid)
+
+
+class OptionalQuery(CompoundQuery):
+    """Optional query segment."""
+
+    def __str__(self):
+        """Return query string."""
+        return str(self.subqueries[0])
+
+    def requires(self, qid):
+        """Return whether qid is required."""
+        return None
+
+
+def union_string(query0, query1, context=None):
+    """Assemble UNION query."""
+    if context is not None:
+        prefix = ''.join(
+            f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var} '
+            for var in context
+        )
     else:
-        return f'{{{{ qg_{prefix} }}}}'
+        prefix = ''
+    return (
+        '{prefix}{query0}'
+        ' UNION '
+        '{prefix}{query1}'
+    ).format(
+        prefix=prefix,
+        query0=' '.join((str(query0), query0.where_clause(), query0.return_clause(context))),
+        query1=' '.join((str(query1), query1.where_clause(), query1.return_clause(context))),
+    )
+
+
+class OrQuery(CompoundQuery):
+    """OR query."""
+
+    def __init__(self, *args):
+        """Initialize."""
+        assert len(args) == 2
+        query0 = AndQuery(args[0], args[1].deobligate())
+        query1 = AndQuery(args[1], args[0].deobligate())
+        self.subqueries = [query0, query1]
+
+    def __str__(self):
+        """Get query string."""
+        return union_string(
+            *self.subqueries,
+            context=self.context,
+        )
+
+
+class XorQuery(CompoundQuery):
+    """XOR query."""
+
+    def __init__(self, *args):
+        """Initialize."""
+        assert len(args) == 2
+        query0 = AndQuery(args[0], ~args[1])
+        query1 = AndQuery(args[1], ~args[0])
+        self.subqueries = [query0, query1]
+
+    def __str__(self):
+        """Get query string."""
+        return union_string(
+            *self.subqueries,
+            context=self.context,
+        )
+
+
+def transpile_compound(qgraph, **kwargs):
+    """Restate compound qgraph.
+
+    We want to use AND, NOT, OPTIONAL, and UNION, not OR and XOR.
+    "x OR y" -> "(x AND OPTIONAL y) UNION (y AND OPTIONAL x)"
+    "x XOR y" -> "(x AND NOT y) UNION (y AND NOT x)"
+    Collapse nested operators, e.g. "x AND (y AND z)" -> "x AND y AND z"
+    """
+    def nest_op(operator, *args):
+        """Generate a nested set of operations from a flat expression."""
+        if len(args) > 2:
+            return [operator, args[0], nest_op(operator, *args[1:])]
+        else:
+            return [operator, *args]
+
+    if isinstance(qgraph, list):
+        # if qgraph[0] in ('OR', 'XOR'):
+        #     qgraph = nest_op(*qgraph)
+
+        args = [
+            transpile_compound(arg)
+            for arg in qgraph[1:]
+        ]
+        if qgraph[0] == 'AND':
+            return reduce(and_, args)
+        elif qgraph[0] == 'OR':
+            if len(args) != 2:
+                raise ValueError('OR must have exactly two operands')
+            return args[0] | args[1]
+        elif qgraph[0] == 'XOR':
+            if len(args) != 2:
+                raise ValueError('XOR must have exactly two operands')
+            return args[0] ^ args[1]
+    query = get_match_clause(
+        qgraph,
+        **kwargs,
+    )
+    return query
 
 
 def get_query(qgraph, **kwargs):
@@ -227,12 +528,12 @@ def get_query(qgraph, **kwargs):
             for idx in match[1].split('_')[1:]:
                 sub_qgraph = sub_qgraph[int(idx)]
             sub_qgraphs[match[1]] = sub_qgraph
-            match_string, sub_qids = get_match_clause(
+            query = get_match_clause(
                 sub_qgraph,
                 max_connectivity=kwargs.pop('max_connectivity', -1)
             )
-            qids[match[1]] = sub_qids
-            clauses.append(match_string)
+            qids[match[1]] = query.qids
+            clauses.append(str(query))
         template = Template(expr)
         qnodes = [
             el
