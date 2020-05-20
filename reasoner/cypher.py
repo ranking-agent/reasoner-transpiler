@@ -247,11 +247,18 @@ class Query():
         """Return all qids."""
         return {**self.nodes, **self.edges}
 
+    def with_clause(self):
+        """Get WITH clause."""
+        return 'WITH ' + ', '.join(
+            qid if qid == accessor else f'{accessor} AS {qid}'
+            for qid, accessor in self.qids.items()
+        )
+
     def where_clause(self, context=None):
         """Get WHERE clause."""
         if context is None:
             context = set()
-        return 'WHERE ' + self.logic
+        return self.with_clause() + ' WHERE ' + self.logic
 
     def return_clause(self, context=None):
         """Get RETURN clause."""
@@ -320,8 +327,8 @@ class WrapQuery(CompoundQuery):
 
     def __init__(self, *args, **kwargs):
         """Initialize."""
+        assert len(args) == 1
         super().__init__(*args, **kwargs)
-        assert len(self.subqueries) == 1
 
     @property
     def params(self):
@@ -380,9 +387,6 @@ class AndQuery(CompoundQuery):
         """Get query string."""
         return ' '.join(
             str(query) for query in self.subqueries
-        ) + ' WITH ' + ', '.join(
-            qid if qid == accessor else f'{accessor} AS {qid}'
-            for qid, accessor in self.qids.items()
         )
 
 
