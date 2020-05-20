@@ -368,9 +368,9 @@ class WrapQuery(CompoundQuery):
             ),
             accessors=', '.join(
                 [
-                    f'value.{qid} AS {qid}' for qid in self.subqueries[0].qids
+                    f'value.{qid} AS {qid}' for qid in self.subqueries[0].qids - context
                 ]
-                + list(context - self.subqueries[0].qids)
+                + list(context)
             )
         )
 
