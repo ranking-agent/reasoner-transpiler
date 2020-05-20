@@ -228,7 +228,7 @@ class Query():
             ]
         return ' AND '.join(conditions)
 
-    def __str__(self):
+    def compile(self, context=None):
         """Return query string."""
         return self._string
 
@@ -273,9 +273,6 @@ class Query():
     def __invert__(self):
         """NOT query."""
         return NotQuery(self)
-
-    def add_context(self, context):
-        """Add nodes to query context."""
 
     def __or__(self, other):
         """OR queries."""
@@ -326,16 +323,6 @@ class WrapQuery(CompoundQuery):
         assert len(args) == 1
         super().__init__(*args, **kwargs)
 
-    def params(self, context=None):
-        """Get params."""
-        if context is not None:
-            return ', '.join(
-                f'`id({var})`: id({var})'
-                for var in context
-            )
-        else:
-            return ''
-
     @property
     def nodes(self):
         """Get nodes."""
@@ -358,8 +345,15 @@ class WrapQuery(CompoundQuery):
             'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
             'YIELD value'
         ).format(
-            query=self.subqueries[0].compile(context).replace('\\', '\\\\').replace('\'', '\\\''),
-            params=self.params(context),
+            query=(
+                self.subqueries[0].compile(context)
+                .replace('\\', '\\\\')
+                .replace('\'', '\\\'')
+            ),
+            params=', '.join(
+                f'`id({var})`: id({var})'
+                for var in context
+            ),
         )
 
 
@@ -415,8 +409,14 @@ def union_string(query0, query1, context=None):
         '{prefix}{query1}'
     ).format(
         prefix=prefix,
-        query0=' '.join((query0.compile(context), query0.return_clause(context))),
-        query1=' '.join((query1.compile(context), query1.return_clause(context))),
+        query0=' '.join((
+            query0.compile(context),
+            query0.return_clause(context),
+        )),
+        query1=' '.join((
+            query1.compile(context),
+            query1.return_clause(context),
+        )),
     )
 
 
@@ -427,14 +427,13 @@ class OrQuery(CompoundQuery):
         """Initialize."""
         assert len(args) == 2
         super().__init__(*args)
-        query0 = AndQuery(args[0], args[1])
-        query1 = AndQuery(args[1], args[0])
-        self._subqueries = [query0, query1]
 
     def compile(self, context=None):
         """Get query string."""
+        query0 = AndQuery(self.subqueries[0], self.subqueries[1])
+        query1 = AndQuery(self.subqueries[1], self.subqueries[0])
         return union_string(
-            *self._subqueries,
+            query0, query1,
             context=context,
         )
 
@@ -453,14 +452,13 @@ class XorQuery(CompoundQuery):
         """Initialize."""
         assert len(args) == 2
         super().__init__(*args)
-        query0 = AndQuery(args[0], args[1])
-        query1 = AndQuery(args[1], args[0])
-        self._subqueries = [query0, query1]
 
     def compile(self, context=None):
         """Get query string."""
+        query0 = AndQuery(self.subqueries[0], self.subqueries[1])
+        query1 = AndQuery(self.subqueries[1], self.subqueries[0])
         return union_string(
-            *self._subqueries,
+            query0, query1,
             context=context,
         )
 
