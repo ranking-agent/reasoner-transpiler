@@ -394,10 +394,11 @@ class AltQuery(CompoundQuery):
             return self._compile_union(**kwargs)
         else:
             query = AndQuery(self.subqueries[0], self.subqueries[1])
-            if kwargs.pop('wrapped', False):
-                return wrap_string(query, **kwargs)
-            else:
-                return query.compile(**kwargs)
+            context = kwargs.get('context', set())
+            return (
+                query.compile(**kwargs)
+                + ' WITH ' + ', '.join(self.qids | context)
+            )
 
     def _compile_union(self, **kwargs):
         """Get query string."""
