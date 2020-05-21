@@ -341,11 +341,7 @@ class CompoundQuery(Query):
 class AndQuery(CompoundQuery):
     """Compound query segment."""
 
-    def __init__(self, *subqueries):
-        """Initialize."""
-        super().__init__(*subqueries)
-
-    def compile(self, **kwargs):  # pylint: disable=arguments-differ
+    def compile(self, **kwargs):
         """Get query string."""
         context = kwargs.pop('context', set())
         subquery_strings = []
