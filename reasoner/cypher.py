@@ -109,7 +109,7 @@ class MissingReference(NodeReference):
     def __init__(self, name):  # pylint: disable=super-init-not-called
         """Initialize."""
         self.name = f'`{name}`'
-        self._num = 1
+        self._num = 2
 
 
 class EdgeReference():
@@ -138,63 +138,62 @@ class EdgeReference():
         ) + ('>' if self.directed else '')
 
 
+def build_match(*patterns, filters=None, hints=None):
+    """Build MATCH clause (and subclauses) from components."""
+    query = 'OPTIONAL MATCH ' + ', '.join(patterns)
+    if hints:
+        query += ''.join(hints)
+    if filters:
+        query += ' WHERE ' + ' AND '.join(filters)
+
+    return query
+
+
 def get_match_clause(qgraph, max_connectivity=-1):
     """Generate a Cypher MATCH clause.
 
     Returns the query fragment as a string.
     """
     duplicates = False
-    nodes, edges = qgraph['nodes'], qgraph['edges']
+
+    # sets of ids
+    defined_nodes = {n['id'] for n in qgraph['nodes']}
+    defined_edges = {edge['id'] for edge in qgraph['edges']}
+    referenced_nodes = set(
+        [e['source_id'] for e in qgraph['edges']]
+        + [e['target_id'] for e in qgraph['edges']]
+    )
 
     # generate internal node and edge variable names
-    node_references = {n['id']: NodeReference(n) for n in nodes}
+    node_references = {n['id']: NodeReference(n) for n in qgraph['nodes']}
+    for node_id in referenced_nodes - defined_nodes:  # reference-only nodes
+        node_references[node_id] = MissingReference(node_id)
 
     clauses = []
     filters = []
-    extras = []
+    hints = []
 
     # match orphaned nodes
-    all_nodes = {n['id'] for n in nodes}
-    all_referenced_nodes = set(
-        [e['source_id'] for e in edges]
-        + [e['target_id'] for e in edges]
-    )
-    orphaned_nodes = all_nodes - all_referenced_nodes
-    missing_nodes = all_referenced_nodes - all_nodes
-    for node_id in missing_nodes:
-        node_references[node_id] = MissingReference(node_id)
-    for node_id in orphaned_nodes:
+    for node_id in defined_nodes - referenced_nodes:
         if duplicates:
-            clauses.append(
-                f'OPTIONAL MATCH {node_references[node_id]}'
-                + node_references[node_id].extras
-            )
-            if node_references[node_id].filters:
-                clauses.append('WHERE ' + node_references[node_id].filters)
+            clauses.append(build_match(
+                node_references[node_id],
+                hints=[node_references[node_id].extras],
+                filters=node_references[node_id].filters,
+            ))
         else:
             clauses.append(
-                f'{node_references[node_id]}'
+                str(node_references[node_id])
             )
-            extras.append(node_references[node_id].extras)
+            hints.append(node_references[node_id].extras)
             if node_references[node_id].filters:
                 filters.extend(node_references[node_id].filters)
 
     # match edges
-    for edge in edges:
+    for edge in qgraph['edges']:
         eref = EdgeReference(edge)
         source_node = node_references[edge['source_id']]
         target_node = node_references[edge['target_id']]
-        if duplicates:
-            clauses.append(
-                f'OPTIONAL MATCH {source_node}{eref}{target_node}'
-                + source_node.extras + target_node.extras
-            )
-        else:
-            clauses.append(
-                f'{source_node}{eref}{target_node}'
-            )
-            extras.append(source_node.extras)
-            extras.append(target_node.extras)
         edge_filters = [f'({c})' for c in [
             source_node.filters, target_node.filters, eref.filters
         ] if c]
@@ -203,25 +202,33 @@ def get_match_clause(qgraph, max_connectivity=-1):
                 target_node,
                 max_connectivity,
             ))
-        if filters:
-            if duplicates:
-                clauses.append('WHERE ' + ' AND '.join(filters))
-            else:
-                filters.extend(edge_filters)
+        if duplicates:
+            clauses.append(build_match(
+                f'{source_node}{eref}{target_node}',
+                hints=[source_node.extras, target_node.extras],
+                filters=edge_filters,
+            ))
+        else:
+            clauses.append(
+                f'{source_node}{eref}{target_node}'
+            )
+            hints.append(source_node.extras)
+            hints.append(target_node.extras)
+            filters.extend(edge_filters)
 
-    all_edges = {edge['id'] for edge in edges}
     if duplicates:
         query = ' '.join(clauses)
     else:
         query = 'OPTIONAL MATCH ' + ', '.join(clauses)
-        if extras:
-            query += ''.join(extras)
-        if filters:
-            query += ' WHERE ' + ' AND '.join(filters)
+
+    if hints:
+        query += ''.join(hints)
+    if filters:
+        query += ' WHERE ' + ' AND '.join(filters)
     return Query(
         query,
-        qids=all_nodes | all_edges,
-        references=all_nodes | all_referenced_nodes | all_edges,
+        qids=defined_nodes | defined_edges,
+        references=defined_nodes | referenced_nodes | defined_edges,
     )
 
 
