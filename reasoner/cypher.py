@@ -1,9 +1,6 @@
 """Tools for compiling QGraph into Cypher query."""
 from functools import reduce
 from operator import and_, or_
-import re
-
-from jinja2 import Template
 
 
 def cypher_prop_string(value):
