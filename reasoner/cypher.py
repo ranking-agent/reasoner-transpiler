@@ -38,20 +38,20 @@ class NodeReference():
             self.labels = [self.labels]
 
         props = {}
-        self._filters = ''
+        self._filters = []
         curie = node.pop('curie', None)
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
         if isinstance(curie, str):
             props['id'] = curie
         elif isinstance(curie, list):
-            self._filters = ' OR '.join([
+            self._filters.append(' OR '.join([
                 '{0}.id = {1}'.format(
                     self.name,
                     cypher_prop_string(ci)
                 )
                 for ci in curie
-            ])
+            ]))
         elif curie is not None:
             # coerce to a string
             props['id'] = str(curie)
@@ -65,9 +65,9 @@ class NodeReference():
         self.prop_string = ' {' + ', '.join([
             f'`{key}`: {cypher_prop_string(props[key])}' for key in props
         ]) + '}' if props else ''
-        self._extras = ''
+        self._hints = []
         if curie:
-            self._extras = f' USING INDEX {self.name}:{self.labels[0]}(id)'
+            self._hints.append(f'USING INDEX {self.name}:{self.labels[0]}(id)')
         self._num = 0
 
     def __str__(self):
@@ -86,18 +86,18 @@ class NodeReference():
         To be used in a WHERE clause following the MATCH clause.
         """
         if self._num > 1:
-            return ''
+            return []
         return self._filters
 
     @property
-    def extras(self):
-        """Return extras for the cypher node reference.
+    def hints(self):
+        """Return hints for the cypher node reference.
 
         To be appended to the MATCH clause.
         """
         if self._num > 1:
-            return ''
-        return self._extras
+            return []
+        return self._hints
 
 
 class MissingReference(NodeReference):
@@ -116,13 +116,13 @@ class EdgeReference():
         """Create an edge reference."""
         self.name = edge['id'] if not anonymous else ''
         self.label = edge.get('type', None)
-        self.filters = ''
+        self.filters = []
 
         if isinstance(self.label, list):
-            self.filters = ' OR '.join(
+            self.filters.append(' OR '.join(
                 f'type({self.name}) = "{predicate}"'
                 for predicate in self.label
-            )
+            ))
             self.label = None
 
         self.directed = edge.get('directed', bool(self.label))
@@ -135,23 +135,35 @@ class EdgeReference():
         ) + ('>' if self.directed else '')
 
 
-def build_match(*patterns, filters=None, hints=None):
+def build_match(
+        *patterns,
+        filters=None,
+        hints=None,
+        simple=False,
+        use_hints=False,
+):
     """Build MATCH clause (and subclauses) from components."""
-    query = 'OPTIONAL MATCH ' + ', '.join(patterns)
-    if hints:
-        query += ''.join(hints)
+    query = ''
+    if not simple:
+        query += 'OPTIONAL '
+    query += 'MATCH ' + ', '.join(patterns)
+    if use_hints and hints:
+        query += ' ' + ' '.join(hints)
     if filters:
+        if len(filters) > 1:
+            filters = [f'({f})' for f in filters]
         query += ' WHERE ' + ' AND '.join(filters)
 
     return query
 
 
-def get_match_clause(qgraph, max_connectivity=-1):
+def get_match_clause(qgraph, **kwargs):
     """Generate a Cypher MATCH clause.
 
     Returns the query fragment as a string.
     """
-    duplicates = False
+    max_connectivity = kwargs.pop('max_connectivity', -1)
+    duplicates = True
 
     # sets of ids
     defined_nodes = {n['id'] for n in qgraph['nodes']}
@@ -174,23 +186,24 @@ def get_match_clause(qgraph, max_connectivity=-1):
     for node_id in defined_nodes - referenced_nodes:
         if duplicates:
             clauses.append(build_match(
-                node_references[node_id],
-                hints=[node_references[node_id].extras],
+                str(node_references[node_id]),
+                hints=node_references[node_id].hints,
                 filters=node_references[node_id].filters,
+                **kwargs,
             ))
         else:
             clauses.append(
                 str(node_references[node_id])
             )
-            hints.append(node_references[node_id].extras)
-            if node_references[node_id].filters:
-                filters.extend(node_references[node_id].filters)
+            hints.extend(node_references[node_id].hints)
+            filters.extend(node_references[node_id].filters)
 
     # match edges
     for edge in qgraph['edges']:
         eref = EdgeReference(edge)
         source_node = node_references[edge['source_id']]
         target_node = node_references[edge['target_id']]
+        pattern = f'{source_node}{eref}{target_node}'
         edge_filters = [f'({c})' for c in [
             source_node.filters, target_node.filters, eref.filters
         ] if c]
@@ -201,27 +214,26 @@ def get_match_clause(qgraph, max_connectivity=-1):
             ))
         if duplicates:
             clauses.append(build_match(
-                f'{source_node}{eref}{target_node}',
-                hints=[source_node.extras, target_node.extras],
+                pattern,
+                hints=source_node.hints + target_node.hints,
                 filters=edge_filters,
+                **kwargs,
             ))
         else:
-            clauses.append(
-                f'{source_node}{eref}{target_node}'
-            )
-            hints.append(source_node.extras)
-            hints.append(target_node.extras)
+            clauses.append(pattern)
+            hints.extend(source_node.hints + target_node.hints)
             filters.extend(edge_filters)
 
     if duplicates:
         query = ' '.join(clauses)
     else:
-        query = 'OPTIONAL MATCH ' + ', '.join(clauses)
+        query = build_match(
+            *clauses,
+            hints=hints,
+            filters=filters,
+            **kwargs,
+        )
 
-    if hints:
-        query += ''.join(hints)
-    if filters:
-        query += ' WHERE ' + ' AND '.join(filters)
     return Query(
         query,
         qids=defined_nodes | defined_edges,
@@ -262,7 +274,16 @@ class Query():
             ]
         return ' AND '.join(conditions)
 
-    def compile(self, **kwargs):  # pylint: disable=unused-argument
+    def compile(self, **kwargs):
+        """Wrap hidden _compile method."""
+        _return = kwargs.pop('_return', False)
+        wrap = kwargs.pop('wrap', False)
+
+        if wrap:
+            return wrap_string(self, **kwargs)
+        return self._compile(**kwargs)
+
+    def _compile(self, **kwargs):  # pylint: disable=unused-argument
         """Return query string."""
         return self._string
 
@@ -305,6 +326,35 @@ class Query():
         return XorQuery(self, other)
 
 
+def compile_wrapped(query, **kwargs):
+    """Compile wrapped query."""
+    context = kwargs.get('context', set())
+    qids = kwargs.get('qids', set())
+    references = kwargs.get('references', set())
+    return (
+        'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
+        'YIELD value '
+        'WITH {accessors}'
+    ).format(
+        query=(
+            query
+            .replace('\\', '\\\\')
+            .replace('\'', '\\\'')
+        ),
+        params=', '.join(
+            f'`id({var})`: id({var})'
+            for var in context & references
+        ),
+        accessors=', '.join(
+            [
+                f'value.{qid} AS {qid}'
+                for qid in qids - context
+            ]
+            + list(context)
+        )
+    )
+
+
 class CompoundQuery(Query):
     """Compound query."""
 
@@ -345,7 +395,7 @@ class CompoundQuery(Query):
 class AndQuery(CompoundQuery):
     """Compound query segment."""
 
-    def compile(self, **kwargs):
+    def _compile(self, **kwargs):
         """Get query string."""
         context = kwargs.pop('context', set())
         subquery_strings = []
@@ -359,7 +409,7 @@ class AndQuery(CompoundQuery):
 class NotQuery(CompoundQuery):
     """Not query segment."""
 
-    def compile(self, **kwargs):
+    def _compile(self, **kwargs):
         """Return query string."""
         return self.subqueries[0].compile(**kwargs)
 
@@ -392,7 +442,7 @@ class AltQuery(CompoundQuery):
         assert len(args) == 2
         super().__init__(*args)
 
-    def compile(self, **kwargs):
+    def _compile(self, **kwargs):
         """Get query string."""
         if self.subqueries[0].qids & self.subqueries[1].qids:
             return self._compile_union(**kwargs)
@@ -409,8 +459,8 @@ class AltQuery(CompoundQuery):
         query0 = AndQuery(self.subqueries[0], self.subqueries[1])
         query1 = AndQuery(self.subqueries[1], self.subqueries[0])
 
-        query0_string = wrap_string(query0, **kwargs)
-        query1_string = wrap_string(query1, **kwargs)
+        query0_string = query0.compile(wrap=True, **kwargs)
+        query1_string = query1.compile(wrap=True, **kwargs)
 
         query = (
             '{query0}'
@@ -421,27 +471,11 @@ class AltQuery(CompoundQuery):
             query1=query1_string,
         )
         context = kwargs.get('context', set())
-        return (
-            'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
-            'YIELD value '
-            'WITH {accessors}'
-        ).format(
-            query=(
-                query
-                .replace('\\', '\\\\')
-                .replace('\'', '\\\'')
-            ),
-            params=', '.join(
-                f'`id({var})`: id({var})'
-                for var in context & self.references
-            ),
-            accessors=', '.join(
-                [
-                    f'value.{qid} AS {qid}'
-                    for qid in self.qids - context
-                ]
-                + list(context)
-            )
+        return compile_wrapped(
+            query,
+            context=context,
+            qids=self.qids,
+            references=self.references,
         )
 
 
@@ -468,13 +502,7 @@ class XorQuery(AltQuery):
 
 
 def transpile_compound(qgraph):
-    """Restate compound qgraph.
-
-    We want to use AND, NOT, OPTIONAL, and UNION, not OR and XOR.
-    "x OR y" -> "(x AND OPTIONAL y) UNION (y AND OPTIONAL x)"
-    "x XOR y" -> "(x AND NOT y) UNION (y AND NOT x)"
-    Collapse nested operators, e.g. "x AND (y AND z)" -> "x AND y AND z"
-    """
+    """Transpile compound qgraph."""
     def nest_op(operator, *args):
         """Generate a nested set of operations from a flat expression."""
         if len(args) > 2:
@@ -483,7 +511,7 @@ def transpile_compound(qgraph):
             return [operator, *args]
 
     if isinstance(qgraph, list):
-        if qgraph[0] in ('OR', 'XOR'):
+        if qgraph[0] == 'OR':
             qgraph = nest_op(*qgraph)
 
         args = [
@@ -512,47 +540,10 @@ def get_query(qgraph, **kwargs):
     Returns the query as a string.
     """
     clauses = []
-    if isinstance(qgraph, list):
-        expr = parse_compound(qgraph)
-        matches = re.finditer(r'{{ (qg_(?:\d+(?:_\d+)*)*) }}', expr)
-        sub_qgraphs = dict()
-        qids = dict()
-        clauses = []
-        for match in matches:
-            sub_qgraph = qgraph
-            for idx in match[1].split('_')[1:]:
-                sub_qgraph = sub_qgraph[int(idx)]
-            sub_qgraphs[match[1]] = sub_qgraph
-            query = get_match_clause(
-                sub_qgraph,
-                max_connectivity=kwargs.pop('max_connectivity', -1)
-            )
-            qids[match[1]] = query.qids
-            clauses.append(str(query))
-        template = Template(expr)
-        qnodes = [
-            el
-            for value in sub_qgraphs.values()
-            for el in value['nodes']
-        ]
-        qedges = [
-            el
-            for value in sub_qgraphs.values()
-            for el in value['edges']
-        ]
-        clauses.append('WITH ' + ', '.join(
-            el['id'] for el in qnodes + qedges
-        ))
-        clauses.append('WHERE ' + template.render(**{
-            key: '(' + ' AND '.join(
-                f'({qid} IS NOT NULL)'
-                for qid in value
-            ) + ')'
-            for key, value in qids.items()
-        }))
-    else:
-        qnodes = qgraph['nodes']
-        qedges = qgraph['edges']
+    if isinstance(qgraph, dict):
+        clauses.append(get_match_clause(qgraph, simple=True).compile())
+    qnodes = qgraph['nodes']
+    qedges = qgraph['edges']
 
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
