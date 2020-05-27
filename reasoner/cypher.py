@@ -276,12 +276,64 @@ class Query():
 
     def compile(self, **kwargs):
         """Wrap hidden _compile method."""
-        _return = kwargs.pop('_return', False)
-        wrap = kwargs.pop('wrap', False)
+        context = kwargs.get('context', set())
+        context_ids = {
+            var[3:-1] for var in context
+            if var.startswith('id(')
+        }
 
-        if wrap:
-            return wrap_string(self, **kwargs)
-        return self._compile(**kwargs)
+        clauses = []
+        clauses.extend([
+            f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var}'
+            for var in context_ids & self.references
+        ])
+
+        return_ = kwargs.pop('return_', False)
+
+        if kwargs.pop('wrap', False):
+            clauses.append(self._compile_wrapped(**kwargs))
+        else:
+            kwargs['context'] = {
+                var[3:-1] if var.startswith('id(')
+                else var
+                for var in context
+            }
+            clauses.append(self._compile(**kwargs))
+
+        if return_:
+            clauses.append(self.return_clause(**kwargs))
+
+        return ' '.join(clauses)
+
+    def _compile_wrapped(self, **kwargs):
+        """Compile wrapped query."""
+        context = kwargs.pop('context', set())
+        inner_context = {
+            f'id({var})'
+            for var in context & self.references
+        }
+        return (
+            'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
+            'YIELD value '
+            'WITH {accessors}'
+        ).format(
+            query=(
+                self.compile(context=inner_context, return_=True, **kwargs)
+                .replace('\\', '\\\\')
+                .replace('\'', '\\\'')
+            ),
+            params=', '.join(
+                f'`{var}`: {var}'
+                for var in inner_context
+            ),
+            accessors=', '.join(
+                [
+                    f'value.{qid} AS {qid}'
+                    for qid in self.qids - context
+                ]
+                + list(context)
+            )
+        )
 
     def _compile(self, **kwargs):  # pylint: disable=unused-argument
         """Return query string."""
@@ -303,10 +355,9 @@ class Query():
             context = set()
         return 'WHERE ' + self.logic
 
-    def return_clause(self, context=None):
+    def return_clause(self, **kwargs):
         """Get RETURN clause."""
-        if context is None:
-            context = set()
+        context = kwargs.get('context', set())
         return 'RETURN ' + ', '.join(self.qids - context)
 
     def __and__(self, other):
@@ -324,35 +375,6 @@ class Query():
     def __xor__(self, other):
         """XOR queries."""
         return XorQuery(self, other)
-
-
-def compile_wrapped(query, **kwargs):
-    """Compile wrapped query."""
-    context = kwargs.get('context', set())
-    qids = kwargs.get('qids', set())
-    references = kwargs.get('references', set())
-    return (
-        'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
-        'YIELD value '
-        'WITH {accessors}'
-    ).format(
-        query=(
-            query
-            .replace('\\', '\\\\')
-            .replace('\'', '\\\'')
-        ),
-        params=', '.join(
-            f'`id({var})`: id({var})'
-            for var in context & references
-        ),
-        accessors=', '.join(
-            [
-                f'value.{qid} AS {qid}'
-                for qid in qids - context
-            ]
-            + list(context)
-        )
-    )
 
 
 class CompoundQuery(Query):
@@ -419,18 +441,6 @@ class NotQuery(CompoundQuery):
         return f'NOT ({super().logic})'
 
 
-def wrap_string(query, **kwargs):
-    """Wrap a query for packaging in apoc.cypher.run()."""
-    context = kwargs.get('context', set())
-    return ' '.join([
-        f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var}'
-        for var in context & query.references
-    ] + [
-        query.compile(**kwargs),
-        query.return_clause(context),
-    ])
-
-
 class AltQuery(CompoundQuery):
     """Alternative query.
 
@@ -445,7 +455,7 @@ class AltQuery(CompoundQuery):
     def _compile(self, **kwargs):
         """Get query string."""
         if self.subqueries[0].qids & self.subqueries[1].qids:
-            return self._compile_union(**kwargs)
+            return self._compile_union(**kwargs, return_=True)
         else:
             query = AndQuery(self.subqueries[0], self.subqueries[1])
             context = kwargs.get('context', set())
@@ -459,23 +469,37 @@ class AltQuery(CompoundQuery):
         query0 = AndQuery(self.subqueries[0], self.subqueries[1])
         query1 = AndQuery(self.subqueries[1], self.subqueries[0])
 
-        query0_string = query0.compile(wrap=True, **kwargs)
-        query1_string = query1.compile(wrap=True, **kwargs)
+        query = UnionQuery(query0, query1)
+        return query.compile(wrap=True, **kwargs)
 
-        query = (
-            '{query0}'
-            ' UNION '
-            '{query1}'
-        ).format(
-            query0=query0_string,
-            query1=query1_string,
+
+class UnionQuery(CompoundQuery):
+    """UNION query."""
+
+    def compile(self, **kwargs):
+        """Return query string."""
+        assert kwargs.get('return_', False)
+        self.return_ = kwargs.pop('return_', set())
+        self.context = kwargs.pop('context', set())
+        context = {
+            var[3:-1] if var.startswith('id(')
+            else var
+            for var in self.context
+        }
+        return super().compile(context=context, **kwargs)
+
+    def _compile(self, **kwargs):
+        """Return query string."""
+        kwargs.update(
+            context=self.context,
+            return_=self.return_,
         )
-        context = kwargs.get('context', set())
-        return compile_wrapped(
-            query,
-            context=context,
-            qids=self.qids,
-            references=self.references,
+
+        return ' UNION '.join(
+            subquery.compile(
+                **kwargs,
+            )
+            for subquery in self.subqueries
         )
 
 
