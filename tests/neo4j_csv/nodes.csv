@@ -1,0 +1,71 @@
+id,label,name,occurences,subtype,gender
+anrl,Weapon,Anduril,,sword,
+arag,Person,Aragorn,1069,men,male
+arwe,Person,Arwen,51,elves,female
+axe,Weapon,Axe,,axe,
+bage,Place,Bag End,77,place,
+bali,Person,Balin,30,dwarf,male
+bard,Person,Bard,,men,male
+bilb,Person,Bilbo,385,hobbit,male
+bill,Creature,Bill,45,pony,male
+blka,Weapon,Black Arrow,,arrow,
+bomb,Person,Bombadil,177,ainur,male
+boro,Person,Boromir,293,men,male
+bow,Weapon,Bow,,bow,
+cele,Person,Celeborn,51,elves,male
+celb,Person,Celebrian,,elves,female
+comp,Group,Company,160,mixed,
+dale,Place,Dale,,place,
+dene,Person,Denethor,168,men,male
+deag,Person,Deagol,,hobbit,male
+dban,Creature,Durin's Bane,,balrog,
+elen,Person,Elendil,,men,male
+elro,Person,Elrond,240,elves,male
+eome,Person,Eomer,238,men,male
+eowy,Person,Eowyn,115,men,female
+oldf,Place,Old Forest,19,place,
+fara,Person,Faramir,313,men,male
+fell,Group,Fellowship,160,mixed,
+frod,Person,Frodo,2040,hobbit,male
+gala,Person,Galadriel,95,elves,female
+ganda,Person,Gandalf,1235,ainur,male
+gber,Person,Goldberry,32,ainur,female
+gimli,Person,Gimli,403,dwarf,male
+glam,Weapon,Glamdring,,sword,
+gloi,Person,Gloin,52,dwarf,male
+goll,Person,Gollum,581,hobbit,male
+gond,Place,Gondor,442,place,
+gorb,Person,Gorbag,30,orcs,male
+guth,Weapon,Guthwine,,sword,
+hald,Person,Haldir,44,elves,male
+hton,Place,Hobbiton,59,place,
+isen,Place,Isengard,165,place,
+isil,Person,Isildur,103,men,male
+lego,Person,Legolas,346,elves,male
+lone,Place,Lonely Mountain,,place,
+lori,Place,Lorien,97,place,
+merr,Person,Merry,595,hobbit,male
+mord,Place,Mordor,265,place,
+morb,Weapon,Morgul-blade,,sword,
+pipp,Person,Pippin,771,hobbit,male
+rada,Person,Radagast,,ainur,male
+ring,Thing,The One Ring,427,thing,
+rive,Place,Rivendell,145,place,
+roha,Place,Rohan,263,place,
+sams,Person,Sam,1400,hobbit,male
+saru,Person,Saruman,312,ainur,male
+saur,Person,Sauron,339,ainur,male
+sfax,Creature,Shadowfax,78,animal,male
+shel,Creature,Shelob,40,spider,female
+shir,Place,Shire,411,place,
+smau,Creature,Smaug,,dragon,male
+stin,Weapon,Sting,,sword,
+theod,Person,Theoden,246,men,male
+thor,Person,Thorin,40,dwarf,male
+thra,Person,Thrain,33,dwarf,male
+tiri,Place,Minas Tirith,110,place,
+treeb,Person,Treebeard,221,ents,male
+orcr,Weapon,Orcrist,,sword,
+orcs,Group,Orcs,321,orcs,
+whki,Person,Witch-King,,nazgul,male
+worm,Person,Wormtongue,65,men,male

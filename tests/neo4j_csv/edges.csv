@@ -1,0 +1,102 @@
+source_id,predicate,target_id
+Aragorn,is_member,Fellowship
+Aragorn,wields,Anduril
+Aragorn,is_spouse,Arwen
+Aragorn,rules,Gondor
+Arwen,is_child,Celebrian
+Arwen,is_child,Elrond
+Arwen,is_spouse,Aragorn
+Durin's Bane,kills,Gandalf
+Bard,kills,Smaug
+Bard,rules,Dale
+Bard,wields,Black Arrow
+Bilbo,bears,The One Ring
+Bilbo,wields,Sting
+Boromir,is_sibling,Faramir
+Boromir,is_member,Fellowship
+Celeborn,is_spouse,Galadriel
+Celeborn,is_parent,Celebrian
+Celebrian,is_child,Galadriel
+Celebrian,is_child,Celeborn
+Celebrian,is_parent,Arwen
+Celebrian,is_spouse,Elrond
+Elrond,is_spouse,Celebrian
+Elrond,is_parent,Arwen
+Elrond,lives_in,Rivendell
+Eomer,wields,Guthwine
+Eomer,rules,Rohan
+Eomer,is_sibling,Eowyn
+Eowyn,kills,Witch-King
+Eowyn,is_sibling,Eomer
+Faramir,is_sibling,Boromir
+Frodo,bears,The One Ring
+Frodo,is_member,Fellowship
+Frodo,wields,Sting
+Galadriel,is_parent,Celebrian
+Galadriel,is_spouse,Celeborn
+Gandalf,is_member,Fellowship
+Gandalf,wields,Glamdring
+Gandalf,kills,Durin's Bane
+Gimli,wields,Axe
+Gimli,kills,Orcs
+Gimli,is_member,Fellowship
+Gollum,destroys,The One Ring
+Gollum,bears,The One Ring
+Gollum,kills,Deagol
+Legolas,is_member,Fellowship
+Legolas,wields,Bow
+Merry,is_member,Fellowship
+Orcs,kills,Boromir
+Pippin,is_member,Fellowship
+Sam,is_member,Fellowship
+Sauron,creates,The One Ring
+Smaug,lives_in,Lonely Mountain
+Theoden,rules,Rohan
+Thorin,rules,Lonely Mountain
+Thorin,wields,Orcrist
+Witch-king,wields,Morgul-blade
+Wormtongue,kills,Saruman
+Frodo,lives_in,Shire
+Sam,lives_in,Shire
+Pippin,lives_in,Shire
+Merry,lives_in,Shire
+Sauron,rules,Mordor
+Bag End,located_in,Hobbiton
+Hobbiton,located_in,Shire
+Minas Tirith,located_in,Gondor
+Treebeard,lives_in,Old Forest
+Thrain,is_parent,Thorin
+Thorin,is_child,Thrain
+Witch-King,wields,Morgul-blade
+Saruman,rules,Isengard
+Witch-King,stabs,Frodo
+Radagast,helps,Gandalf
+Sam,rides,Bill
+Bilbo,is_member,Company
+Thorin,is_member,Company
+Balin,is_member,Company
+Bombadil,is_spouse,Goldberry
+Bombadil,lives_in,Old Forest
+Denethor,rules,Minas Tirith
+Denethor,is_parent,Faramir
+Denethor,is_parent,Boromir
+Pippin,serves,Denethor
+Isildur,defeats,Sauron
+Elendil,is_parent,Isildur
+Isildur,is_child,Elendil
+Elendil,wields,Anduril
+Gandalf,rides,Shadowfax
+Isengard,spawns,Orcs
+Treebeard,fights,Isengard
+Frodo,fights,Shelob
+Sam,fights,Shelob
+Gorbag,captures,Frodo
+Haldir,lives_in,Lorien
+Gloin,is_member,Company
+Fellowship,forms_in,Lorien
+Gandalf,is_member,Company
+Faramir,is_child,Denethor
+Boromir,is_child,Denethor
+Bilbo,is_uncle,Frodo
+Bilbo,finds,Sting
+Frodo,inherits,Sting

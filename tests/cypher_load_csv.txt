@@ -1,0 +1,14 @@
+LOAD CSV WITH HEADERS FROM 'file:///nodes.csv'
+AS row
+CALL apoc.create.node([row.label], {
+    name: row.name, id: row.name,
+    subtype: row.subtype, gender: row.gender,
+    occurences: row.occurences
+}) YIELD node
+RETURN count(*)
+LOAD CSV WITH HEADERS FROM 'file:///edges.csv'
+AS edge
+MATCH (source), (target)
+WHERE source.name = edge.source_id AND target.name = edge.target_id
+CALL apoc.create.relationship(source, toUpper(edge.predicate), {predicate: edge.predicate}, target) YIELD rel
+RETURN count(*)
