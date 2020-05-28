@@ -139,13 +139,10 @@ def build_match(
         *patterns,
         filters=None,
         hints=None,
-        simple=False,
         use_hints=False,
 ):
     """Build MATCH clause (and subclauses) from components."""
     query = ''
-    if not simple:
-        query += 'OPTIONAL '
     query += 'MATCH ' + ', '.join(patterns)
     if use_hints and hints:
         query += ' ' + ' '.join(hints)
@@ -287,18 +284,51 @@ class Query():
             f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var}'
             for var in context_ids & self.references
         ])
+        context = {
+            var[3:-1] if var.startswith('id(')
+            else var
+            for var in context
+        }
+        kwargs['context'] = context
 
         return_ = kwargs.pop('return_', False)
+        wrap = kwargs.pop('wrap', False)
 
-        if kwargs.pop('wrap', False):
+        optional = kwargs.pop('optional', False)
+
+        if (
+                not optional
+                and not wrap
+                and not isinstance(self, CompoundQuery)
+                and len(self.references) >= 5
+        ):
+            # there are probably at least two edges here
+            wrap = True
+            kwargs.update(
+                optional=True,
+            )
+        elif not optional and not isinstance(self, CompoundQuery):
+            clauses.append('OPTIONAL')
+
+        if wrap:
             clauses.append(self._compile_wrapped(**kwargs))
         else:
-            kwargs['context'] = {
-                var[3:-1] if var.startswith('id(')
-                else var
-                for var in context
-            }
             clauses.append(self._compile(**kwargs))
+
+        if optional:
+            clauses.append((
+                'WITH CASE WHEN count(*) > 0 '
+                + 'THEN collect([{0}]) '.format(
+                    ', '.join(self.qids - context)
+                )
+                + 'ELSE [[]] '
+                + 'END AS results '
+                + 'UNWIND results as result '
+                + 'WITH {0}'.format(', '.join(
+                    f'result[{idx}] AS {qid}'
+                    for idx, qid in enumerate(self.qids - context)
+                ))
+            ))
 
         if return_:
             clauses.append(self.return_clause(**kwargs))
@@ -565,7 +595,7 @@ def get_query(qgraph, **kwargs):
     """
     clauses = []
     if isinstance(qgraph, dict):
-        clauses.append(get_match_clause(qgraph, simple=True).compile())
+        clauses.append(get_match_clause(qgraph).compile())
     qnodes = qgraph['nodes']
     qedges = qgraph['edges']
 
