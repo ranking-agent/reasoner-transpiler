@@ -175,7 +175,10 @@ def get_match_clause(qgraph, **kwargs):
     )
 
     # generate internal node and edge variable names
-    node_references = {qnode_id: NodeReference(qnode_id, qnode) for qnode_id, qnode in qgraph['nodes'].items()}
+    node_references = {
+        qnode_id: NodeReference(qnode_id, qnode)
+        for qnode_id, qnode in qgraph['nodes'].items()
+    }
     for node_id in referenced_nodes - defined_nodes:  # reference-only nodes
         node_references[node_id] = MissingReference(node_id)
 
@@ -258,7 +261,6 @@ class Query():
         self._qids = qids
         self._references = references
         self._qgraph = qgraph
-        self.context = None
 
     @property
     def qgraph(self):
@@ -524,6 +526,12 @@ class AltQuery(CompoundQuery):
 
 class UnionQuery(CompoundQuery):
     """UNION query."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize."""
+        super().__init__(*args, **kwargs)
+        self.return_ = None
+        self.context = None
 
     def compile(self, **kwargs):
         """Return query string."""
