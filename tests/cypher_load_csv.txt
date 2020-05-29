@@ -3,7 +3,8 @@ AS row
 CALL apoc.create.node([row.label], {
     name: row.name, id: row.name,
     subtype: row.subtype, gender: row.gender,
-    occurences: row.occurences
+    occurences: toInteger(row.occurences),
+    good: toBoolean(row.good)
 }) YIELD node
 RETURN count(*)
 LOAD CSV WITH HEADERS FROM 'file:///edges.csv'
