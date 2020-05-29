@@ -225,6 +225,8 @@ def get_query(qgraph, **kwargs):
         'collect(DISTINCT `{0}`)'.format(qedge['id'])
         for qedge in qedges
     ])
+    if not kedges:
+        kedges = '[]'
     assemble_clause = (
         'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
         '{{nodes:{2}, edges: {3}}} as knowledge_graph'
