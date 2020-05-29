@@ -238,12 +238,6 @@ def get_match_clause(qgraph, **kwargs):
     )
 
 
-def get_qids(qgraph):
-    """Get all qids in qgraph."""
-    return {node['id'] for node in qgraph['nodes']} \
-        | {edge['id'] for edge in qgraph['edges']}
-
-
 class Query():
     """Cypher query segment."""
 
