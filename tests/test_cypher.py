@@ -1,57 +1,34 @@
 """Test Reasoner->Cypher transpiler."""
 import pytest
 
-from reasoner.cypher import get_query, get_match_clause, parse_compound
+from reasoner.cypher import get_query, get_match_clause
+from initialize_db import initialize_db
 
 
-def test_match():
-    """Test MATCH clause generation."""
-    qgraph = {
-        "nodes": [
-            {
-                "id": "n0",
-                "curie": [
-                    "MONDO:0100096",
-                    "DOID:4325",
-                ],
-                "type": "disease",
-            },
-            {
-                "id": "n1",
-                "curie": {
-                    "MONDO:0100096",
-                    "DOID:4325",
-                },
-                "type": "disease",
-            },
-        ],
-        "edges": [],
-    }
-    clause = get_match_clause(qgraph)
-    print(clause)
-
-
-def test_query():
-    """Test full query generation."""
+def test_complex_query():
+    """Test that db get's initialized successfully."""
+    session = initialize_db()
     qgraph = {
         "nodes": [
             {
                 "id": "n1",
-                "type": "gene",
+                "type": "Weapon",
             },
             {
                 "id": "n0",
-                "curie": "MONDO:0100096",
-                "type": "disease",
-                "communicable": True,
-                "US deaths": 75000,
+                "curie": "Frodo",
+                "type": "Person",
+                "gender": "male",
+                "occurences": 2040,
             },
             {
                 "id": "n2",
+                "type": "Person",
                 "curie": [
-                    "MONDO:0004979",
+                    "Bilbo",
                 ],
-            }
+                "good": True
+            },
         ],
         "edges": [
             {
@@ -63,33 +40,38 @@ def test_query():
                 "id": "e01",
                 "source_id": "n0",
                 "target_id": "n1",
-                "type": "related_to",
+                "type": "INHERITS",
             },
             {
                 "id": "e21",
                 "source_id": "n2",
                 "target_id": "n1",
                 "type": [
-                    "related_to",
-                    "associated_with",
+                    "WIELDS",
+                    "FINDS",
                 ],
             }
         ],
     }
-    clause = get_query(
-        qgraph,
-    )
-    print(clause)
-    clause = get_query(
-        qgraph,
-        max_connectivity=3,
-        relationship_id='internal',
-        skip=2,
-        limit=10,
-    )
-    print(clause)
+    output = session.run(get_query(qgraph))
+    for record in output:
+        assert len(record['results']) == 1
+        assert record['results'][0]['node_bindings'], [{'kg_id': 'Sting', 'qg_id': 'n1'}, {'kg_id': 'Frodo', 'qg_id': 'n0'}, {'kg_id': 'Bilbo', 'qg_id': 'n2'}]
+    session.close()
 
-    qgraph['nodes'][0]['dict'] = {'a': 1}
+
+def test_invalid_node():
+    """Test that an invalid node property value throws an error."""
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "type": "Thing",
+                "dict": {"a": 1},
+            },
+        ],
+        "edges": [],
+    }
     with pytest.raises(ValueError):
         get_query(qgraph)
 
