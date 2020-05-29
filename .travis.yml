@@ -1,5 +1,7 @@
 dist: trusty
 language: python
+jdk:
+  - oraclejdk8
 python:
   - "3.7"
 services:
