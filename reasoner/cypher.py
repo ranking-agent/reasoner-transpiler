@@ -2,6 +2,8 @@
 from functools import reduce
 from operator import and_, or_
 
+from reasoner.util import mapize
+
 
 def cypher_prop_string(value):
     """Convert property value to cypher string representation."""
@@ -19,7 +21,7 @@ def cypher_prop_string(value):
 class NodeReference():
     """Node reference object."""
 
-    def __init__(self, node, anonymous=False):
+    def __init__(self, node_id, node, anonymous=False):
         """Create a node reference.
 
         All node properties of types [str, bool, float/int] will be enforced
@@ -32,7 +34,7 @@ class NodeReference():
         Un-reserved properties with other types will be coerced to str.
         """
         node = dict(node)  # shallow copy
-        self.name = '`' + node.pop('id') + '`' if not anonymous else ''
+        self.name = '`' + node_id + '`' if not anonymous else ''
         self.labels = node.pop('type', ['named_thing'])
         if not isinstance(self.labels, list):
             self.labels = [self.labels]
@@ -112,9 +114,9 @@ class MissingReference(NodeReference):
 class EdgeReference():
     """Edge reference object."""
 
-    def __init__(self, edge, anonymous=False):
+    def __init__(self, edge_id, edge, anonymous=False):
         """Create an edge reference."""
-        self.name = edge['id'] if not anonymous else ''
+        self.name = edge_id if not anonymous else ''
         self.label = edge.get('type', None)
         self.filters = []
 
@@ -159,19 +161,21 @@ def get_match_clause(qgraph, **kwargs):
 
     Returns the query fragment as a string.
     """
+    mapize(qgraph)
+
     max_connectivity = kwargs.pop('max_connectivity', -1)
     duplicates = True
 
     # sets of ids
-    defined_nodes = {n['id'] for n in qgraph['nodes']}
-    defined_edges = {edge['id'] for edge in qgraph['edges']}
+    defined_nodes = set(qgraph['nodes'])
+    defined_edges = set(qgraph['edges'])
     referenced_nodes = set(
-        [e['source_id'] for e in qgraph['edges']]
-        + [e['target_id'] for e in qgraph['edges']]
+        [e['source_id'] for e in qgraph['edges'].values()]
+        + [e['target_id'] for e in qgraph['edges'].values()]
     )
 
     # generate internal node and edge variable names
-    node_references = {n['id']: NodeReference(n) for n in qgraph['nodes']}
+    node_references = {qnode_id: NodeReference(qnode_id, qnode) for qnode_id, qnode in qgraph['nodes'].items()}
     for node_id in referenced_nodes - defined_nodes:  # reference-only nodes
         node_references[node_id] = MissingReference(node_id)
 
@@ -196,10 +200,10 @@ def get_match_clause(qgraph, **kwargs):
             filters.extend(node_references[node_id].filters)
 
     # match edges
-    for edge in qgraph['edges']:
-        eref = EdgeReference(edge)
-        source_node = node_references[edge['source_id']]
-        target_node = node_references[edge['target_id']]
+    for qedge_id, qedge in qgraph['edges'].items():
+        eref = EdgeReference(qedge_id, qedge)
+        source_node = node_references[qedge['source_id']]
+        target_node = node_references[qedge['target_id']]
         pattern = f'{source_node}{eref}{target_node}'
         edge_filters = [f'({c})' for c in [
             source_node.filters, target_node.filters, eref.filters
@@ -235,6 +239,7 @@ def get_match_clause(qgraph, **kwargs):
         query,
         qids=defined_nodes | defined_edges,
         references=defined_nodes | referenced_nodes | defined_edges,
+        qgraph=qgraph,
     )
 
 
@@ -246,12 +251,19 @@ class Query():
             string,
             qids=None,
             references=None,
+            qgraph=None,
     ):
         """Initialize."""
         self._string = string
         self._qids = qids
         self._references = references
+        self._qgraph = qgraph
         self.context = None
+
+    @property
+    def qgraph(self):
+        """Get qgraph."""
+        return self._qgraph
 
     @property
     def logic(self):
@@ -417,6 +429,19 @@ class CompoundQuery(Query):
         )
 
     @property
+    def qgraph(self):
+        """Get qgraph."""
+        qnodes = dict()
+        qedges = dict()
+        for subquery in self.subqueries:
+            qnodes.update(subquery.qgraph['nodes'])
+            qedges.update(subquery.qgraph['edges'])
+        return {
+            'nodes': qnodes,
+            'edges': qedges,
+        }
+
+    @property
     def logic(self):
         """Return whether qid is required."""
         conditions = [
@@ -558,28 +583,28 @@ def transpile_compound(qgraph):
         else:
             return [operator, *args]
 
-    if isinstance(qgraph, list):
-        if qgraph[0] == 'OR':
-            qgraph = nest_op(*qgraph)
+    if isinstance(qgraph, dict):
+        return get_match_clause(
+            qgraph,
+        )
+    if qgraph[0] == 'OR':
+        qgraph = nest_op(*qgraph)
 
-        args = [
-            transpile_compound(arg)
-            for arg in qgraph[1:]
-        ]
-        if qgraph[0] == 'AND':
-            return reduce(and_, args)
-        elif qgraph[0] == 'OR':
-            if len(args) != 2:
-                raise ValueError('OR must have exactly two operands')
-            return args[0] | args[1]
-        elif qgraph[0] == 'XOR':
-            if len(args) != 2:
-                raise ValueError('XOR must have exactly two operands')
-            return args[0] ^ args[1]
-    query = get_match_clause(
-        qgraph,
-    )
-    return query
+    args = [
+        transpile_compound(arg)
+        for arg in qgraph[1:]
+    ]
+    if qgraph[0] == 'AND':
+        return reduce(and_, args)
+    elif qgraph[0] == 'OR':
+        if len(args) != 2:
+            raise ValueError('OR must have exactly two operands')
+        return args[0] | args[1]
+    elif qgraph[0] == 'XOR':
+        if len(args) != 2:
+            raise ValueError('XOR must have exactly two operands')
+        return args[0] ^ args[1]
+    raise ValueError(f'Unrecognized operator "{qgraph[0]}"')
 
 
 def get_query(qgraph, **kwargs):
@@ -588,10 +613,10 @@ def get_query(qgraph, **kwargs):
     Returns the query as a string.
     """
     clauses = []
-    if isinstance(qgraph, dict):
-        clauses.append(get_match_clause(qgraph).compile())
-    qnodes = qgraph['nodes']
-    qedges = qgraph['edges']
+    query = transpile_compound(qgraph)
+    clauses.append(query.compile())
+    qnodes = query.qgraph['nodes']
+    qedges = query.qgraph['edges']
 
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
@@ -599,33 +624,33 @@ def get_query(qgraph, **kwargs):
             '[ni IN collect(DISTINCT `{0}`.id) '
             '| {{qg_id:"{0}", kg_id:ni}}]'
         ).format(
-            qnode['id'],
+            qnode_id,
         ) if qnode.get('set', False) else
-        '[{{qg_id:"{0}", kg_id:`{0}`.id}}]'.format(qnode['id'])
-        for qnode in qnodes
+        '[{{qg_id:"{0}", kg_id:`{0}`.id}}]'.format(qnode_id)
+        for qnode_id, qnode in qnodes.items()
     ]
     edge_bindings = [
         (
             '[ei IN collect(DISTINCT toString(id(`{0}`))) '
             '| {{qg_id:"{0}", kg_id:ei}}]'
         ).format(
-            qedge['id'],
+            qedge_id,
         ) if kwargs.get('relationship_id', 'property') == 'internal' else
         (
             '[ei IN collect(DISTINCT `{0}`.id) '
             '| {{qg_id:"{0}", kg_id:ei}}]'
         ).format(
-            qedge['id'],
+            qedge_id,
         )
-        for qedge in qedges
+        for qedge_id in qedges
     ]
     knodes = ' + '.join([
-        'collect(DISTINCT `{0}`)'.format(qnode['id'])
-        for qnode in qnodes
+        'collect(DISTINCT `{0}`)'.format(qnode_id)
+        for qnode_id in qnodes
     ])
     kedges = ' + '.join([
-        'collect(DISTINCT `{0}`)'.format(qedge['id'])
-        for qedge in qedges
+        'collect(DISTINCT `{0}`)'.format(qedge_id)
+        for qedge_id in qedges
     ])
     assemble_clause = (
         'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
