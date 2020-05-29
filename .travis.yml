@@ -14,7 +14,8 @@ before_script:
   - sleep 20
   - wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/3.2.3.6/apoc-3.2.3.6-all.jar
   - cp apoc-3.2.3.6-all.jar /usr/local/neo4j-3.2.7/plugins
-  - ls
+  - cp tests/neo4j_csv/nodes.csv /usr/local/neo4j-3.2.7/import
+  - cp tests/neo4j_csv/edges.csv /usr/local/neo4j-3.2.7/import
   - sudo service neo4j start
   - sleep 30
 script:
