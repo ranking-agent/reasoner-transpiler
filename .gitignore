@@ -1,3 +1,4 @@
+.DS_Store
 venv/
 .vscode/
 __pycache__/
@@ -6,3 +7,4 @@ __pycache__/
 .tox/
 .python-version
 *.egg-info/
+*.jar
