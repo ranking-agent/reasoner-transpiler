@@ -9,5 +9,13 @@ env:
 install:
   - pip install tox
   - export PYTHONPATH=$(pwd)
+before_script:
+  - sudo service neo4j stop
+  - sleep 20
+  - wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/3.2.3.6/apoc-3.2.3.6-all.jar
+  - cp apoc-3.2.3.6-all.jar /usr/local/neo4j-3.2.7/plugins
+  - ls
+  - sudo service neo4j start
+  - sleep 30
 script:
   - tox
