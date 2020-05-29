@@ -10,7 +10,7 @@ driver = GraphDatabase.driver(uri, auth=None)
 
 with driver.session() as session:
     session.run("MATCH (m) DETACH DELETE m")
-    session.run("LOAD CSV WITH HEADERS FROM 'file:///total_nodes.csv' "
+    session.run("LOAD CSV WITH HEADERS FROM 'file:///nodes.csv' "
                 "AS row "
                 "CALL apoc.create.node([row.label], {"
                 "name: row.name, id: row.name,"
@@ -18,7 +18,7 @@ with driver.session() as session:
                 "occurences: toInteger(row.occurences)"
                 "}) YIELD node "
                 "RETURN count(*)")
-    session.run("LOAD CSV WITH HEADERS FROM 'file:///triples.csv' "
+    session.run("LOAD CSV WITH HEADERS FROM 'file:///edges.csv' "
                 "AS edge "
                 "MATCH (source), (target) "
                 "WHERE source.name = edge.source_id AND target.name = edge.target_id "
