@@ -1,6 +1,5 @@
 """MATCHing tools."""
 from reasoner.nesting import Query
-from reasoner.util import mapize
 
 
 def cypher_prop_string(value):
@@ -182,8 +181,6 @@ def match_query(qgraph, **kwargs):
 
     Returns the query fragment as a string.
     """
-    mapize(qgraph)
-
     # sets of ids
     defined_nodes = set(qgraph['nodes'])
     defined_edges = set(qgraph['edges'])

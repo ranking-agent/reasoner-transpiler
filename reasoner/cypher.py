@@ -3,6 +3,7 @@ from functools import reduce
 from operator import and_
 
 from reasoner.matching import match_query
+from reasoner.util import mapize
 
 
 def transpile_compound(qgraph):
@@ -43,6 +44,9 @@ def get_query(qgraph, **kwargs):
 
     Returns the query as a string.
     """
+    # convert all component simple qgraphs into map-form
+    mapize(qgraph)
+
     clauses = []
     query = transpile_compound(qgraph)
     clauses.append(query.compile())
