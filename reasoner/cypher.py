@@ -137,7 +137,7 @@ class EdgeReference():
         ) + ('>' if self.directed else '')
 
 
-def build_match(
+def build_match_clause(
         *patterns,
         filters=None,
         hints=None,
@@ -156,14 +156,35 @@ def build_match(
     return query
 
 
-def get_match_clause(qgraph, **kwargs):
+def match_edge(qedge_id, qedge, node_references, **kwargs):
+    """Get MATCH clause for edge."""
+    eref = EdgeReference(qedge_id, qedge)
+    source_node = node_references[qedge['source_id']]
+    target_node = node_references[qedge['target_id']]
+    pattern = f'{source_node}{eref}{target_node}'
+    edge_filters = [f'({c})' for c in [
+        source_node.filters, target_node.filters, eref.filters
+    ] if c]
+    max_connectivity = kwargs.get('max_connectivity', -1)
+    if max_connectivity > -1:
+        edge_filters.append('(size( {0}-[]-() ) < {1})'.format(
+            target_node,
+            max_connectivity,
+        ))
+    return build_match_clause(
+        pattern,
+        hints=source_node.hints + target_node.hints,
+        filters=edge_filters,
+        **kwargs,
+    )
+
+
+def match_query(qgraph, **kwargs):
     """Generate a Cypher MATCH clause.
 
     Returns the query fragment as a string.
     """
     mapize(qgraph)
-
-    max_connectivity = kwargs.pop('max_connectivity', -1)
 
     # sets of ids
     defined_nodes = set(qgraph['nodes'])
@@ -185,7 +206,7 @@ def get_match_clause(qgraph, **kwargs):
 
     # match orphaned nodes
     for node_id in defined_nodes - referenced_nodes:
-        clauses.append(build_match(
+        clauses.append(build_match_clause(
             str(node_references[node_id]),
             hints=node_references[node_id].hints,
             filters=node_references[node_id].filters,
@@ -194,22 +215,10 @@ def get_match_clause(qgraph, **kwargs):
 
     # match edges
     for qedge_id, qedge in qgraph['edges'].items():
-        eref = EdgeReference(qedge_id, qedge)
-        source_node = node_references[qedge['source_id']]
-        target_node = node_references[qedge['target_id']]
-        pattern = f'{source_node}{eref}{target_node}'
-        edge_filters = [f'({c})' for c in [
-            source_node.filters, target_node.filters, eref.filters
-        ] if c]
-        if max_connectivity > -1:
-            edge_filters.append('(size( {0}-[]-() ) < {1})'.format(
-                target_node,
-                max_connectivity,
-            ))
-        clauses.append(build_match(
-            pattern,
-            hints=source_node.hints + target_node.hints,
-            filters=edge_filters,
+        clauses.append(match_edge(
+            qedge_id,
+            qedge,
+            node_references,
             **kwargs,
         ))
 
@@ -567,7 +576,7 @@ def transpile_compound(qgraph):
             return [operator, *args]
 
     if isinstance(qgraph, dict):
-        return get_match_clause(
+        return match_query(
             qgraph,
         )
     if qgraph[0] == 'OR':
