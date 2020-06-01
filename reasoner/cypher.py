@@ -49,7 +49,7 @@ def get_query(qgraph, **kwargs):
     Returns the query as a string.
     """
     # convert all component simple qgraphs into map-form
-    mapize(qgraph)
+    qgraph = mapize(qgraph)
 
     clauses = []
     query = transpile_compound(qgraph)

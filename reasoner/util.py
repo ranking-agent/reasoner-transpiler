@@ -4,16 +4,27 @@
 def mapize(qgraph):
     """Turn *nodes/*edges into maps."""
     if isinstance(qgraph, list):
-        for operand in qgraph[1:]:
+        return [qgraph[0]] + [
             mapize(operand)
-        return
+            for operand in qgraph[1:]
+        ]
     qnodes = {
-        qnode.pop('id'): qnode
+        qnode['id']: {
+            key: value
+            for key, value in qnode.items()
+            if key != 'id'
+        }
         for qnode in qgraph['nodes']
     }
     qedges = {
-        qedge.pop('id'): qedge
+        qedge['id']: {
+            key: value
+            for key, value in qedge.items()
+            if key != 'id'
+        }
         for qedge in qgraph['edges']
     }
-    qgraph['nodes'] = qnodes
-    qgraph['edges'] = qedges
+    return {
+        'nodes': qnodes,
+        'edges': qedges,
+    }
