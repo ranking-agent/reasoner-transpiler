@@ -50,6 +50,7 @@ def get_query(qgraph, **kwargs):
     clauses = []
     query = transpile_compound(qgraph)
     clauses.append(query.compile())
+    clauses.append(query.where_clause())
     qnodes = query.qgraph['nodes']
     qedges = query.qgraph['edges']
 
