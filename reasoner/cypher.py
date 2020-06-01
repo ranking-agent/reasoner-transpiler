@@ -43,20 +43,9 @@ def transpile_compound(qgraph):
     raise ValueError(f'Unrecognized operator "{qgraph[0]}"')
 
 
-def get_query(qgraph, **kwargs):
-    """Generate a Cypher query to extract the answer maps for a question.
-
-    Returns the query as a string.
-    """
-    # convert all component simple qgraphs into map-form
-    qgraph = mapize(qgraph)
-
+def assemble_results(qnodes, qedges, **kwargs):
+    """Assemble results into Reasoner format."""
     clauses = []
-    query = transpile_compound(qgraph)
-    clauses.append(query.compile())
-    clauses.append(query.where_clause())
-    qnodes = query.qgraph['nodes']
-    qedges = query.qgraph['edges']
 
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
@@ -125,5 +114,34 @@ def get_query(qgraph, **kwargs):
     # return results and knowledge graph
     return_clause = 'RETURN results, knowledge_graph'
     clauses.append(return_clause)
+    return clauses
+
+
+def get_query(qgraph, **kwargs):
+    """Generate a Cypher query to extract the answer maps for a question.
+
+    Returns the query as a string.
+    """
+    # convert all component simple qgraphs into map-form
+    qgraph = mapize(qgraph)
+
+    clauses = []
+    query = transpile_compound(qgraph)
+    clauses.append(query.compile())
+    clauses.append(query.where_clause())
+
+    if not kwargs.pop('reasoner', True):
+        clauses.append(query.return_clause())
+        # add SKIP and LIMIT sub-clauses
+        if 'skip' in kwargs:
+            clauses.append(f'SKIP {kwargs["skip"]}')
+        if 'limit' in kwargs:
+            clauses.append(f'LIMIT {kwargs["limit"]}')
+    else:
+        clauses.extend(assemble_results(
+            query.qgraph['nodes'],
+            query.qgraph['edges'],
+            **kwargs,
+        ))
 
     return ' '.join(clauses)
