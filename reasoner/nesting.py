@@ -1,6 +1,6 @@
 """Query nesting tools."""
 from functools import reduce
-from operator import or_
+from operator import and_, or_
 
 
 class Query():
@@ -20,13 +20,19 @@ class Query():
         self._qgraph = qgraph
 
     @property
+    def simple(self):
+        """Return whether query is simple, i.e. AND only."""
+        return True
+
+    @property
     def qgraph(self):
         """Get qgraph."""
         return self._qgraph
 
-    @property
-    def logic(self):
+    def logic(self, simple=True):
         """Return whether qid is required."""
+        if simple and self.simple:
+            return ''
         conditions = [
             f'{qid} IS NOT null' for qid in self.qids
         ]
@@ -107,7 +113,11 @@ class Query():
         return [
             'CALL apoc.cypher.run(\'{query}\', {{{params}}})'.format(
                 query=(
-                    ' '.join(self.compile(context=inner_context, return_=True, **kwargs))
+                    ' '.join(self.compile(
+                        context=inner_context,
+                        return_=True,
+                        **kwargs,
+                    ))
                     .replace('\\', '\\\\')
                     .replace('\'', '\\\'')
                 ),
@@ -146,7 +156,8 @@ class Query():
         """Get WHERE clause."""
         if context is None:
             context = set()
-        return 'WHERE ' + self.logic
+        conditions = self.logic()
+        return conditions and 'WHERE ' + conditions
 
     def with_clause(self, **kwargs):
         """Get WITH clause."""
@@ -183,6 +194,14 @@ class CompoundQuery(Query):
         self.subqueries = subqueries
 
     @property
+    def simple(self):
+        """Return whether query is simple, i.e. AND only."""
+        return reduce(
+            and_,
+            [subquery.simple for subquery in self.subqueries]
+        )
+
+    @property
     def qids(self):
         """Get qids."""
         return reduce(
@@ -202,19 +221,6 @@ class CompoundQuery(Query):
             'nodes': qnodes,
             'edges': qedges,
         }
-
-    @property
-    def logic(self):
-        """Return whether qid is required."""
-        conditions = [
-            query.logic for query in self.subqueries
-            if query.logic
-        ]
-        if len(conditions) > 1:
-            conditions = [
-                f'({condition})' for condition in conditions
-            ]
-        return ' AND '.join(conditions)
 
     @property
     def references(self):
@@ -238,6 +244,18 @@ class AndQuery(CompoundQuery):
 
         return subquery_strings
 
+    def logic(self, simple=True):
+        """Return whether qid is required."""
+        conditions = [
+            query.logic(simple) for query in self.subqueries
+            if query.logic(simple)
+        ]
+        if len(conditions) > 1:
+            conditions = [
+                f'({condition})' for condition in conditions
+            ]
+        return ' AND '.join(conditions)
+
 
 class NotQuery(CompoundQuery):
     """Not query segment."""
@@ -247,10 +265,14 @@ class NotQuery(CompoundQuery):
         kwargs.update(optional=True)
         return self.subqueries[0].compile(**kwargs)
 
-    @property
-    def logic(self):
+    def logic(self, simple=True):
         """Return whether qid is required."""
-        return f'NOT ({super().logic})'
+        return f'NOT ({super().logic(False)})'
+
+    @property
+    def simple(self):
+        """Return whether query is simple, i.e. AND only."""
+        return False
 
 
 class AltQuery(CompoundQuery):
@@ -263,6 +285,11 @@ class AltQuery(CompoundQuery):
         """Initialize."""
         assert len(args) == 2
         super().__init__(*args)
+
+    @property
+    def simple(self):
+        """Return whether query is simple, i.e. AND only."""
+        return False
 
     def _compile(self, **kwargs):
         """Get query string."""
@@ -321,20 +348,18 @@ class UnionQuery(CompoundQuery):
 class OrQuery(AltQuery):
     """OR query."""
 
-    @property
-    def logic(self):
+    def logic(self, simple=True):
         """Get conditions."""
         return ' OR '.join(
-            f'({query.logic})' for query in self.subqueries
+            f'({query.logic(False)})' for query in self.subqueries
         )
 
 
 class XorQuery(AltQuery):
     """XOR query."""
 
-    @property
-    def logic(self):
+    def logic(self, simple=True):
         """Get conditions."""
         return ' XOR '.join(
-            f'({query.logic})' for query in self.subqueries
+            f'({query.logic(False)})' for query in self.subqueries
         )
