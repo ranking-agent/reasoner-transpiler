@@ -59,46 +59,43 @@ class Query():
         return_ = kwargs.pop('return_', False)
         wrap = kwargs.pop('wrap', False)
 
-        optional = kwargs.pop('optional', False)
+        optional = kwargs.get('optional', False)
+        extension = kwargs.pop('extension', [])
 
-        if (
-                not optional
-                and not wrap
-                and not isinstance(self, CompoundQuery)
-                and len(self.references) >= 5
-        ):
-            # there are probably at least two edges here
-            wrap = True
-            kwargs.update(
-                optional=True,
-            )
-        elif not optional and not isinstance(self, CompoundQuery):
-            clauses.append('OPTIONAL')
+        if optional and not isinstance(self, CompoundQuery):
+            if len(self.references) >= 5:
+                # there are probably at least two edges here
+                wrap = True
+                kwargs.update(
+                    optional=False,
+                    extension=[(
+                        'WITH CASE WHEN count(*) > 0 '
+                        + 'THEN collect([{0}]) '.format(
+                            ', '.join(self.qids - context)
+                        )
+                        + 'ELSE [[]] '
+                        + 'END AS results '
+                        + 'UNWIND results as result '
+                        + 'WITH {0}'.format(', '.join(
+                            f'result[{idx}] AS {qid}'
+                            for idx, qid in enumerate(self.qids - context)
+                        ))
+                    )],
+                )
+            else:
+                clauses.append('OPTIONAL')
 
         if wrap:
-            clauses.append(self._compile_wrapped(**kwargs))
+            clauses.extend(self._compile_wrapped(**kwargs))
         else:
-            clauses.append(self._compile(**kwargs))
+            clauses.extend(self._compile(**kwargs))
 
-        if optional:
-            clauses.append((
-                'WITH CASE WHEN count(*) > 0 '
-                + 'THEN collect([{0}]) '.format(
-                    ', '.join(self.qids - context)
-                )
-                + 'ELSE [[]] '
-                + 'END AS results '
-                + 'UNWIND results as result '
-                + 'WITH {0}'.format(', '.join(
-                    f'result[{idx}] AS {qid}'
-                    for idx, qid in enumerate(self.qids - context)
-                ))
-            ))
+        clauses.extend(extension)
 
         if return_:
             clauses.append(self.return_clause(**kwargs))
 
-        return ' '.join(clauses)
+        return clauses
 
     def _compile_wrapped(self, **kwargs):
         """Compile wrapped query."""
@@ -107,32 +104,33 @@ class Query():
             f'id({var})'
             for var in context & self.references
         }
-        return (
-            'CALL apoc.cypher.run(\'{query}\', {{{params}}}) '
-            'YIELD value '
-            'WITH {accessors}'
-        ).format(
-            query=(
-                self.compile(context=inner_context, return_=True, **kwargs)
-                .replace('\\', '\\\\')
-                .replace('\'', '\\\'')
+        return [
+            'CALL apoc.cypher.run(\'{query}\', {{{params}}})'.format(
+                query=(
+                    ' '.join(self.compile(context=inner_context, return_=True, **kwargs))
+                    .replace('\\', '\\\\')
+                    .replace('\'', '\\\'')
+                ),
+                params=', '.join(
+                    f'`{var}`: {var}'
+                    for var in inner_context
+                )
             ),
-            params=', '.join(
-                f'`{var}`: {var}'
-                for var in inner_context
+            'YIELD value',
+            'WITH {accessors}'.format(
+                accessors=', '.join(
+                    [
+                        f'value.{qid} AS {qid}'
+                        for qid in self.qids - context
+                    ]
+                    + list(context)
+                )
             ),
-            accessors=', '.join(
-                [
-                    f'value.{qid} AS {qid}'
-                    for qid in self.qids - context
-                ]
-                + list(context)
-            )
-        )
+        ]
 
     def _compile(self, **kwargs):  # pylint: disable=unused-argument
         """Return query string."""
-        return self._string
+        return [self._string]
 
     @property
     def references(self):
@@ -235,13 +233,10 @@ class AndQuery(CompoundQuery):
         context = kwargs.pop('context', set())
         subquery_strings = []
         for query in self.subqueries:
-            subquery_strings.append(query.compile(context=context, **kwargs))
+            subquery_strings.extend(query.compile(context=context, **kwargs))
             context = context | query.qids
 
-        return (
-            ' '.join(subquery_strings)
-            + ' ' + self.with_clause(context=context)
-        )
+        return subquery_strings
 
 
 class NotQuery(CompoundQuery):
@@ -249,6 +244,7 @@ class NotQuery(CompoundQuery):
 
     def _compile(self, **kwargs):
         """Return query string."""
+        kwargs.update(optional=True)
         return self.subqueries[0].compile(**kwargs)
 
     @property
@@ -270,14 +266,12 @@ class AltQuery(CompoundQuery):
 
     def _compile(self, **kwargs):
         """Get query string."""
+        kwargs.update(optional=True)
         if self.subqueries[0].qids & self.subqueries[1].qids:
             return self._compile_union(**kwargs, return_=True)
         else:
             query = AndQuery(self.subqueries[0], self.subqueries[1])
-            return (
-                query.compile(**kwargs)
-                + ' ' + self.with_clause(**kwargs)
-            )
+            return query.compile(**kwargs)
 
     def _compile_union(self, **kwargs):
         """Get query string."""
@@ -316,12 +310,12 @@ class UnionQuery(CompoundQuery):
             return_=self.return_,
         )
 
-        return ' UNION '.join(
-            subquery.compile(
+        return [' UNION '.join(
+            ' '.join(subquery.compile(
                 **kwargs,
-            )
+            ))
             for subquery in self.subqueries
-        )
+        )]
 
 
 class OrQuery(AltQuery):

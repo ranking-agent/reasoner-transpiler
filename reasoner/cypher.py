@@ -127,7 +127,9 @@ def get_query(qgraph, **kwargs):
 
     clauses = []
     query = transpile_compound(qgraph)
-    clauses.append(query.compile())
+    clauses.extend(query.compile())
+    if not clauses[-1].startswith('WITH'):
+        clauses.append(query.with_clause())
     clauses.append(query.where_clause())
 
     if not kwargs.pop('reasoner', True):
