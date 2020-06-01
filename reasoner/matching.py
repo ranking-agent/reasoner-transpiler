@@ -159,9 +159,10 @@ def match_edge(qedge_id, qedge, node_references, **kwargs):
     source_node = node_references[qedge['source_id']]
     target_node = node_references[qedge['target_id']]
     pattern = f'{source_node}{eref}{target_node}'
-    edge_filters = [f'({c})' for c in [
-        source_node.filters, target_node.filters, eref.filters
-    ] if c]
+    edge_filters = [
+        f'({c})'
+        for c in source_node.filters + target_node.filters + eref.filters
+    ]
     max_connectivity = kwargs.get('max_connectivity', -1)
     if max_connectivity > -1:
         edge_filters.append('(size( {0}-[]-() ) < {1})'.format(
