@@ -164,7 +164,6 @@ def get_match_clause(qgraph, **kwargs):
     mapize(qgraph)
 
     max_connectivity = kwargs.pop('max_connectivity', -1)
-    duplicates = True
 
     # sets of ids
     defined_nodes = set(qgraph['nodes'])
@@ -183,24 +182,15 @@ def get_match_clause(qgraph, **kwargs):
         node_references[node_id] = MissingReference(node_id)
 
     clauses = []
-    filters = []
-    hints = []
 
     # match orphaned nodes
     for node_id in defined_nodes - referenced_nodes:
-        if duplicates:
-            clauses.append(build_match(
-                str(node_references[node_id]),
-                hints=node_references[node_id].hints,
-                filters=node_references[node_id].filters,
-                **kwargs,
-            ))
-        else:
-            clauses.append(
-                str(node_references[node_id])
-            )
-            hints.extend(node_references[node_id].hints)
-            filters.extend(node_references[node_id].filters)
+        clauses.append(build_match(
+            str(node_references[node_id]),
+            hints=node_references[node_id].hints,
+            filters=node_references[node_id].filters,
+            **kwargs,
+        ))
 
     # match edges
     for qedge_id, qedge in qgraph['edges'].items():
@@ -216,30 +206,15 @@ def get_match_clause(qgraph, **kwargs):
                 target_node,
                 max_connectivity,
             ))
-        if duplicates:
-            clauses.append(build_match(
-                pattern,
-                hints=source_node.hints + target_node.hints,
-                filters=edge_filters,
-                **kwargs,
-            ))
-        else:
-            clauses.append(pattern)
-            hints.extend(source_node.hints + target_node.hints)
-            filters.extend(edge_filters)
-
-    if duplicates:
-        query = ' '.join(clauses)
-    else:
-        query = build_match(
-            *clauses,
-            hints=hints,
-            filters=filters,
+        clauses.append(build_match(
+            pattern,
+            hints=source_node.hints + target_node.hints,
+            filters=edge_filters,
             **kwargs,
-        )
+        ))
 
     return Query(
-        query,
+        ' '.join(clauses),
         qids=defined_nodes | defined_edges,
         references=defined_nodes | referenced_nodes | defined_edges,
         qgraph=qgraph,
