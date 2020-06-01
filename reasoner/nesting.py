@@ -150,6 +150,11 @@ class Query():
             context = set()
         return 'WHERE ' + self.logic
 
+    def with_clause(self, **kwargs):
+        """Get WITH clause."""
+        context = kwargs.get('context', set())
+        return 'WITH ' + ', '.join(self.qids | context)
+
     def return_clause(self, **kwargs):
         """Get RETURN clause."""
         context = kwargs.get('context', set())
@@ -233,7 +238,10 @@ class AndQuery(CompoundQuery):
             subquery_strings.append(query.compile(context=context, **kwargs))
             context = context | query.qids
 
-        return ' '.join(subquery_strings)
+        return (
+            ' '.join(subquery_strings)
+            + ' ' + self.with_clause(context=context)
+        )
 
 
 class NotQuery(CompoundQuery):
@@ -266,10 +274,9 @@ class AltQuery(CompoundQuery):
             return self._compile_union(**kwargs, return_=True)
         else:
             query = AndQuery(self.subqueries[0], self.subqueries[1])
-            context = kwargs.get('context', set())
             return (
                 query.compile(**kwargs)
-                + ' WITH ' + ', '.join(self.qids | context)
+                + ' ' + self.with_clause(**kwargs)
             )
 
     def _compile_union(self, **kwargs):
