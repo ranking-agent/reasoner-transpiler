@@ -1,7 +1,7 @@
 """Test Reasoner->Cypher transpiler."""
 import pytest
 
-from reasoner.cypher import get_query, get_match_clause
+from reasoner.cypher import get_query
 from initialize_db import initialize_db
 
 
