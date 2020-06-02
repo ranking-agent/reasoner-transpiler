@@ -1,8 +1,130 @@
 """Test Reasoner->Cypher transpiler."""
 import pytest
 
-from reasoner.cypher import get_query, get_match_clause
+from reasoner.cypher import get_query
 from initialize_db import initialize_db
+
+
+def test_skip_limit():
+    """Test SKIP and LIMIT."""
+    session = initialize_db()
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "type": "Group",
+                "curie": "Fellowship",
+            },
+            {
+                "id": "n1",
+                "type": "Person",
+            },
+        ],
+        "edges": [
+            {
+                "id": "e10",
+                "source_id": "n1",
+                "target_id": "n0",
+                "type": "IS_MEMBER",
+            },
+        ],
+    }
+    all_results = []
+    output = session.run(get_query(qgraph, limit=5))
+    for record in output:
+        all_results.extend(record['results'])
+        assert len(record['results']) == 5
+    output = session.run(get_query(qgraph, skip=5, limit=5))
+    for record in output:
+        all_results.extend(record['results'])
+        assert len(record['results']) == 4
+    session.close()
+    assert {
+        'Aragorn', 'Boromir', 'Frodo',
+        'Gandalf', 'Gimli', 'Legolas',
+        'Merry', 'Pippin', 'Sam',
+    } == set(
+        result['node_bindings'][1]['kg_id']
+        for result in all_results
+    )
+
+
+def test_max_connectivity():
+    """Test max_connectivity option."""
+    session = initialize_db()
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "type": "Person",
+            },
+            {
+                "id": "n1",
+                "type": "Place",
+                "curie": "Shire",
+            },
+        ],
+        "edges": [
+            {
+                "id": "e01",
+                "type": "LIVES_IN",
+                "source_id": "n0",
+                "target_id": "n1",
+            },
+        ],
+    }
+    print(get_query(
+        qgraph,
+        max_connectivity=5,
+        reasoner=False,
+    ))
+    output = session.run(get_query(
+        qgraph,
+        max_connectivity=5,
+    ))
+    for record in output:
+        assert len(record['results']) == 3
+    session.close()
+
+
+def test_curie_formats():
+    """Test unusual curie formats."""
+    session = initialize_db()
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "curie": [
+                    "Frodo",
+                    "Sam",
+                    "Merry",
+                    "Pippin",
+                ],
+                "type": "Person",
+            },
+            {
+                "id": "n1",
+                "type": "Place",
+                "curie": 12,
+            },
+        ],
+        "edges": [
+            {
+                "id": "e01",
+                "type": [
+                    "LIVES_IN",
+                    "RULES",
+                ],
+                "source_id": "n0",
+                "target_id": "n1",
+            },
+        ],
+    }
+    print(get_query(
+        qgraph,
+        use_hints=True,
+        reasoner=False,
+    ))
 
 
 def test_complex_query():
@@ -53,6 +175,7 @@ def test_complex_query():
             }
         ],
     }
+    print(get_query(qgraph, reasoner=False))
     output = session.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 1
@@ -74,3 +197,205 @@ def test_invalid_node():
     }
     with pytest.raises(ValueError):
         get_query(qgraph)
+
+
+def test_or():
+    """Test parsing of compound qgraph."""
+    qgraph = [
+        'AND',
+        {
+            'nodes': [
+                {
+                    'id': 'n0',
+                    'type': 'Group',
+                    'curie': 'Fellowship',
+                },
+            ],
+            'edges': [],
+        },
+        [
+            'OR',
+            {
+                'nodes': [
+                    {
+                        'id': 'n1',
+                        'type': 'Person',
+                    },
+                    {
+                        'id': 'n2',
+                        'type': 'Person',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e10',
+                        'source_id': 'n1',
+                        'target_id': 'n0',
+                        'type': 'IS_MEMBER',
+                    },
+                    {
+                        'id': 'e21',
+                        'source_id': 'n2',
+                        'target_id': 'n1',
+                        'type': 'IS_SIBLING',
+                    },
+                ],
+            },
+            {
+                'nodes': [
+                    {
+                        'id': 'n1b',
+                        'type': 'Person',
+                    },
+                    {
+                        'id': 'n2',
+                        'type': 'Person',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e10b',
+                        'source_id': 'n1b',
+                        'target_id': 'n0',
+                        'type': 'IS_MEMBER',
+                    },
+                    {
+                        'id': 'e21b',
+                        'source_id': 'n2',
+                        'target_id': 'n1b',
+                        'type': 'IS_UNCLE',
+                    },
+                ],
+            },
+            {
+                'nodes': [
+                    {
+                        'id': 'n2',
+                        'type': 'Person',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e20',
+                        'source_id': 'n2',
+                        'target_id': 'n0',
+                        'type': 'IS_MEMBER',
+                    },
+                ],
+            },
+        ],
+    ]
+    print(get_query(qgraph, reasoner=False))
+
+
+def test_xor():
+    """Test transpiling of compound qgraph."""
+    qgraph = [
+        'AND',
+        {
+            'nodes': [
+                {
+                    'id': 'n0',
+                    'type': 'Person',
+                },
+                {
+                    'id': 'n1',
+                    'type': 'Group',
+                    'curie': 'Fellowship',
+                },
+            ],
+            'edges': [
+                {
+                    'id': 'e01',
+                    'source_id': 'n0',
+                    'target_id': 'n1',
+                    'type': 'IS_MEMBER',
+                },
+            ],
+        },
+        [
+            'XOR',
+            {
+                'nodes': [
+                    {
+                        'id': 'n2',
+                        'type': 'Place',
+                        'curie': 'Shire',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e02',
+                        'source_id': 'n0',
+                        'target_id': 'n2',
+                        'type': 'LIVES_IN',
+                    },
+                ],
+            },
+            {
+                'nodes': [
+                    {
+                        'id': 'n3',
+                        'type': 'Weapon',
+                        'subtype': 'sword',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e03',
+                        'source_id': 'n0',
+                        'target_id': 'n3',
+                        'type': 'WIELDS',
+                    },
+                ],
+            },
+        ],
+    ]
+    print(get_query(qgraph, reasoner=False))
+
+
+def test_not():
+    """Test transpiling of compound qgraph."""
+    qgraph = [
+        'AND',
+        {
+            'nodes': [
+                {
+                    'id': 'n0',
+                    'type': 'Person',
+                },
+                {
+                    'id': 'n1',
+                    'type': 'Group',
+                    'curie': 'Fellowship',
+                },
+            ],
+            'edges': [
+                {
+                    'id': 'e01',
+                    'source_id': 'n0',
+                    'target_id': 'n1',
+                    'type': 'IS_MEMBER',
+                },
+            ],
+        },
+        [
+            'NOT',
+            {
+                'nodes': [
+                    {
+                        'id': 'n2',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e20',
+                        'source_id': 'n2',
+                        'target_id': 'n0',
+                        'type': 'KILLS',
+                    },
+                ],
+            },
+        ],
+    ]
+    print(get_query(qgraph, reasoner=False))
