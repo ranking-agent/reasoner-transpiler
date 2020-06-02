@@ -49,6 +49,44 @@ def test_skip_limit():
     )
 
 
+def test_max_connectivity():
+    """Test max_connectivity option."""
+    session = initialize_db()
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "type": "Person",
+            },
+            {
+                "id": "n1",
+                "type": "Place",
+                "curie": "Shire",
+            },
+        ],
+        "edges": [
+            {
+                "id": "e01",
+                "type": "LIVES_IN",
+                "source_id": "n0",
+                "target_id": "n1",
+            },
+        ],
+    }
+    print(get_query(
+        qgraph,
+        max_connectivity=5,
+        reasoner=False,
+    ))
+    output = session.run(get_query(
+        qgraph,
+        max_connectivity=5,
+    ))
+    for record in output:
+        assert len(record['results']) == 3
+    session.close()
+
+
 def test_curie_formats():
     """Test unusual curie formats."""
     session = initialize_db()
