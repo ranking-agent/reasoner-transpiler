@@ -126,6 +126,9 @@ class EdgeReference():
         self.label = edge.get('type', None)
         self.filters = []
 
+        if isinstance(self.label, list) and len(self.label) == 1:
+            self.label = self.label[0]
+
         self.directed = edge.get('directed', bool(self.label))
 
         if isinstance(self.label, list):
