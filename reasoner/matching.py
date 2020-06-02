@@ -18,7 +18,7 @@ def cypher_prop_string(value):
 class NodeReference():
     """Node reference object."""
 
-    def __init__(self, node_id, node, anonymous=False):
+    def __init__(self, node_id, node, **kwargs):
         """Create a node reference.
 
         All node properties of types [str, bool, float/int] will be enforced
@@ -30,6 +30,9 @@ class NodeReference():
         * set
         Un-reserved properties with other types will be coerced to str.
         """
+        max_connectivity = kwargs.get('max_connectivity', -1)
+        anonymous = kwargs.get('anonymous', False)
+
         node = dict(node)  # shallow copy
         self.name = '`' + node_id + '`' if not anonymous else ''
         self.labels = node.pop('type', ['named_thing'])
@@ -54,6 +57,12 @@ class NodeReference():
         elif curie is not None:
             # coerce to a string
             props['id'] = str(curie)
+
+        if max_connectivity > -1:
+            self._filters.append('size( ({0})-[]-() ) <= {1}'.format(
+                self.name,
+                max_connectivity,
+            ))
 
         props.update(
             (key, value)
@@ -138,12 +147,12 @@ def build_match_clause(
         *patterns,
         filters=None,
         hints=None,
-        use_hints=False,
+        **kwargs,
 ):
     """Build MATCH clause (and subclauses) from components."""
     query = ''
     query += 'MATCH ' + ', '.join(patterns)
-    if use_hints and hints:
+    if kwargs.get('use_hints', False) and hints:
         query += ' ' + ' '.join(hints)
     if filters:
         if len(filters) > 1:
@@ -163,12 +172,6 @@ def match_edge(qedge_id, qedge, node_references, **kwargs):
         f'({c})'
         for c in source_node.filters + target_node.filters + eref.filters
     ]
-    max_connectivity = kwargs.get('max_connectivity', -1)
-    if max_connectivity > -1:
-        edge_filters.append('(size( {0}-[]-() ) < {1})'.format(
-            target_node,
-            max_connectivity,
-        ))
     return build_match_clause(
         pattern,
         hints=source_node.hints + target_node.hints,
@@ -192,7 +195,7 @@ def match_query(qgraph, **kwargs):
 
     # generate internal node and edge variable names
     node_references = {
-        qnode_id: NodeReference(qnode_id, qnode)
+        qnode_id: NodeReference(qnode_id, qnode, **kwargs)
         for qnode_id, qnode in qgraph['nodes'].items()
     }
     for node_id in referenced_nodes - defined_nodes:  # reference-only nodes

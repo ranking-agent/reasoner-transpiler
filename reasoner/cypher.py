@@ -14,17 +14,18 @@ def nest_op(operator, *args):
         return [operator, *args]
 
 
-def transpile_compound(qgraph):
+def transpile_compound(qgraph, **kwargs):
     """Transpile compound qgraph."""
     if isinstance(qgraph, dict):
         return match_query(
             qgraph,
+            **kwargs,
         )
     if qgraph[0] == 'OR':
         qgraph = nest_op(*qgraph)
 
     args = [
-        transpile_compound(arg)
+        transpile_compound(arg, **kwargs)
         for arg in qgraph[1:]
     ]
     if qgraph[0] == 'AND':
@@ -132,7 +133,7 @@ def get_query(qgraph, **kwargs):
     qgraph = mapize(qgraph)
 
     clauses = []
-    query = transpile_compound(qgraph)
+    query = transpile_compound(qgraph, **kwargs)
     clauses.extend(query.compile())
     where_clause = query.where_clause()
     if where_clause:
