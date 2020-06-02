@@ -126,14 +126,14 @@ class EdgeReference():
         self.label = edge.get('type', None)
         self.filters = []
 
+        self.directed = edge.get('directed', bool(self.label))
+
         if isinstance(self.label, list):
             self.filters.append(' OR '.join(
                 f'type({self.name}) = "{predicate}"'
                 for predicate in self.label
             ))
             self.label = None
-
-        self.directed = edge.get('directed', bool(self.label))
 
     def __str__(self):
         """Return the cypher edge reference."""
