@@ -6,15 +6,16 @@ from reasoner.matching import match_query
 from reasoner.util import mapize
 
 
+def nest_op(operator, *args):
+    """Generate a nested set of operations from a flat expression."""
+    if len(args) > 2:
+        return [operator, args[0], nest_op(operator, *args[1:])]
+    else:
+        return [operator, *args]
+
+
 def transpile_compound(qgraph):
     """Transpile compound qgraph."""
-    def nest_op(operator, *args):
-        """Generate a nested set of operations from a flat expression."""
-        if len(args) > 2:
-            return [operator, args[0], nest_op(operator, *args[1:])]
-        else:
-            return [operator, *args]
-
     if isinstance(qgraph, dict):
         return match_query(
             qgraph,
