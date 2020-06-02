@@ -20,18 +20,13 @@ class Query():
         self._qgraph = qgraph
 
     @property
-    def simple(self):
-        """Return whether query is simple, i.e. AND only."""
-        return True
-
-    @property
     def qgraph(self):
         """Get qgraph."""
         return self._qgraph
 
     def logic(self, simple=True):
         """Return whether qid is required."""
-        if simple and self.simple:
+        if simple:
             return ''
         conditions = [
             f'{qid} IS NOT null' for qid in self.qids
@@ -194,14 +189,6 @@ class CompoundQuery(Query):
         self.subqueries = subqueries
 
     @property
-    def simple(self):
-        """Return whether query is simple, i.e. AND only."""
-        return reduce(
-            and_,
-            [subquery.simple for subquery in self.subqueries]
-        )
-
-    @property
     def qids(self):
         """Get qids."""
         return reduce(
@@ -269,11 +256,6 @@ class NotQuery(CompoundQuery):
         """Return whether qid is required."""
         return f'NOT ({super().logic(False)})'
 
-    @property
-    def simple(self):
-        """Return whether query is simple, i.e. AND only."""
-        return False
-
 
 class AltQuery(CompoundQuery):
     """Alternative query.
@@ -285,11 +267,6 @@ class AltQuery(CompoundQuery):
         """Initialize."""
         assert len(args) == 2
         super().__init__(*args)
-
-    @property
-    def simple(self):
-        """Return whether query is simple, i.e. AND only."""
-        return False
 
     def _compile(self, **kwargs):
         """Get query string."""
