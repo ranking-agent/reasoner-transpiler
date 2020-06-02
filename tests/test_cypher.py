@@ -5,6 +5,50 @@ from reasoner.cypher import get_query
 from initialize_db import initialize_db
 
 
+def test_skip_limit():
+    """Test SKIP and LIMIT."""
+    session = initialize_db()
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "type": "Group",
+                "curie": "Fellowship",
+            },
+            {
+                "id": "n1",
+                "type": "Person",
+            },
+        ],
+        "edges": [
+            {
+                "id": "e10",
+                "source_id": "n1",
+                "target_id": "n0",
+                "type": "IS_MEMBER",
+            },
+        ],
+    }
+    all_results = []
+    output = session.run(get_query(qgraph, limit=5))
+    for record in output:
+        all_results.extend(record['results'])
+        assert len(record['results']) == 5
+    output = session.run(get_query(qgraph, skip=5, limit=5))
+    for record in output:
+        all_results.extend(record['results'])
+        assert len(record['results']) == 4
+    session.close()
+    assert {
+        'Aragorn', 'Boromir', 'Frodo',
+        'Gandalf', 'Gimli', 'Legolas',
+        'Merry', 'Pippin', 'Sam',
+    } == set(
+        result['node_bindings'][1]['kg_id']
+        for result in all_results
+    )
+
+
 def test_complex_query():
     """Test that db get's initialized successfully."""
     session = initialize_db()
