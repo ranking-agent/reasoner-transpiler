@@ -92,10 +92,7 @@ def assemble_results(qnodes, qedges, **kwargs):
     clauses.append(assemble_clause)
 
     # add SKIP and LIMIT sub-clauses
-    if 'skip' in kwargs:
-        clauses.append(f'SKIP {kwargs["skip"]}')
-    if 'limit' in kwargs:
-        clauses.append(f'LIMIT {kwargs["limit"]}')
+    clauses.extend(pagination(**kwargs))
 
     # collect results and aggregate kgraphs
     # also fetch extra knode/kedge properties
@@ -113,6 +110,16 @@ def assemble_results(qnodes, qedges, **kwargs):
     # return results and knowledge graph
     return_clause = 'RETURN results, knowledge_graph'
     clauses.append(return_clause)
+    return clauses
+
+
+def pagination(**kwargs):
+    """Get pagination clauses."""
+    clauses = []
+    if 'skip' in kwargs:
+        clauses.append(f'SKIP {kwargs["skip"]}')
+    if 'limit' in kwargs:
+        clauses.append(f'LIMIT {kwargs["limit"]}')
     return clauses
 
 
@@ -136,10 +143,7 @@ def get_query(qgraph, **kwargs):
     if not kwargs.pop('reasoner', True):
         clauses.append(query.return_clause())
         # add SKIP and LIMIT sub-clauses
-        if 'skip' in kwargs:
-            clauses.append(f'SKIP {kwargs["skip"]}')
-        if 'limit' in kwargs:
-            clauses.append(f'LIMIT {kwargs["limit"]}')
+        clauses.extend(pagination(**kwargs))
     else:
         clauses.extend(assemble_results(
             query.qgraph['nodes'],
