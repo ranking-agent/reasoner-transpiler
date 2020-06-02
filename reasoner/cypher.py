@@ -37,7 +37,7 @@ def transpile_compound(qgraph):
         return args[0] ^ args[1]
     elif qgraph[0] == 'NOT':
         if len(args) != 1:
-            raise ValueError('NOT must have exactly two operands')
+            raise ValueError('NOT must have exactly one operand')
         return ~args[0]
     raise ValueError(f'Unrecognized operator "{qgraph[0]}"')
 
