@@ -49,6 +49,46 @@ def test_skip_limit():
     )
 
 
+def test_curie_formats():
+    """Test unusual curie formats."""
+    session = initialize_db()
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "curie": [
+                    "Frodo",
+                    "Sam",
+                    "Merry",
+                    "Pippin",
+                ],
+                "type": "Person",
+            },
+            {
+                "id": "n1",
+                "type": "Place",
+                "curie": 12,
+            },
+        ],
+        "edges": [
+            {
+                "id": "e01",
+                "type": [
+                    "LIVES_IN",
+                    "RULES",
+                ],
+                "source_id": "n0",
+                "target_id": "n1",
+            },
+        ],
+    }
+    print(get_query(
+        qgraph,
+        use_hints=True,
+        reasoner=False,
+    ))
+
+
 def test_complex_query():
     """Test that db get's initialized successfully."""
     session = initialize_db()
