@@ -30,8 +30,6 @@ def transpile_compound(qgraph):
     if qgraph[0] == 'AND':
         return reduce(and_, args)
     elif qgraph[0] == 'OR':
-        if len(args) != 2:
-            raise ValueError('OR must have exactly two operands')
         return args[0] | args[1]
     elif qgraph[0] == 'XOR':
         if len(args) != 2:
