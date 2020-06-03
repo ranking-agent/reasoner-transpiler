@@ -1,102 +1,102 @@
-source_id,predicate,target_id
-Aragorn,is_member,Fellowship
-Aragorn,wields,Anduril
-Aragorn,is_spouse,Arwen
-Aragorn,rules,Gondor
-Arwen,is_child,Celebrian
-Arwen,is_child,Elrond
-Arwen,is_spouse,Aragorn
-Durin's Bane,kills,Gandalf
-Bard,kills,Smaug
-Bard,rules,Dale
-Bard,wields,Black Arrow
-Bilbo,bears,The One Ring
-Bilbo,wields,Sting
-Boromir,is_sibling,Faramir
-Boromir,is_member,Fellowship
-Celeborn,is_spouse,Galadriel
-Celeborn,is_parent,Celebrian
-Celebrian,is_child,Galadriel
-Celebrian,is_child,Celeborn
-Celebrian,is_parent,Arwen
-Celebrian,is_spouse,Elrond
-Elrond,is_spouse,Celebrian
-Elrond,is_parent,Arwen
-Elrond,lives_in,Rivendell
-Eomer,wields,Guthwine
-Eomer,rules,Rohan
-Eomer,is_sibling,Eowyn
-Eowyn,kills,Witch-King
-Eowyn,is_sibling,Eomer
-Faramir,is_sibling,Boromir
-Frodo,bears,The One Ring
-Frodo,is_member,Fellowship
-Frodo,wields,Sting
-Galadriel,is_parent,Celebrian
-Galadriel,is_spouse,Celeborn
-Gandalf,is_member,Fellowship
-Gandalf,wields,Glamdring
-Gandalf,kills,Durin's Bane
-Gimli,wields,Axe
-Gimli,kills,Orcs
-Gimli,is_member,Fellowship
-Gollum,destroys,The One Ring
-Gollum,bears,The One Ring
-Gollum,kills,Deagol
-Legolas,is_member,Fellowship
-Legolas,wields,Bow
-Merry,is_member,Fellowship
-Orcs,kills,Boromir
-Pippin,is_member,Fellowship
-Sam,is_member,Fellowship
-Sauron,creates,The One Ring
-Smaug,lives_in,Lonely Mountain
-Theoden,rules,Rohan
-Thorin,rules,Lonely Mountain
-Thorin,wields,Orcrist
-Witch-king,wields,Morgul-blade
-Wormtongue,kills,Saruman
-Frodo,lives_in,Shire
-Sam,lives_in,Shire
-Pippin,lives_in,Shire
-Merry,lives_in,Shire
-Sauron,rules,Mordor
-Bag End,located_in,Hobbiton
-Hobbiton,located_in,Shire
-Minas Tirith,located_in,Gondor
-Treebeard,lives_in,Old Forest
-Thrain,is_parent,Thorin
-Thorin,is_child,Thrain
-Witch-King,wields,Morgul-blade
-Saruman,rules,Isengard
-Witch-King,stabs,Frodo
-Radagast,helps,Gandalf
-Sam,rides,Bill
-Bilbo,is_member,Company
-Thorin,is_member,Company
-Balin,is_member,Company
-Bombadil,is_spouse,Goldberry
-Bombadil,lives_in,Old Forest
-Denethor,rules,Minas Tirith
-Denethor,is_parent,Faramir
-Denethor,is_parent,Boromir
-Pippin,serves,Denethor
-Isildur,defeats,Sauron
-Elendil,is_parent,Isildur
-Isildur,is_child,Elendil
-Elendil,wields,Anduril
-Gandalf,rides,Shadowfax
-Isengard,spawns,Orcs
-Treebeard,fights,Isengard
-Frodo,fights,Shelob
-Sam,fights,Shelob
-Gorbag,captures,Frodo
-Haldir,lives_in,Lorien
-Gloin,is_member,Company
-Fellowship,forms_in,Lorien
-Gandalf,is_member,Company
-Faramir,is_child,Denethor
-Boromir,is_child,Denethor
-Bilbo,is_uncle,Frodo
-Bilbo,finds,Sting
-Frodo,inherits,Sting
+source_id,predicate,target_id,id
+Aragorn,is_member,Fellowship,0
+Aragorn,wields,Anduril,1
+Aragorn,is_spouse,Arwen,2
+Aragorn,rules,Gondor,3
+Arwen,is_child,Celebrian,4
+Arwen,is_child,Elrond,5
+Arwen,is_spouse,Aragorn,6
+Durin's Bane,kills,Gandalf,7
+Bard,kills,Smaug,8
+Bard,rules,Dale,9
+Bard,wields,Black Arrow,10
+Bilbo,bears,The One Ring,11
+Bilbo,wields,Sting,12
+Boromir,is_sibling,Faramir,13
+Boromir,is_member,Fellowship,14
+Celeborn,is_spouse,Galadriel,15
+Celeborn,is_parent,Celebrian,16
+Celebrian,is_child,Galadriel,17
+Celebrian,is_child,Celeborn,18
+Celebrian,is_parent,Arwen,19
+Celebrian,is_spouse,Elrond,20
+Elrond,is_spouse,Celebrian,21
+Elrond,is_parent,Arwen,22
+Elrond,lives_in,Rivendell,23
+Eomer,wields,Guthwine,24
+Eomer,rules,Rohan,25
+Eomer,is_sibling,Eowyn,26
+Eowyn,kills,Witch-King,27
+Eowyn,is_sibling,Eomer,28
+Faramir,is_sibling,Boromir,29
+Frodo,bears,The One Ring,30
+Frodo,is_member,Fellowship,31
+Frodo,wields,Sting,32
+Galadriel,is_parent,Celebrian,33
+Galadriel,is_spouse,Celeborn,34
+Gandalf,is_member,Fellowship,35
+Gandalf,wields,Glamdring,36
+Gandalf,kills,Durin's Bane,37
+Gimli,wields,Axe,38
+Gimli,kills,Orcs,39
+Gimli,is_member,Fellowship,40
+Gollum,destroys,The One Ring,41
+Gollum,bears,The One Ring,42
+Gollum,kills,Deagol,43
+Legolas,is_member,Fellowship,44
+Legolas,wields,Bow,45
+Merry,is_member,Fellowship,46
+Orcs,kills,Boromir,47
+Pippin,is_member,Fellowship,48
+Sam,is_member,Fellowship,49
+Sauron,creates,The One Ring,50
+Smaug,lives_in,Lonely Mountain,51
+Theoden,rules,Rohan,52
+Thorin,rules,Lonely Mountain,53
+Thorin,wields,Orcrist,54
+Witch-king,wields,Morgul-blade,55
+Wormtongue,kills,Saruman,56
+Frodo,lives_in,Shire,57
+Sam,lives_in,Shire,58
+Pippin,lives_in,Shire,59
+Merry,lives_in,Shire,60
+Sauron,rules,Mordor,61
+Bag End,located_in,Hobbiton,62
+Hobbiton,located_in,Shire,63
+Minas Tirith,located_in,Gondor,64
+Treebeard,lives_in,Old Forest,65
+Thrain,is_parent,Thorin,66
+Thorin,is_child,Thrain,67
+Witch-King,wields,Morgul-blade,68
+Saruman,rules,Isengard,69
+Witch-King,stabs,Frodo,70
+Radagast,helps,Gandalf,71
+Sam,rides,Bill,72
+Bilbo,is_member,Company,73
+Thorin,is_member,Company,74
+Balin,is_member,Company,75
+Bombadil,is_spouse,Goldberry,76
+Bombadil,lives_in,Old Forest,77
+Denethor,rules,Minas Tirith,78
+Denethor,is_parent,Faramir,79
+Denethor,is_parent,Boromir,80
+Pippin,serves,Denethor,81
+Isildur,defeats,Sauron,82
+Elendil,is_parent,Isildur,83
+Isildur,is_child,Elendil,84
+Elendil,wields,Anduril,85
+Gandalf,rides,Shadowfax,86
+Isengard,spawns,Orcs,87
+Treebeard,fights,Isengard,88
+Frodo,fights,Shelob,89
+Sam,fights,Shelob,90
+Gorbag,captures,Frodo,91
+Haldir,lives_in,Lorien,92
+Gloin,is_member,Company,93
+Fellowship,forms_in,Lorien,94
+Gandalf,is_member,Company,95
+Faramir,is_child,Denethor,96
+Boromir,is_child,Denethor,97
+Bilbo,is_uncle,Frodo,98
+Bilbo,finds,Sting,99
+Frodo,inherits,Sting,100
