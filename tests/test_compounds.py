@@ -132,8 +132,15 @@ def test_or():
     ]
     output = session.run(get_query(qgraph))
     for record in output:
-        assert record['results'][0]['node_bindings'] == [{'kg_id': 'Fellowship', 'qg_id': 'n0'}, {'kg_id': 'Boromir', 'qg_id': 'n1'}, {'kg_id': 'Faramir', 'qg_id': 'n2'}, {'kg_id': None, 'qg_id': 'n1b'}]
+        assert len(record['results']) == 11
+        results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
+        expected_nodes = [
+            'Aragorn', 'Bilbo', 'Boromir', 'Faramir', 'Fellowship', 'Frodo', 'Gandalf',
+            'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam'
+        ]
         assert len(record['knowledge_graph']['nodes']) == 12
+        for ind, node in enumerate(results):
+            assert node['name'] == expected_nodes[ind]
     session.close()
 
 
