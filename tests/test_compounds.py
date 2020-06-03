@@ -5,202 +5,47 @@ from reasoner.cypher import get_query
 from initialize_db import initialize_db
 
 
-def test_skip_limit():
-    """Test SKIP and LIMIT."""
+def test_and():
+    """Test transpiling of compound qgraph."""
     session = initialize_db()
-    qgraph = {
-        "nodes": [
-            {
-                "id": "n0",
-                "type": "Group",
-                "curie": "Fellowship",
-            },
-            {
-                "id": "n1",
-                "type": "Person",
-            },
-        ],
-        "edges": [
-            {
-                "id": "e10",
-                "source_id": "n1",
-                "target_id": "n0",
-                "type": "IS_MEMBER",
-            },
-        ],
-    }
-    all_results = []
-    output = session.run(get_query(qgraph, limit=5))
-    for record in output:
-        all_results.extend(record['results'])
-        assert len(record['results']) == 5
-    output = session.run(get_query(qgraph, skip=5, limit=5))
-    for record in output:
-        all_results.extend(record['results'])
-        assert len(record['results']) == 4
-    session.close()
-    assert {
-        'Aragorn', 'Boromir', 'Frodo',
-        'Gandalf', 'Gimli', 'Legolas',
-        'Merry', 'Pippin', 'Sam',
-    } == set(
-        result['node_bindings'][1]['kg_id']
-        for result in all_results
-    )
-
-
-def test_max_connectivity():
-    """Test max_connectivity option."""
-    session = initialize_db()
-    qgraph = {
-        "nodes": [
-            {
-                "id": "n0",
-                "type": "Person",
-            },
-            {
-                "id": "n1",
-                "type": "Place",
-                "curie": "Shire",
-            },
-        ],
-        "edges": [
-            {
-                "id": "e01",
-                "type": "LIVES_IN",
-                "source_id": "n0",
-                "target_id": "n1",
-            },
-        ],
-    }
-    print(get_query(
-        qgraph,
-        max_connectivity=5,
-        reasoner=False,
-    ))
-    output = session.run(get_query(
-        qgraph,
-        max_connectivity=5,
-    ))
-    for record in output:
-        assert len(record['results']) == 3
-    session.close()
-
-
-def test_curie_formats():
-    """Test unusual curie formats."""
-    session = initialize_db()
-    qgraph = {
-        "nodes": [
-            {
-                "id": "n0",
-                "curie": [
-                    "Frodo",
-                    "Sam",
-                    "Merry",
-                    "Pippin",
-                ],
-                "type": "Person",
-            },
-            {
-                "id": "n1",
-                "type": "Place",
-                "curie": 12,
-            },
-        ],
-        "edges": [
-            {
-                "id": "e01",
-                "type": [
-                    "LIVES_IN",
-                    "RULES",
-                ],
-                "source_id": "n0",
-                "target_id": "n1",
-            },
-        ],
-    }
-    print(get_query(
-        qgraph,
-        use_hints=True,
-        reasoner=False,
-    ))
-
-
-def test_complex_query():
-    """Test that db get's initialized successfully."""
-    session = initialize_db()
-    qgraph = {
-        "nodes": [
-            {
-                "id": "n1",
-                "type": "Weapon",
-            },
-            {
-                "id": "n0",
-                "curie": "Frodo",
-                "type": "Person",
-                "gender": "male",
-                "occurences": 2040,
-            },
-            {
-                "id": "n2",
-                "type": "Person",
-                "curie": [
-                    "Bilbo",
-                ],
-                "good": True
-            },
-        ],
-        "edges": [
-            {
-                "id": "e02",
-                "source_id": "n0",
-                "target_id": "n2",
-            },
-            {
-                "id": "e01",
-                "source_id": "n0",
-                "target_id": "n1",
-                "type": "INHERITS",
-            },
-            {
-                "id": "e21",
-                "source_id": "n2",
-                "target_id": "n1",
-                "type": [
-                    "WIELDS",
-                    "FINDS",
-                ],
-            }
-        ],
-    }
-    print(get_query(qgraph, reasoner=False))
+    qgraph = [
+        'AND',
+        {
+            'nodes': [
+                {
+                    'id': 'n0',
+                    'type': 'Person',
+                },
+                {
+                    'id': 'n1',
+                    'type': 'Group',
+                    'curie': 'Fellowship',
+                },
+            ],
+            'edges': [],
+        },
+        {
+            'nodes': [],
+            'edges': [
+                {
+                    'id': 'e01',
+                    'source_id': 'n0',
+                    'target_id': 'n1',
+                    'type': 'IS_MEMBER',
+                },
+            ],
+        },
+    ]
     output = session.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 1
-        assert record['results'][0]['node_bindings'], [{'kg_id': 'Sting', 'qg_id': 'n1'}, {'kg_id': 'Frodo', 'qg_id': 'n0'}, {'kg_id': 'Bilbo', 'qg_id': 'n2'}]
+        # 9 for the members, 1 for the Fellowship node
+        assert len(record['knowledge_graph']['nodes']) == 10
     session.close()
-
-
-def test_invalid_node():
-    """Test that an invalid node property value throws an error."""
-    qgraph = {
-        "nodes": [
-            {
-                "id": "n0",
-                "type": "Thing",
-                "dict": {"a": 1},
-            },
-        ],
-        "edges": [],
-    }
-    with pytest.raises(ValueError):
-        get_query(qgraph)
 
 
 def test_or():
     """Test parsing of compound qgraph."""
+    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -285,11 +130,16 @@ def test_or():
             },
         ],
     ]
-    print(get_query(qgraph, reasoner=False))
+    output = session.run(get_query(qgraph))
+    for record in output:
+        assert record['results'][0]['node_bindings'] == [{'kg_id': 'Fellowship', 'qg_id': 'n0'}, {'kg_id': 'Boromir', 'qg_id': 'n1'}, {'kg_id': 'Faramir', 'qg_id': 'n2'}, {'kg_id': None, 'qg_id': 'n1b'}]
+        assert len(record['knowledge_graph']['nodes']) == 12
+    session.close()
 
 
 def test_xor():
     """Test transpiling of compound qgraph."""
+    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -351,11 +201,16 @@ def test_xor():
             },
         ],
     ]
-    print(get_query(qgraph, reasoner=False))
+    output = session.run(get_query(qgraph))
+    for record in output:
+        assert len(record['results']) == 5
+        assert len(record['knowledge_graph']['nodes']) == 9
+    session.close()
 
 
 def test_not():
     """Test transpiling of compound qgraph."""
+    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -385,6 +240,11 @@ def test_not():
                 'nodes': [
                     {
                         'id': 'n2',
+                        'type': [
+                            'Creature',
+                            'Group',
+                            'Person',
+                        ],
                     },
                 ],
                 'edges': [
@@ -398,4 +258,86 @@ def test_not():
             },
         ],
     ]
-    print(get_query(qgraph, reasoner=False))
+    output = session.run(get_query(qgraph))
+    for record in output:
+        results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
+        expected_nodes = ['Aragorn', 'Boromir', 'Fellowship', 'Frodo', 'Gandalf', 'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam']
+        for ind, node in enumerate(results):
+            assert node['name'] == expected_nodes[ind]
+    session.close()
+
+
+def test_multiple_conditions():
+    """Test transpiling of compound qgraph."""
+    session = initialize_db()
+    qgraph = [
+        'AND',
+        {
+            'nodes': [
+                {
+                    'id': 'n0',
+                    'type': 'Person',
+                },
+                {
+                    'id': 'n1',
+                    'type': 'Group',
+                    'curie': 'Fellowship',
+                },
+            ],
+            'edges': [
+                {
+                    'id': 'e01',
+                    'source_id': 'n0',
+                    'target_id': 'n1',
+                    'type': 'IS_MEMBER',
+                },
+            ],
+        },
+        [
+            'NOT',
+            {
+                'nodes': [
+                    {
+                        'id': 'n2',
+                        'type': [
+                            'Group',
+                        ],
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e20',
+                        'source_id': 'n2',
+                        'target_id': 'n0',
+                        'type': 'KILLS',
+                    },
+                ],
+            },
+        ],
+        [
+            'NOT',
+            {
+                'nodes': [
+                    {
+                        'id': 'n3',
+                        'type': 'Weapon',
+                    },
+                ],
+                'edges': [
+                    {
+                        'id': 'e30',
+                        'source_id': 'n0',
+                        'target_id': 'n3',
+                        'type': ['WIELDS'],
+                    },
+                ],
+            },
+        ],
+    ]
+    output = session.run(get_query(qgraph))
+    for record in output:
+        results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
+        expected_nodes = ['Fellowship', 'Merry', 'Pippin', 'Sam']
+        for ind, node in enumerate(results):
+            assert node['name'] == expected_nodes[ind]
+    session.close()
