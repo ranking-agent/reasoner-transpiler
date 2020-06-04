@@ -27,6 +27,7 @@ def initialize_db():
                 "AS edge "
                 "MATCH (source), (target) "
                 "WHERE source.name = edge.source_id AND target.name = edge.target_id "
-                "CALL apoc.create.relationship(source, toUpper(edge.predicate), {predicate: edge.predicate}, target) YIELD rel "
+                "CALL apoc.create.relationship(source, toUpper(edge.predicate), "
+                "{predicate: edge.predicate, id: edge.id}, target) YIELD rel "
                 "RETURN count(*)")
     return session

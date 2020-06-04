@@ -56,3 +56,19 @@ def test_unknown_operator():
     with pytest.raises(ValueError) as excinfo:
         get_query(qgraph)
     assert 'Unrecognized operator' in str(excinfo.value)
+
+
+def test_invalid_node():
+    """Test that an invalid node property value throws an error."""
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "type": "Thing",
+                "dict": {"a": 1},
+            },
+        ],
+        "edges": [],
+    }
+    with pytest.raises(ValueError):
+        get_query(qgraph)
