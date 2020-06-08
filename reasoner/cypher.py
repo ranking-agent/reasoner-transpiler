@@ -73,22 +73,22 @@ def assemble_results(qnodes, qedges, **kwargs):
         )
         for qedge_id in qedges
     ]
-    knodes = ' + '.join([
+    knodes = [
         'collect(DISTINCT `{0}`)'.format(qnode_id)
         for qnode_id in qnodes
-    ])
-    kedges = ' + '.join([
+    ]
+    kedges = [
         'collect(DISTINCT `{0}`)'.format(qedge_id)
         for qedge_id in qedges
-    ])
+    ]
     assemble_clause = (
         'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
         '{{nodes:{2}, edges: {3}}} AS knowledge_graph'
     ).format(
         ' + '.join(node_bindings) or '[]',
         ' + '.join(edge_bindings) or '[]',
-        knodes,
-        kedges,
+        ' + '.join(knodes) or '[]',
+        ' + '.join(kedges) or '[]',
     )
     clauses.append(assemble_clause)
 
@@ -97,15 +97,23 @@ def assemble_results(qnodes, qedges, **kwargs):
 
     # collect results and aggregate kgraphs
     # also fetch extra knode/kedge properties
-    aggregate_clause = (
-        'UNWIND knowledge_graph.nodes AS knode '
-        'UNWIND knowledge_graph.edges AS kedge '
-        'WITH collect(DISTINCT result) AS results, {'
+    if qnodes:
+        clauses.append('UNWIND knowledge_graph.nodes AS knode')
+    if qedges:
+        clauses.append('UNWIND knowledge_graph.edges AS kedge')
+    aggregate_clause = 'WITH collect(DISTINCT result) AS results, {'
+    aggregate_clause += (
         'nodes: [n IN collect(DISTINCT knode) | n{.*, type:labels(n)}], '
+        if qnodes else
+        'nodes: [], '
+    )
+    aggregate_clause += (
         'edges: [e IN collect(DISTINCT kedge) | e{.*, type:type(e), '
         'source_id: startNode(e).id, target_id: endNode(e).id}]'
-        '} AS knowledge_graph'
+        if qedges else
+        'edges: []'
     )
+    aggregate_clause += '} AS knowledge_graph'
     clauses.append(aggregate_clause)
 
     # return results and knowledge graph
