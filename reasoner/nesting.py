@@ -135,7 +135,7 @@ class Query():
 
     def _compile(self, **kwargs):  # pylint: disable=unused-argument
         """Return query string."""
-        return [self._string]
+        return [self._string] if self._string else []
 
     @property
     def references(self):
