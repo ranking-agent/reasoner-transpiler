@@ -1,13 +1,10 @@
 """Test query graph formats."""
-import pytest
-
 from reasoner.cypher import get_query
-from initialize_db import initialize_db
+from fixtures import fixture_database
 
 
-def test_curie_formats():
+def test_curie_formats(database):
     """Test unusual curie formats."""
-    session = initialize_db()
     qgraph = {
         "nodes": [
             {
@@ -37,7 +34,7 @@ def test_curie_formats():
             },
         ],
     }
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 4
         results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
@@ -45,12 +42,9 @@ def test_curie_formats():
         for ind, result in enumerate(results):
             assert result['name'] == expected_nodes[ind]
 
-    session.close()
 
-
-def test_complex_query():
+def test_complex_query(database):
     """Test that db get's initialized successfully."""
-    session = initialize_db()
     qgraph = {
         "nodes": [
             {
@@ -96,16 +90,14 @@ def test_complex_query():
             }
         ],
     }
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 1
         assert record['results'][0]['node_bindings'] == [{'kg_id': 'Sting', 'qg_id': 'n1'}, {'kg_id': 'Frodo', 'qg_id': 'n0'}, {'kg_id': 'Bilbo', 'qg_id': 'n2'}]
-    session.close()
 
 
 def test_single_edge_type_list():
     """Test that an edge with a edge type list of one works properly."""
-    session = initialize_db()
     qgraph = {
         "nodes": [
             {

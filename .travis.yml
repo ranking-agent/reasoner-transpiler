@@ -9,6 +9,7 @@ env:
 install:
   - pip install tox
   - export PYTHONPATH=$(pwd)
+  - pip install neo4j-driver
 before_script:
   - sudo service neo4j stop
   - sleep 20
@@ -17,6 +18,6 @@ before_script:
   - cp tests/neo4j_csv/nodes.csv /usr/local/neo4j-3.2.7/import
   - cp tests/neo4j_csv/edges.csv /usr/local/neo4j-3.2.7/import
   - sudo service neo4j start
-  - sleep 30
+  - ./tests/initialize_db.py
 script:
   - tox

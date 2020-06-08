@@ -1,13 +1,10 @@
 """Test query arguments."""
-import pytest
-
 from reasoner.cypher import get_query
-from initialize_db import initialize_db
+from fixtures import fixture_database
 
 
-def test_skip_limit():
+def test_skip_limit(database):
     """Test SKIP and LIMIT."""
-    session = initialize_db()
     qgraph = {
         "nodes": [
             {
@@ -30,15 +27,14 @@ def test_skip_limit():
         ],
     }
     all_results = []
-    output = session.run(get_query(qgraph, limit=5))
+    output = database.run(get_query(qgraph, limit=5))
     for record in output:
         all_results.extend(record['results'])
         assert len(record['results']) == 5
-    output = session.run(get_query(qgraph, skip=5, limit=5))
+    output = database.run(get_query(qgraph, skip=5, limit=5))
     for record in output:
         all_results.extend(record['results'])
         assert len(record['results']) == 4
-    session.close()
     assert {
         'Aragorn', 'Boromir', 'Frodo',
         'Gandalf', 'Gimli', 'Legolas',
@@ -49,9 +45,8 @@ def test_skip_limit():
     )
 
 
-def test_max_connectivity():
+def test_max_connectivity(database):
     """Test max_connectivity option."""
-    session = initialize_db()
     qgraph = {
         "nodes": [
             {
@@ -73,7 +68,7 @@ def test_max_connectivity():
             },
         ],
     }
-    output = session.run(get_query(
+    output = database.run(get_query(
         qgraph,
         max_connectivity=5,
     ))
@@ -83,12 +78,10 @@ def test_max_connectivity():
         expected_nodes = ['Merry', 'Pippin', 'Sam', 'Shire']
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
-    session.close()
 
 
 def test_use_hints():
     """Test unusual curie formats."""
-    session = initialize_db()
     qgraph = {
         "nodes": [
             {

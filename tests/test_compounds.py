@@ -2,12 +2,11 @@
 import pytest
 
 from reasoner.cypher import get_query
-from initialize_db import initialize_db
+from fixtures import fixture_database
 
 
-def test_and():
+def test_and(database):
     """Test transpiling of compound qgraph."""
-    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -36,16 +35,14 @@ def test_and():
             ],
         },
     ]
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         # 9 for the members, 1 for the Fellowship node
         assert len(record['knowledge_graph']['nodes']) == 10
-    session.close()
 
 
-def test_or():
+def test_or(database):
     """Test parsing of compound qgraph."""
-    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -130,7 +127,7 @@ def test_or():
             },
         ],
     ]
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 11
         results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
@@ -141,12 +138,10 @@ def test_or():
         assert len(record['knowledge_graph']['nodes']) == 12
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
-    session.close()
 
 
-def test_xor():
+def test_xor(database):
     """Test transpiling of compound qgraph."""
-    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -208,16 +203,14 @@ def test_xor():
             },
         ],
     ]
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 5
         assert len(record['knowledge_graph']['nodes']) == 9
-    session.close()
 
 
-def test_not():
+def test_not(database):
     """Test transpiling of compound qgraph."""
-    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -265,18 +258,16 @@ def test_not():
             },
         ],
     ]
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
         expected_nodes = ['Aragorn', 'Boromir', 'Fellowship', 'Frodo', 'Gandalf', 'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam']
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
-    session.close()
 
 
-def test_multiple_conditions():
+def test_multiple_conditions(database):
     """Test transpiling of compound qgraph."""
-    session = initialize_db()
     qgraph = [
         'AND',
         {
@@ -341,10 +332,9 @@ def test_multiple_conditions():
             },
         ],
     ]
-    output = session.run(get_query(qgraph))
+    output = database.run(get_query(qgraph))
     for record in output:
         results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
         expected_nodes = ['Fellowship', 'Merry', 'Pippin', 'Sam']
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
-    session.close()
