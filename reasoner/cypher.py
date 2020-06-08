@@ -73,22 +73,22 @@ def assemble_results(qnodes, qedges, **kwargs):
         )
         for qedge_id in qedges
     ]
-    knodes = ' + '.join([
+    knodes = [
         'collect(DISTINCT `{0}`)'.format(qnode_id)
         for qnode_id in qnodes
-    ]) or '[]'
-    kedges = ' + '.join([
+    ]
+    kedges = [
         'collect(DISTINCT `{0}`)'.format(qedge_id)
         for qedge_id in qedges
-    ]) or '[]'
+    ]
     assemble_clause = (
         'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
         '{{nodes:{2}, edges: {3}}} AS knowledge_graph'
     ).format(
         ' + '.join(node_bindings) or '[]',
         ' + '.join(edge_bindings) or '[]',
-        knodes,
-        kedges,
+        ' + '.join(knodes) or '[]',
+        ' + '.join(kedges) or '[]',
     )
     clauses.append(assemble_clause)
 
