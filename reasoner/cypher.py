@@ -51,22 +51,30 @@ def assemble_results(qnodes, qedges, **kwargs):
     node_bindings = [
         (
             '[ni IN collect(DISTINCT `{0}`.id) '
+            'WHERE ni IS NOT null '
             '| {{qg_id:"{0}", kg_id:ni}}]'
         ).format(
             qnode_id,
         ) if qnode.get('set', False) else
-        '[{{qg_id:"{0}", kg_id:`{0}`.id}}]'.format(qnode_id)
+        (
+            '(CASE '
+            'WHEN {0} IS NOT NULL THEN [{{qg_id:"{0}", kg_id:{0}.id}}] '
+            'ELSE [] '
+            'END)'
+        ).format(qnode_id)
         for qnode_id, qnode in qnodes.items()
     ]
     edge_bindings = [
         (
             '[ei IN collect(DISTINCT toString(id(`{0}`))) '
+            'WHERE ei IS NOT null '
             '| {{qg_id:"{0}", kg_id:ei}}]'
         ).format(
             qedge_id,
         ) if kwargs.get('relationship_id', 'property') == 'internal' else
         (
             '[ei IN collect(DISTINCT `{0}`.id) '
+            'WHERE ei IS NOT null '
             '| {{qg_id:"{0}", kg_id:ei}}]'
         ).format(
             qedge_id,
