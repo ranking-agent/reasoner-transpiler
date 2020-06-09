@@ -338,3 +338,91 @@ def test_multiple_conditions(database):
         expected_nodes = ['Fellowship', 'Merry', 'Pippin', 'Sam']
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
+
+
+def test_not_or(database):
+    """Test transpiling of compound qgraph."""
+    qgraph = [
+        'AND',
+        {
+            'nodes': [
+                {
+                    'id': 'n0',
+                    'type': 'Person',
+                },
+                {
+                    'id': 'n1',
+                    'type': 'Group',
+                    'curie': 'Fellowship',
+                },
+            ],
+            'edges': [
+                {
+                    'id': 'e01',
+                    'source_id': 'n0',
+                    'target_id': 'n1',
+                    'type': 'IS_MEMBER',
+                },
+            ],
+        },
+        [
+            'NOT',
+            [
+                'OR',
+                {
+                    'nodes': [
+                        {
+                            'id': 'n2',
+                            'type': 'Group',
+                        },
+                    ],
+                    'edges': [
+                        {
+                            'id': 'e20',
+                            'source_id': 'n2',
+                            'target_id': 'n0',
+                            'type': 'KILLS',
+                        },
+                    ],
+                },
+                {
+                    'nodes': [
+                        {
+                            'id': 'n3',
+                            'type': 'Creature',
+                        },
+                    ],
+                    'edges': [
+                        {
+                            'id': 'e30',
+                            'source_id': 'n3',
+                            'target_id': 'n0',
+                            'type': 'KILLS',
+                        },
+                    ],
+                },
+                {
+                    'nodes': [
+                        {
+                            'id': 'n4',
+                            'type': 'Person',
+                        },
+                    ],
+                    'edges': [
+                        {
+                            'id': 'e40',
+                            'source_id': 'n4',
+                            'target_id': 'n0',
+                            'type': 'KILLS',
+                        },
+                    ],
+                },
+            ],
+        ],
+    ]
+    output = dict(list(database.run(get_query(qgraph)))[0])
+    assert len(output['results']) == 7
+    results = sorted(output['knowledge_graph']['nodes'], key=lambda node: node['name'])
+    expected_nodes = ['Aragorn', 'Fellowship', 'Frodo', 'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam']
+    for ind, node in enumerate(results):
+        assert node['name'] == expected_nodes[ind]
