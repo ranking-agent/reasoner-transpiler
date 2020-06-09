@@ -422,3 +422,7 @@ def test_not_or(database):
     ]
     output = dict(list(database.run(get_query(qgraph)))[0])
     assert len(output['results']) == 7
+    results = sorted(output['knowledge_graph']['nodes'], key=lambda node: node['name'])
+    expected_nodes = ['Aragorn', 'Fellowship', 'Frodo', 'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam']
+    for ind, node in enumerate(results):
+        assert node['name'] == expected_nodes[ind]
