@@ -130,6 +130,8 @@ def test_or(database):
     output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 11
+        for result in record['results']:
+            assert len(result['node_bindings']) in (2, 3)
         results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
         expected_nodes = [
             'Aragorn', 'Bilbo', 'Boromir', 'Faramir', 'Fellowship', 'Frodo', 'Gandalf',
