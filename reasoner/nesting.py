@@ -254,7 +254,7 @@ class NotQuery(CompoundQuery):
 
     def logic(self, simple=True):
         """Return whether qid is required."""
-        return f'NOT ({super().logic(False)})'
+        return f'NOT ({self.subqueries[0].logic(False)})'
 
 
 class AltQuery(CompoundQuery):
