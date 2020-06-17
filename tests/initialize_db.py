@@ -4,7 +4,7 @@ import logging
 import time
 
 from neo4j import GraphDatabase
-from neo4j.exceptions import ServiceUnavailable, DatabaseUnavailableError
+from neo4j.exceptions import ServiceUnavailable, DatabaseUnavailable
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def get_driver(url):
             with driver.session() as session:
                 session.run('CALL dbms.procedures()')
             return driver
-        except (OSError, ServiceUnavailable, DatabaseUnavailableError) as err:
+        except (OSError, ServiceUnavailable, DatabaseUnavailable) as err:
             if seconds >= 256:
                 raise err
             LOGGER.error(
