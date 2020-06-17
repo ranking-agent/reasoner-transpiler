@@ -355,7 +355,7 @@ def test_not_or(database):
                 {
                     'id': 'n1',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [
