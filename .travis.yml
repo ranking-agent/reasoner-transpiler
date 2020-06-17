@@ -11,6 +11,8 @@ install:
   - export PYTHONPATH=$(pwd)
   - pip install neo4j-driver==4.0.0
 before_script:
+  - mkdir tests/neo4j_plugins
+  - wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.0.0.12/apoc-4.0.0.12-all.jar -O tests/neo4j_plugins/apoc-4.0.0.12-all.jar
   - docker-compose -f ./tests/docker-compose.yml up -d
   - ./tests/initialize_db.py
 script:
