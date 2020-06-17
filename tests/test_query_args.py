@@ -10,7 +10,7 @@ def test_skip_limit(database):
             {
                 "id": "n0",
                 "type": "Group",
-                "curie": "Fellowship",
+                "curie": "TGATE:Fellowship",
             },
             {
                 "id": "n1",
@@ -36,9 +36,9 @@ def test_skip_limit(database):
         all_results.extend(record['results'])
         assert len(record['results']) == 4
     assert {
-        'Aragorn', 'Boromir', 'Frodo',
-        'Gandalf', 'Gimli', 'Legolas',
-        'Merry', 'Pippin', 'Sam',
+        'TGATE:Aragorn', 'TGATE:Boromir', 'TGATE:Frodo',
+        'TGATE:Gandalf', 'TGATE:Gimli', 'TGATE:Legolas',
+        'TGATE:Merry', 'TGATE:Pippin', 'TGATE:Sam',
     } == set(
         result['node_bindings'][1]['kg_id']
         for result in all_results
@@ -56,7 +56,7 @@ def test_max_connectivity(database):
             {
                 "id": "n1",
                 "type": "Place",
-                "curie": "Shire",
+                "curie": "TGATE:Shire",
             },
         ],
         "edges": [
@@ -87,10 +87,10 @@ def test_use_hints():
             {
                 "id": "n0",
                 "curie": [
-                    "Frodo",
-                    "Sam",
-                    "Merry",
-                    "Pippin",
+                    "TGATE:Frodo",
+                    "TGATE:Sam",
+                    "TGATE:Merry",
+                    "TGATE:Pippin",
                 ],
                 "type": "Person",
             },

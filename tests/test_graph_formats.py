@@ -10,10 +10,10 @@ def test_curie_formats(database):
             {
                 "id": "n0",
                 "curie": [
-                    "Frodo",
-                    "Sam",
-                    "Merry",
-                    "Pippin",
+                    "TGATE:Frodo",
+                    "TGATE:Sam",
+                    "TGATE:Merry",
+                    "TGATE:Pippin",
                 ],
                 "type": "Person",
             },
@@ -53,7 +53,7 @@ def test_complex_query(database):
             },
             {
                 "id": "n0",
-                "curie": "Frodo",
+                "curie": "TGATE:Frodo",
                 "type": "Person",
                 "gender": "male",
                 "occurences": 2040,
@@ -62,7 +62,7 @@ def test_complex_query(database):
                 "id": "n2",
                 "type": "Person",
                 "curie": [
-                    "Bilbo",
+                    "TGATE:Bilbo",
                 ],
                 "good": True
             },
@@ -93,7 +93,11 @@ def test_complex_query(database):
     output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 1
-        assert record['results'][0]['node_bindings'] == [{'kg_id': 'Sting', 'qg_id': 'n1'}, {'kg_id': 'Frodo', 'qg_id': 'n0'}, {'kg_id': 'Bilbo', 'qg_id': 'n2'}]
+        assert record['results'][0]['node_bindings'] == [
+            {'kg_id': 'TGATE:Sting', 'qg_id': 'n1'},
+            {'kg_id': 'TGATE:Frodo', 'qg_id': 'n0'},
+            {'kg_id': 'TGATE:Bilbo', 'qg_id': 'n2'},
+        ]
 
 
 def test_single_edge_type_list():
