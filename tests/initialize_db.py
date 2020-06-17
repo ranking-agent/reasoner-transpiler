@@ -43,7 +43,7 @@ def main():
         session.run("LOAD CSV WITH HEADERS FROM 'file:///nodes.csv' "
                     "AS row "
                     "CALL apoc.create.node([row.label], {"
-                    "name: row.name, id: row.name,"
+                    "name: row.name, id: row.id,"
                     "subtype: row.subtype, gender: row.gender,"
                     "occurences: toInteger(row.occurences),"
                     "good: toBoolean(row.good)"
@@ -52,7 +52,7 @@ def main():
         session.run("LOAD CSV WITH HEADERS FROM 'file:///edges.csv' "
                     "AS edge "
                     "MATCH (source), (target) "
-                    "WHERE source.name = edge.source_id AND target.name = edge.target_id "
+                    "WHERE source.id = edge.source_id AND target.id = edge.target_id "
                     "CALL apoc.create.relationship(source, toUpper(edge.predicate), "
                     "{predicate: edge.predicate, id: edge.id}, target) YIELD rel "
                     "RETURN count(*)")

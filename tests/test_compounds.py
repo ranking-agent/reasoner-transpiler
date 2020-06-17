@@ -18,7 +18,7 @@ def test_and(database):
                 {
                     'id': 'n1',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [],
@@ -50,7 +50,7 @@ def test_or(database):
                 {
                     'id': 'n0',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [],
@@ -155,7 +155,7 @@ def test_xor(database):
                 {
                     'id': 'n1',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [
@@ -174,7 +174,7 @@ def test_xor(database):
                     {
                         'id': 'n2',
                         'type': 'Place',
-                        'curie': 'Shire',
+                        'curie': 'TGATE:Shire',
                     },
                 ],
                 'edges': [
@@ -224,7 +224,7 @@ def test_not(database):
                 {
                     'id': 'n1',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [
@@ -281,7 +281,7 @@ def test_multiple_conditions(database):
                 {
                     'id': 'n1',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [
@@ -355,7 +355,7 @@ def test_not_or(database):
                 {
                     'id': 'n1',
                     'type': 'Group',
-                    'curie': 'Fellowship',
+                    'curie': 'TGATE:Fellowship',
                 },
             ],
             'edges': [
