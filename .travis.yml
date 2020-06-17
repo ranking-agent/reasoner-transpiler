@@ -3,21 +3,15 @@ language: python
 python:
   - "3.6"
 services:
-  - neo4j
+  - docker
 env:
   - NEO4J_AUTH=none
 install:
   - pip install tox
   - export PYTHONPATH=$(pwd)
-  - pip install neo4j-driver
+  - pip install neo4j-driver==4.0.0
 before_script:
-  - sudo service neo4j stop
-  - sleep 20
-  - wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/3.2.3.6/apoc-3.2.3.6-all.jar
-  - cp apoc-3.2.3.6-all.jar /usr/local/neo4j-3.2.7/plugins
-  - cp tests/neo4j_csv/nodes.csv /usr/local/neo4j-3.2.7/import
-  - cp tests/neo4j_csv/edges.csv /usr/local/neo4j-3.2.7/import
-  - sudo service neo4j start
+  - docker-compose -f ./tests/docker-compose.yml up -d
   - ./tests/initialize_db.py
 script:
   - tox
