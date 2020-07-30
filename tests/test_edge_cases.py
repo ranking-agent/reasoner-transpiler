@@ -15,3 +15,20 @@ def test_empty(database):
     assert output['results'][0]['edge_bindings'] == []
     assert output['knowledge_graph']['nodes'] == []
     assert output['knowledge_graph']['edges'] == []
+
+
+def test_type_none(database):
+    """Test node with type None."""
+    qgraph = {
+        "nodes": [
+            {
+                "id": "n0",
+                "curie": "TGATE:Frodo",
+                "type": None,
+            }
+        ],
+        "edges": [],
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    assert len(output['results']) == 1
