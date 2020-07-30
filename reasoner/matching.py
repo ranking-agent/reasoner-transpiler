@@ -35,7 +35,7 @@ class NodeReference():
 
         node = dict(node)  # shallow copy
         self.name = '`' + node_id + '`' if not anonymous else ''
-        self.labels = node.pop('type', ['named_thing'])
+        self.labels = node.pop('type', None) or []
         if not isinstance(self.labels, list):
             self.labels = [self.labels]
 
@@ -74,7 +74,7 @@ class NodeReference():
             f'`{key}`: {cypher_prop_string(props[key])}' for key in props
         ]) + '}' if props else ''
         self._hints = []
-        if curie:
+        if curie and self.labels:
             self._hints.append(f'USING INDEX {self.name}:{self.labels[0]}(id)')
         self._num = 0
 
