@@ -124,7 +124,7 @@ def test_single_edge_type_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`Person`)-[`e0`:WIELDS]->(`n1`:`Weapon`)" in clause
+    assert "(`n0`:`Person`)-[`e0`:`WIELDS`]->(`n1`:`Weapon`)" in clause
 
 
 def test_curie_int():
