@@ -142,7 +142,7 @@ class EdgeReference():
         """Return the cypher edge reference."""
         return '-[`{0}`{1}]-'.format(
             self.name,
-            ':' + self.label if self.label else '',
+            ':' + f'`{self.label}`' if self.label else '',
         ) + ('>' if self.directed else '')
 
 
