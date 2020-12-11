@@ -23,11 +23,10 @@ class NodeReference():
 
         All node properties of types [str, bool, float/int] will be enforced
         verbatim EXCEPT for the following reserved properties:
+        * category
         * id
-        * type
-        * curie
         * name
-        * set
+        * is_set
         Un-reserved properties with other types will be coerced to str.
         """
         max_connectivity = kwargs.get('max_connectivity', -1)
@@ -35,13 +34,13 @@ class NodeReference():
 
         node = dict(node)  # shallow copy
         self.name = '`' + node_id + '`' if not anonymous else ''
-        self.labels = node.pop('type', None) or []
+        self.labels = node.pop('category', None) or []
         if not isinstance(self.labels, list):
             self.labels = [self.labels]
 
         props = {}
         self._filters = []
-        curie = node.pop('curie', None)
+        curie = node.pop('id', None)
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
         if isinstance(curie, str):
@@ -123,7 +122,7 @@ class EdgeReference():
     def __init__(self, edge_id, edge, anonymous=False):
         """Create an edge reference."""
         self.name = edge_id if not anonymous else ''
-        self.label = edge.get('type', None)
+        self.label = edge.get('predicate', None)
         self.filters = []
 
         if isinstance(self.label, list) and len(self.label) == 1:
@@ -168,8 +167,8 @@ def build_match_clause(
 def match_edge(qedge_id, qedge, node_references, **kwargs):
     """Get MATCH clause for edge."""
     eref = EdgeReference(qedge_id, qedge)
-    source_node = node_references[qedge['source_id']]
-    target_node = node_references[qedge['target_id']]
+    source_node = node_references[qedge['subject']]
+    target_node = node_references[qedge['object']]
     pattern = f'{source_node}{eref}{target_node}'
     edge_filters = [
         f'({c})'
@@ -192,8 +191,8 @@ def match_query(qgraph, **kwargs):
     defined_nodes = set(qgraph['nodes'])
     defined_edges = set(qgraph['edges'])
     referenced_nodes = set(
-        [e['source_id'] for e in qgraph['edges'].values()]
-        + [e['target_id'] for e in qgraph['edges'].values()]
+        [e['subject'] for e in qgraph['edges'].values()]
+        + [e['object'] for e in qgraph['edges'].values()]
     )
 
     # generate internal node and edge variable names

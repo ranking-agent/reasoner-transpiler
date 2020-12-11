@@ -50,15 +50,15 @@ def assemble_results(qnodes, qedges, **kwargs):
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
         (
-            '[ni IN collect(DISTINCT `{0}`.id) '
+            '{0}: [ni IN collect(DISTINCT `{0}`.id) '
             'WHERE ni IS NOT null '
-            '| {{qg_id:"{0}", kg_id:ni}}]'
+            '| {{id: ni}}]'
         ).format(
             qnode_id,
-        ) if qnode.get('set', False) else
+        ) if qnode.get('is_set', False) else
         (
-            '(CASE '
-            'WHEN {0} IS NOT NULL THEN [{{qg_id:"{0}", kg_id:{0}.id}}] '
+            '{0}: (CASE '
+            'WHEN {0} IS NOT NULL THEN [{{id: {0}.id}}] '
             'ELSE [] '
             'END)'
         ).format(qnode_id)
@@ -66,16 +66,16 @@ def assemble_results(qnodes, qedges, **kwargs):
     ]
     edge_bindings = [
         (
-            '[ei IN collect(DISTINCT toString(id(`{0}`))) '
+            '{0}: [ei IN collect(DISTINCT toString(id(`{0}`))) '
             'WHERE ei IS NOT null '
-            '| {{qg_id:"{0}", kg_id:ei}}]'
+            '| {{id: ei}}]'
         ).format(
             qedge_id,
         ) if kwargs.get('relationship_id', 'property') == 'internal' else
         (
-            '[ei IN collect(DISTINCT `{0}`.id) '
+            '{0}: [ei IN collect(DISTINCT `{0}`.id) '
             'WHERE ei IS NOT null '
-            '| {{qg_id:"{0}", kg_id:ei}}]'
+            '| {{id: ei}}]'
         ).format(
             qedge_id,
         )
@@ -90,11 +90,11 @@ def assemble_results(qnodes, qedges, **kwargs):
         for qedge_id in qedges
     ]
     assemble_clause = (
-        'WITH {{node_bindings: {0}, edge_bindings: {1}}} AS result, '
-        '{{nodes:{2}, edges: {3}}} AS knowledge_graph'
+        'WITH {{node_bindings: {{{0}}}, edge_bindings: {{{1}}}}} AS result, '
+        '{{nodes: {2}, edges: {3}}} AS knowledge_graph'
     ).format(
-        ' + '.join(node_bindings) or '[]',
-        ' + '.join(edge_bindings) or '[]',
+        ', '.join(node_bindings) or '',
+        ', '.join(edge_bindings) or '',
         ' + '.join(knodes) or '[]',
         ' + '.join(kedges) or '[]',
     )
@@ -111,13 +111,20 @@ def assemble_results(qnodes, qedges, **kwargs):
         clauses.append('UNWIND knowledge_graph.edges AS kedge')
     aggregate_clause = 'WITH collect(DISTINCT result) AS results, {'
     aggregate_clause += (
-        'nodes: [n IN collect(DISTINCT knode) | n{.*, type:labels(n)}], '
+        'nodes: apoc.map.fromLists('
+        '[n IN collect(DISTINCT knode) | n.id], '
+        '[n IN collect(DISTINCT knode) | {'
+        'category: labels(n), name: n.name, '
+        'attributes: [{value: apoc.map.removeKeys(n{.*}, ["id", "name"])}]}]), '
         if qnodes else
         'nodes: [], '
     )
     aggregate_clause += (
-        'edges: [e IN collect(DISTINCT kedge) | e{.*, type:type(e), '
-        'source_id: startNode(e).id, target_id: endNode(e).id}]'
+        'edges: apoc.map.fromLists('
+        '[e IN collect(DISTINCT kedge) | e.id], '
+        '[e IN collect(DISTINCT kedge) | {'
+        'predicate: type(e), subject: startNode(e).id, object: endNode(e).id, '
+        'attributes: [{value: apoc.map.removeKeys(e{.*}, ["id"])}]}])'
         if qedges else
         'edges: []'
     )
@@ -145,9 +152,6 @@ def get_query(qgraph, **kwargs):
 
     Returns the query as a string.
     """
-    # convert all component simple qgraphs into map-form
-    qgraph = mapize(qgraph)
-
     clauses = []
     query = transpile_compound(qgraph, **kwargs)
     clauses.extend(query.compile())
