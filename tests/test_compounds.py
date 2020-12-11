@@ -2,7 +2,7 @@
 import pytest
 
 from reasoner.cypher import get_query
-from fixtures import fixture_database
+from .fixtures import fixture_database
 
 
 def test_and(database):
@@ -10,35 +10,31 @@ def test_and(database):
     qgraph = [
         'AND',
         {
-            'nodes': [
-                {
-                    'id': 'n0',
-                    'type': 'Person',
+            "nodes": {
+                "n0": {
+                    "category": 'biolink:ChemicalSubstance',
                 },
-                {
-                    'id': 'n1',
-                    'type': 'Group',
-                    'curie': 'TGATE:Fellowship',
+                "n1": {
+                    "category": 'biolink:Disease',
+                    'id': 'MONDO:0005148',
                 },
-            ],
-            'edges': [],
+            },
+            "edges": dict(),
         },
         {
-            'nodes': [],
-            'edges': [
-                {
-                    'id': 'e01',
-                    'source_id': 'n0',
-                    'target_id': 'n1',
-                    'type': 'IS_MEMBER',
+            "nodes": dict(),
+            "edges": {
+                "e01": {
+                    'subject': 'n0',
+                    'object': 'n1',
+                    "predicate": 'biolink:treats',
                 },
-            ],
+            },
         },
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        # 9 for the members, 1 for the Fellowship node
-        assert len(record['knowledge_graph']['nodes']) == 10
+        assert len(record['knowledge_graph']['nodes']) == 4
 
 
 def test_or(database):
@@ -46,98 +42,72 @@ def test_or(database):
     qgraph = [
         'AND',
         {
-            'nodes': [
-                {
-                    'id': 'n0',
-                    'type': 'Group',
-                    'curie': 'TGATE:Fellowship',
+            "nodes": {
+                "n0": {
+                    "category": 'biolink:Disease',
+                    'id': 'MONDO:0005148',
                 },
-            ],
-            'edges': [],
+                "n2": {
+                    "category": 'biolink:Disease',
+                    "id": "MONDO:0011122"
+                },
+            },
+            "edges": dict(),
         },
         [
             'OR',
             {
-                'nodes': [
-                    {
-                        'id': 'n1',
-                        'type': 'Person',
+                "nodes": {
+                    "n1": {
+                        "category": 'biolink:ChemicalSubstance',
                     },
-                    {
-                        'id': 'n2',
-                        'type': 'Person',
+                },
+                "edges": {
+                    "e10": {
+                        'subject': 'n1',
+                        'object': 'n0',
+                        "predicate": 'biolink:treats',
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e10',
-                        'source_id': 'n1',
-                        'target_id': 'n0',
-                        'type': 'IS_MEMBER',
+                    "e21": {
+                        'subject': 'n1',
+                        'object': 'n2',
+                        "predicate": 'biolink:treats',
                     },
-                    {
-                        'id': 'e21',
-                        'source_id': 'n2',
-                        'target_id': 'n1',
-                        'type': 'IS_SIBLING',
-                    },
-                ],
+                },
             },
             {
-                'nodes': [
-                    {
-                        'id': 'n1b',
-                        'type': 'Person',
+                "nodes": {
+                    "n1b": {
+                        "category": 'biolink:PhenotypicFeature',
                     },
-                    {
-                        'id': 'n2',
-                        'type': 'Person',
+                },
+                "edges": {
+                    "e10b": {
+                        'subject': 'n0',
+                        'object': 'n1b',
+                        "predicate": 'biolink:has_phenotype',
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e10b',
-                        'source_id': 'n1b',
-                        'target_id': 'n0',
-                        'type': 'IS_MEMBER',
+                    "e21b": {
+                        'subject': 'n2',
+                        'object': 'n1b',
+                        "predicate": 'biolink:has_phenotype',
                     },
-                    {
-                        'id': 'e21b',
-                        'source_id': 'n2',
-                        'target_id': 'n1b',
-                        'type': 'IS_UNCLE',
-                    },
-                ],
-            },
-            {
-                'nodes': [
-                    {
-                        'id': 'n2',
-                        'type': 'Person',
-                    },
-                ],
-                'edges': [
-                    {
-                        'id': 'e20',
-                        'source_id': 'n2',
-                        'target_id': 'n0',
-                        'type': 'IS_MEMBER',
-                    },
-                ],
+                },
             },
         ],
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 11
-        for result in record['results']:
-            assert len(result['node_bindings']) in (2, 3)
-        results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
+        assert len(record['results']) == 2
+        results = sorted(
+            record['knowledge_graph']['nodes'].values(),
+            key=lambda node: node['name'],
+        )
         expected_nodes = [
-            'Aragorn', 'Bilbo', 'Boromir', 'Faramir', 'Fellowship', 'Frodo', 'Gandalf',
-            'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam'
+            'bezafibrate', 'increased body weight', 'metformin',
+            'obesity disorder', 'type 2 diabetes mellitus',
         ]
-        assert len(record['knowledge_graph']['nodes']) == 12
+        assert len(record['knowledge_graph']['nodes']) == 5
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
 
@@ -147,68 +117,51 @@ def test_xor(database):
     qgraph = [
         'AND',
         {
-            'nodes': [
-                {
-                    'id': 'n0',
-                    'type': 'Person',
+            "nodes": {
+                "n0": {
+                    "category": 'biolink:Disease',
                 },
-                {
-                    'id': 'n1',
-                    'type': 'Group',
-                    'curie': 'TGATE:Fellowship',
-                },
-            ],
-            'edges': [
-                {
-                    'id': 'e01',
-                    'source_id': 'n0',
-                    'target_id': 'n1',
-                    'type': 'IS_MEMBER',
-                },
-            ],
+            },
+            "edges": {},
         },
         [
             'XOR',
             {
-                'nodes': [
-                    {
-                        'id': 'n2',
-                        'type': 'Place',
-                        'curie': 'TGATE:Shire',
+                "nodes": {
+                    "n1": {
+                        "category": "biolink:ChemicalSubstance",
+                        "id": "CHEBI:6801",
+                    }
+                },
+                "edges": {
+                    "e01": {
+                        'subject': 'n1',
+                        'object': 'n0',
+                        "predicate": 'biolink:treats',
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e02',
-                        'source_id': 'n0',
-                        'target_id': 'n2',
-                        'type': 'LIVES_IN',
-                    },
-                ],
+                },
             },
             {
-                'nodes': [
-                    {
-                        'id': 'n3',
-                        'type': 'Weapon',
-                        'subtype': 'sword',
+                "nodes": {
+                    "n2": {
+                        "category": "biolink:ChemicalSubstance",
+                        "id": "CHEBI:136043",
+                    }
+                },
+                "edges": {
+                    "e01": {
+                        'subject': 'n2',
+                        'object': 'n0',
+                        "predicate": 'biolink:treats',
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e03',
-                        'source_id': 'n0',
-                        'target_id': 'n3',
-                        'type': 'WIELDS',
-                    },
-                ],
+                },
             },
         ],
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 5
-        assert len(record['knowledge_graph']['nodes']) == 9
+        assert len(record['results']) == 1
+        assert len(record['knowledge_graph']['nodes']) == 2
 
 
 def test_not(database):
@@ -216,47 +169,42 @@ def test_not(database):
     qgraph = [
         'AND',
         {
-            'nodes': [
-                {
-                    'id': 'n0',
-                    'type': 'Person',
+            "nodes": {
+                "n0": {
+                    "category": 'Person',
                 },
-                {
-                    'id': 'n1',
-                    'type': 'Group',
+                "n1": {
+                    "category": 'Group',
                     'curie': 'TGATE:Fellowship',
                 },
-            ],
-            'edges': [
-                {
-                    'id': 'e01',
-                    'source_id': 'n0',
-                    'target_id': 'n1',
-                    'type': 'IS_MEMBER',
+            },
+            "edges": {
+                "e01": {
+                    'subject': 'n0',
+                    'object': 'n1',
+                    "predicate": 'IS_MEMBER',
                 },
-            ],
+            },
         },
         [
             'NOT',
             {
-                'nodes': [
-                    {
-                        'id': 'n2',
-                        'type': [
+                'nodes': {
+                    "n2": {
+                        "category": [
                             'Creature',
                             'Group',
                             'Person',
                         ],
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e20',
-                        'source_id': 'n2',
-                        'target_id': 'n0',
-                        'type': 'KILLS',
+                },
+                "edges": {
+                    "e20": {
+                        'subject': 'n2',
+                        'object': 'n0',
+                        "predicate": 'KILLS',
                     },
-                ],
+                },
             },
         ],
     ]
@@ -273,64 +221,57 @@ def test_multiple_conditions(database):
     qgraph = [
         'AND',
         {
-            'nodes': [
-                {
-                    'id': 'n0',
-                    'type': 'Person',
+            "nodes": {
+                "n0": {
+                    "category": 'Person',
                 },
-                {
-                    'id': 'n1',
-                    'type': 'Group',
+                "n1": {
+                    "category": 'Group',
                     'curie': 'TGATE:Fellowship',
                 },
-            ],
-            'edges': [
-                {
-                    'id': 'e01',
-                    'source_id': 'n0',
-                    'target_id': 'n1',
-                    'type': 'IS_MEMBER',
+            },
+            "edges": {
+                "e01": {
+                    'subject': 'n0',
+                    'object': 'n1',
+                    "predicate": 'IS_MEMBER',
                 },
-            ],
+            },
         },
         [
             'NOT',
             {
-                'nodes': [
-                    {
-                        'id': 'n2',
-                        'type': [
+                'nodes': {
+                    "n2": {
+                        "category": [
                             'Group',
                         ],
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e20',
-                        'source_id': 'n2',
-                        'target_id': 'n0',
-                        'type': 'KILLS',
+                },
+                "edges": {
+                    "e20": {
+                        'subject': 'n2',
+                        'object': 'n0',
+                        "predicate": 'KILLS',
                     },
-                ],
+                },
             },
         ],
         [
             'NOT',
             {
-                'nodes': [
-                    {
-                        'id': 'n3',
-                        'type': 'Weapon',
+                "nodes": {
+                    "n3": {
+                        "category": 'Weapon',
                     },
-                ],
-                'edges': [
-                    {
-                        'id': 'e30',
-                        'source_id': 'n0',
-                        'target_id': 'n3',
-                        'type': ['WIELDS'],
+                },
+                'edges': {
+                    "e30": {
+                        'subject': 'n0',
+                        'object': 'n3',
+                        "predicate": ['WIELDS'],
                     },
-                ],
+                },
             },
         ],
     ]
@@ -347,77 +288,68 @@ def test_not_or(database):
     qgraph = [
         'AND',
         {
-            'nodes': [
-                {
-                    'id': 'n0',
-                    'type': 'Person',
+            "nodes": {
+                "n0": {
+                    "category": 'Person',
                 },
-                {
-                    'id': 'n1',
-                    'type': 'Group',
+                "n1": {
+                    "category": 'Group',
                     'curie': 'TGATE:Fellowship',
                 },
-            ],
-            'edges': [
-                {
-                    'id': 'e01',
-                    'source_id': 'n0',
-                    'target_id': 'n1',
-                    'type': 'IS_MEMBER',
+            },
+            "edges": {
+                "e01": {
+                    'subject': 'n0',
+                    'object': 'n1',
+                    "predicate": 'IS_MEMBER',
                 },
-            ],
+            },
         },
         [
             'NOT',
             [
                 'OR',
                 {
-                    'nodes': [
-                        {
-                            'id': 'n2',
-                            'type': 'Group',
+                    "nodes": {
+                        "n2": {
+                            "category": 'Group',
                         },
-                    ],
-                    'edges': [
-                        {
-                            'id': 'e20',
-                            'source_id': 'n2',
-                            'target_id': 'n0',
-                            'type': 'KILLS',
+                    },
+                    "edges": {
+                        "e20": {
+                            'subject': 'n2',
+                            'object': 'n0',
+                            "predicate": 'KILLS',
                         },
-                    ],
+                    },
                 },
                 {
-                    'nodes': [
-                        {
-                            'id': 'n3',
-                            'type': 'Creature',
+                    "nodes": {
+                        "n3": {
+                            "category": 'Creature',
                         },
-                    ],
-                    'edges': [
-                        {
-                            'id': 'e30',
-                            'source_id': 'n3',
-                            'target_id': 'n0',
-                            'type': 'KILLS',
+                    },
+                    "edges": {
+                        "e30": {
+                            'subject': 'n3',
+                            'object': 'n0',
+                            "predicate": 'KILLS',
                         },
-                    ],
+                    },
                 },
                 {
-                    'nodes': [
-                        {
-                            'id': 'n4',
-                            'type': 'Person',
+                    "nodes": {
+                        "n4": {
+                            "category": 'Person',
                         },
-                    ],
-                    'edges': [
-                        {
-                            'id': 'e40',
-                            'source_id': 'n4',
-                            'target_id': 'n0',
-                            'type': 'KILLS',
+                    },
+                    "edges": {
+                        "e40": {
+                            'subject': 'n4',
+                            'object': 'n0',
+                            "predicate": 'KILLS',
                         },
-                    ],
+                    },
                 },
             ],
         ],
