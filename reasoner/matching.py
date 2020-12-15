@@ -58,7 +58,7 @@ class NodeReference():
             props['id'] = str(curie)
 
         if max_connectivity > -1:
-            self._filters.append('size( ({0})-[]-() ) <= {1}'.format(
+            self._filters.append('size( ({0})-[]-() ) < {1} + 1'.format(
                 self.name,
                 max_connectivity,
             ))
