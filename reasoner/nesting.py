@@ -274,24 +274,22 @@ class UnionQuery(CompoundQuery):
         """Initialize."""
         super().__init__(*args, **kwargs)
         self.return_ = None
-        self.context = None
+        self.ext_context = None
 
     def compile(self, **kwargs):
         """Return query string."""
         assert kwargs.get('return_', False)
+
+        # save these things and later pass them, unmodified, to subqueries
         self.return_ = kwargs.pop('return_', set())
-        self.context = kwargs.pop('context', set())
-        context = {
-            var[3:-1] if var.startswith('id(')
-            else var
-            for var in self.context
-        }
-        return super().compile(context=context, **kwargs)
+        self.ext_context = kwargs.pop('ext_context', set())
+
+        return super().compile(**kwargs)
 
     def _compile(self, **kwargs):
         """Return query string."""
         kwargs.update(
-            context=self.context,
+            ext_context=self.ext_context,
             return_=self.return_,
         )
 
