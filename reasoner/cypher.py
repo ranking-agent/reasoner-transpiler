@@ -3,7 +3,6 @@ from functools import reduce
 from operator import and_
 
 from reasoner.matching import match_query
-from reasoner.util import mapize
 
 
 def nest_op(operator, *args):
