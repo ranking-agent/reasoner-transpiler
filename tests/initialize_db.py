@@ -42,19 +42,16 @@ def main():
         session.run("MATCH (m) DETACH DELETE m")
         session.run("LOAD CSV WITH HEADERS FROM 'file:///nodes.csv' "
                     "AS row "
-                    "CALL apoc.create.node([row.label], {"
-                    "name: row.name, id: row.id,"
-                    "subtype: row.subtype, gender: row.gender,"
-                    "occurences: toInteger(row.occurences),"
-                    "good: toBoolean(row.good)"
+                    "CALL apoc.create.node([row.category], {"
+                    "name: row.name, id: row.id"
                     "}) YIELD node "
                     "RETURN count(*)")
         session.run("LOAD CSV WITH HEADERS FROM 'file:///edges.csv' "
                     "AS edge "
-                    "MATCH (source), (target) "
-                    "WHERE source.id = edge.source_id AND target.id = edge.target_id "
-                    "CALL apoc.create.relationship(source, toUpper(edge.predicate), "
-                    "{predicate: edge.predicate, id: edge.id}, target) YIELD rel "
+                    "MATCH (subject), (object) "
+                    "WHERE subject.id = edge.subject AND object.id = edge.object "
+                    "CALL apoc.create.relationship(subject, edge.predicate, "
+                    "{predicate: edge.predicate, id: edge.id}, object) YIELD rel "
                     "RETURN count(*)")
     LOGGER.info('Done. Neo4j is ready for testing.')
 

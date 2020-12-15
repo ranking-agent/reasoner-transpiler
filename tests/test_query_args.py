@@ -60,21 +60,17 @@ def test_max_connectivity(database):
             },
         },
     }
-    print(get_query(
-        qgraph,
-        max_connectivity=3,
-    ))
     output = database.run(get_query(
         qgraph,
-        max_connectivity=3,
+        max_connectivity=5,
     ))
     for record in output:
-        assert len(record['results']) == 1
+        assert len(record['results']) == 2
         results = sorted(
             record['knowledge_graph']['nodes'].values(),
             key=lambda node: node['name'],
         )
-        expected_nodes = ["metformin", "obesity disorder"]
+        expected_nodes = ["carcinoma", "metformin", "obesity disorder"]
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
 

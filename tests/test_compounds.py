@@ -149,7 +149,7 @@ def test_xor(database):
                     }
                 },
                 "edges": {
-                    "e01": {
+                    "e02": {
                         'subject': 'n2',
                         'object': 'n0',
                         "predicate": 'biolink:treats',
@@ -160,8 +160,8 @@ def test_xor(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 1
-        assert len(record['knowledge_graph']['nodes']) == 2
+        assert len(record['results']) == 2
+        assert len(record['knowledge_graph']['nodes']) == 3
 
 
 def test_not(database):
@@ -171,18 +171,18 @@ def test_not(database):
         {
             "nodes": {
                 "n0": {
-                    "category": 'Person',
+                    "category": 'biolink:ChemicalSubstance',
                 },
                 "n1": {
-                    "category": 'Group',
-                    'curie': 'TGATE:Fellowship',
+                    "category": 'biolink:Disease',
+                    'id': 'MONDO:0005148',
                 },
             },
             "edges": {
                 "e01": {
                     'subject': 'n0',
                     'object': 'n1',
-                    "predicate": 'IS_MEMBER',
+                    "predicate": 'biolink:treats',
                 },
             },
         },
@@ -192,17 +192,16 @@ def test_not(database):
                 'nodes': {
                     "n2": {
                         "category": [
-                            'Creature',
-                            'Group',
-                            'Person',
+                            'biolink:Disease',
                         ],
+                        "id": "MONDO:0011122"
                     },
                 },
                 "edges": {
                     "e20": {
-                        'subject': 'n2',
-                        'object': 'n0',
-                        "predicate": 'KILLS',
+                        'subject': 'n0',
+                        'object': 'n2',
+                        "predicate": 'biolink:treats',
                     },
                 },
             },
@@ -210,8 +209,11 @@ def test_not(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        results = sorted(record['knowledge_graph']['nodes'], key=lambda node: node['name'])
-        expected_nodes = ['Aragorn', 'Boromir', 'Fellowship', 'Frodo', 'Gandalf', 'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam']
+        results = sorted(
+            record['knowledge_graph']['nodes'].values(),
+            key=lambda node: node['name'],
+        )
+        expected_nodes = ['anagliptin', "type 2 diabetes mellitus"]
         for ind, node in enumerate(results):
             assert node['name'] == expected_nodes[ind]
 
@@ -290,18 +292,18 @@ def test_not_or(database):
         {
             "nodes": {
                 "n0": {
-                    "category": 'Person',
+                    "category": 'biolink:Disease',
                 },
                 "n1": {
-                    "category": 'Group',
-                    'curie': 'TGATE:Fellowship',
+                    "category": 'biolink:ChemicalSubstance',
+                    'id': 'CHEBI:6801',
                 },
             },
             "edges": {
                 "e01": {
-                    'subject': 'n0',
-                    'object': 'n1',
-                    "predicate": 'IS_MEMBER',
+                    'subject': 'n1',
+                    'object': 'n0',
+                    "predicate": 'biolink:treats',
                 },
             },
         },
@@ -312,42 +314,30 @@ def test_not_or(database):
                 {
                     "nodes": {
                         "n2": {
-                            "category": 'Group',
+                            "category": 'biolink:PhenotypicFeature',
+                            "id": "HP:0012592",
                         },
                     },
                     "edges": {
                         "e20": {
-                            'subject': 'n2',
-                            'object': 'n0',
-                            "predicate": 'KILLS',
+                            'subject': 'n0',
+                            'object': 'n2',
+                            "predicate": 'biolink:has_phenotype',
                         },
                     },
                 },
                 {
                     "nodes": {
                         "n3": {
-                            "category": 'Creature',
+                            "category": 'biolink:Gene',
+                            "id": "NCBIGene:672",
                         },
                     },
                     "edges": {
                         "e30": {
-                            'subject': 'n3',
-                            'object': 'n0',
-                            "predicate": 'KILLS',
-                        },
-                    },
-                },
-                {
-                    "nodes": {
-                        "n4": {
-                            "category": 'Person',
-                        },
-                    },
-                    "edges": {
-                        "e40": {
-                            'subject': 'n4',
-                            'object': 'n0',
-                            "predicate": 'KILLS',
+                            'subject': 'n0',
+                            'object': 'n3',
+                            "predicate": 'biolink:related_to',
                         },
                     },
                 },
@@ -355,8 +345,11 @@ def test_not_or(database):
         ],
     ]
     output = dict(list(database.run(get_query(qgraph)))[0])
-    assert len(output['results']) == 7
-    results = sorted(output['knowledge_graph']['nodes'], key=lambda node: node['name'])
-    expected_nodes = ['Aragorn', 'Fellowship', 'Frodo', 'Gimli', 'Legolas', 'Merry', 'Pippin', 'Sam']
+    assert len(output['results']) == 1
+    results = sorted(
+        output['knowledge_graph']['nodes'].values(),
+        key=lambda node: node['name'],
+    )
+    expected_nodes = ['metformin', "obesity disorder"]
     for ind, node in enumerate(results):
         assert node['name'] == expected_nodes[ind]
