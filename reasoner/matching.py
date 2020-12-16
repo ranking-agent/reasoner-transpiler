@@ -137,11 +137,25 @@ class EdgeReference():
             ))
             self.label = None
 
+        props = {}
+        props.update(
+            (key, value)
+            for key, value in edge.items()
+            if key not in ('name', 'predicate', "subject", "object")
+        )
+
+        self.prop_string = ' {' + ', '.join([
+            f'`{key}`: {cypher_prop_string(props[key])}' for key in props
+        ]) + '}' if props else ''
+
     def __str__(self):
         """Return the cypher edge reference."""
         return '-[`{0}`{1}]-'.format(
             self.name,
-            f':`{self.label}`' if self.label else '',
+            (
+                (f':`{self.label}`' if self.label else '')
+                + f'{self.prop_string}'
+            ),
         ) + ('>' if self.directed else '')
 
 
