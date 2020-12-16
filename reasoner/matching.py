@@ -66,7 +66,7 @@ class NodeReference():
         props.update(
             (key, value)
             for key, value in node.items()
-            if key not in ('name', 'set')
+            if key not in ('name', 'is_set')
         )
 
         self.prop_string = ' {' + ', '.join([
