@@ -1,18 +1,18 @@
-id,subject,predicate,object
-anagliptin_treats_t2d,CHEBI:136043,biolink:treats,MONDO:0005148
-bezafibrate_treats_t2d,CHEBI:47612,biolink:treats,MONDO:0005148
-bezafibrate_treats_obesity,CHEBI:47612,biolink:treats,MONDO:0011122
-metformin_treats_t2d,CHEBI:6801,biolink:treats,MONDO:0005148
-metformin_treats_obesity,CHEBI:6801,biolink:treats,MONDO:0011122
-t2d_has_phenotype_increased_weight,MONDO:0005148,biolink:has_phenotype,HP:0004324
-t2d_has_phenotype_albuminaria,MONDO:0005148,biolink:has_phenotype,HP:0012592
-obesity_has_phenotype_increased_weight,MONDO:0011122,biolink:has_phenotype,HP:0004324
-CASP3_molecularly_interacts_with_CASP8,NCBIGene:836,biolink:molecularly_interacts_with,NCBIGene:841
-metformin_increases_expression_of_CASP8,CHEBI:6801,biolink:increases_expression_of,NCBIGene:841
-metformin_increases_expression_of_CASP3,CHEBI:6801,biolink:increases_expression_of,NCBIGene:836
-t2d_related_to_CASP8,MONDO:0005148,biolink:related_to,NCBIGene:841
-t2d_related_to_CASP3,MONDO:0005148,biolink:related_to,NCBIGene:836
-obesity_related_to_CASP3,MONDO:0011122,biolink:related_to,NCBIGene:836
-metformin_treats_carcinoma,CHEBI:6801,biolink:treats,MONDO:0004993
-carcinoma_related_to_CASP8,MONDO:0004993,biolink:related_to,NCBIGene:841
-carcinoma_related_to_BRCA1,MONDO:0004993,biolink:related_to,NCBIGene:672
+id,subject,predicate,object,props
+anagliptin_treats_t2d,CHEBI:136043,biolink:treats,MONDO:0005148,"{\"fda_approved\": false}"
+bezafibrate_treats_t2d,CHEBI:47612,biolink:treats,MONDO:0005148,"{\"fda_approved\": false}"
+bezafibrate_treats_obesity,CHEBI:47612,biolink:treats,MONDO:0011122,"{\"fda_approved\": false}"
+metformin_treats_t2d,CHEBI:6801,biolink:treats,MONDO:0005148,"{\"fda_approved\": true}"
+metformin_treats_obesity,CHEBI:6801,biolink:treats,MONDO:0011122,"{}"
+t2d_has_phenotype_increased_weight,MONDO:0005148,biolink:has_phenotype,HP:0004324,"{}"
+t2d_has_phenotype_albuminaria,MONDO:0005148,biolink:has_phenotype,HP:0012592,"{}"
+obesity_has_phenotype_increased_weight,MONDO:0011122,biolink:has_phenotype,HP:0004324,"{}"
+CASP3_molecularly_interacts_with_CASP8,NCBIGene:836,biolink:molecularly_interacts_with,NCBIGene:841,"{}"
+metformin_increases_expression_of_CASP8,CHEBI:6801,biolink:increases_expression_of,NCBIGene:841,"{}"
+metformin_increases_expression_of_CASP3,CHEBI:6801,biolink:increases_expression_of,NCBIGene:836,"{}"
+t2d_related_to_CASP8,MONDO:0005148,biolink:related_to,NCBIGene:841,"{}"
+t2d_related_to_CASP3,MONDO:0005148,biolink:related_to,NCBIGene:836,"{}"
+obesity_related_to_CASP3,MONDO:0011122,biolink:related_to,NCBIGene:836,"{}"
+metformin_treats_carcinoma,CHEBI:6801,biolink:treats,MONDO:0004993,"{}"
+carcinoma_related_to_CASP8,MONDO:0004993,biolink:related_to,NCBIGene:841,"{}"
+carcinoma_related_to_BRCA1,MONDO:0004993,biolink:related_to,NCBIGene:672,"{}"
