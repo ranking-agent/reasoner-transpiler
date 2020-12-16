@@ -41,10 +41,6 @@ class Query():
         """Wrap hidden _compile method."""
         context = kwargs.get('context', set())
         ext_context = kwargs.get('ext_context', set())
-        # context_ids = {
-        #     var[3:-1] for var in context
-        #     if var.startswith('id(')
-        # }
 
         clauses = []
         imports = ext_context & self.references
@@ -110,7 +106,6 @@ class Query():
                     .replace('\\', '\\\\')
                     .replace('\'', '\\\'')
                 ),
-                params=', '.join(inner_context)
             ),
         ]
 
