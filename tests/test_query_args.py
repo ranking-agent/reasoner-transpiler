@@ -81,26 +81,21 @@ def test_use_hints():
         "nodes": {
             "n0": {
                 "id": [
-                    "TGATE:Frodo",
-                    "TGATE:Sam",
-                    "TGATE:Merry",
-                    "TGATE:Pippin",
+                    "NCBIGene:841",
                 ],
-                "category": "Person",
+                "category": "biolink:Gene",
             },
             "n1": {
-                "category": "Place",
-                "id": 12,
             },
         },
         "edges": {
             "e01": {
                 "predicate": [
-                    "LIVES_IN",
-                    "RULES",
+                    "biolink:molecularly_interacts_with",
+                    "biolink:increases_expression_of",
                 ],
-                "subject": "n0",
-                "object": "n1",
+                "subject": "n1",
+                "object": "n0",
             },
         },
     }
