@@ -1,5 +1,12 @@
 """MATCHing tools."""
+from typing import List
+
+from bmt import Toolkit
+
 from reasoner.nesting import Query
+from reasoner.util import ensure_list, space_case, pascal_case
+
+bmt = Toolkit()
 
 
 def cypher_prop_string(value):
@@ -122,20 +129,22 @@ class EdgeReference():
     def __init__(self, edge_id, edge, anonymous=False):
         """Create an edge reference."""
         self.name = edge_id if not anonymous else ''
-        self.label = edge.get('predicate', None)
+        self.predicates: List[str] = ensure_list(edge.get('predicate', []))
         self.filters = []
+        self.label = None
 
-        if isinstance(self.label, list) and len(self.label) == 1:
-            self.label = self.label[0]
+        self.directed = any(
+            not bmt.get_element(space_case(predicate[8:])).symmetric
+            for predicate in self.predicates
+        )
 
-        self.directed = edge.get('directed', bool(self.label))
-
-        if isinstance(self.label, list):
+        if len(self.predicates) == 1:
+            self.label = self.predicates[0]
+        elif len(self.predicates) > 1:
             self.filters.append(' OR '.join(
                 f'type({self.name}) = "{predicate}"'
-                for predicate in self.label
+                for predicate in self.predicates
             ))
-            self.label = None
 
         props = {}
         props.update(
