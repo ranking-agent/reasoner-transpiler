@@ -123,10 +123,8 @@ class Query():
         """Get qids."""
         return self._qids
 
-    def where_clause(self, context=None):
+    def where_clause(self):
         """Get WHERE clause."""
-        if context is None:
-            context = set()
         conditions = self.logic()
         return conditions and 'WHERE ' + conditions
 
