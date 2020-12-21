@@ -20,7 +20,7 @@ def test_multiedge_or_complicated(database):
                 "e10a": {
                     'subject': 'n0',
                     'object': 'n1a',
-                    "predicate": "biolink:related_to",
+                    "predicate": "biolink:genetic_association",
                 },
             },
         },
@@ -38,7 +38,7 @@ def test_multiedge_or_complicated(database):
                 "e10b": {
                     'subject': 'n0',
                     'object': 'n1b',
-                    "predicate": "biolink:related_to",
+                    "predicate": "biolink:genetic_association",
                 },
                 "e20b": {
                     'subject': 'n0',
@@ -64,6 +64,88 @@ def test_multiedge_or_complicated(database):
             assert node['name'] == expected_nodes[ind]
 
 
+def test_complex_and(database):
+    """Test parsing of compound qgraph."""
+    qgraph = [
+        'AND',
+        {
+            "nodes": {
+                "n0": {},
+            },
+            "edges": dict(),
+        },
+        [
+            'OR',
+            {
+                "nodes": {
+                    "n0": {},
+                    "n1a": {
+                        "id": "NCBIGene:836"
+                    },
+                },
+                "edges": {
+                    "e10a": {
+                        'subject': 'n0',
+                        'object': 'n1a',
+                        "predicate": "biolink:genetic_association",
+                    },
+                },
+            },
+            {
+                "nodes": {
+                    "n0": {},
+                    "n1b": {
+                        "id": "NCBIGene:841"
+                    },
+                },
+                "edges": {
+                    "e10b": {
+                        'subject': 'n0',
+                        'object': 'n1b',
+                        "predicate": "biolink:genetic_association",
+                    },
+                },
+            },
+        ],
+        [
+            'OR',
+            {
+                "nodes": {
+                    "n0": {},
+                    "n2a": {
+                        "id": "HP:0012592"
+                    },
+                },
+                "edges": {
+                    "e20a": {
+                        'subject': 'n0',
+                        'object': 'n2b',
+                        "predicate": "biolink:has_phenotype",
+                    },
+                },
+            },
+            {
+                "nodes": {
+                    "n0": {},
+                    "n2b": {
+                        "id": "HP:0004324"
+                    },
+                },
+                "edges": {
+                    "e20b": {
+                        'subject': 'n0',
+                        'object': 'n2b',
+                        "predicate": "biolink:has_phenotype",
+                    },
+                },
+            },
+        ],
+    ]
+    output = database.run(get_query(qgraph))
+    for record in output:
+        assert record['results']
+
+
 def test_multiedge_or(database):
     """Test parsing of compound qgraph."""
     qgraph = [
@@ -87,7 +169,7 @@ def test_multiedge_or(database):
                     "e10a": {
                         'subject': 'n0',
                         'object': 'n1a',
-                        "predicate": "biolink:related_to",
+                        "predicate": "biolink:genetic_association",
                     },
                 },
             },
@@ -105,7 +187,7 @@ def test_multiedge_or(database):
                     "e10b": {
                         'subject': 'n0',
                         'object': 'n1b',
-                        "predicate": "biolink:related_to",
+                        "predicate": "biolink:genetic_association",
                     },
                     "e20b": {
                         'subject': 'n0',
@@ -154,7 +236,7 @@ def test_or(database):
                     "e10a": {
                         'subject': 'n0',
                         'object': 'n1a',
-                        "predicate": "biolink:related_to",
+                        "predicate": "biolink:genetic_association",
                     },
                 },
             },
@@ -168,7 +250,7 @@ def test_or(database):
                     "e10b": {
                         'subject': 'n0',
                         'object': 'n1b',
-                        "predicate": "biolink:related_to",
+                        "predicate": "biolink:genetic_association",
                     },
                 },
             },
@@ -363,7 +445,7 @@ def test_not_or(database):
                         "e30": {
                             'subject': 'n0',
                             'object': 'n3',
-                            "predicate": 'biolink:related_to',
+                            "predicate": 'biolink:genetic_association',
                         },
                     },
                 },
