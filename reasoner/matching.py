@@ -133,6 +133,7 @@ class EdgeReference():
         self.filters = []
         self.label = None
 
+        # relationship is directed if any provided predicate is asymmetrical
         self.directed = any(
             not bmt.get_element(space_case(predicate[8:])).symmetric
             for predicate in self.predicates
