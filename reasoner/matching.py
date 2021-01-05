@@ -1,5 +1,12 @@
 """MATCHing tools."""
+from typing import List
+
+from bmt import Toolkit
+
 from reasoner.nesting import Query
+from reasoner.util import ensure_list, space_case, pascal_case
+
+bmt = Toolkit()
 
 
 def cypher_prop_string(value):
@@ -23,11 +30,10 @@ class NodeReference():
 
         All node properties of types [str, bool, float/int] will be enforced
         verbatim EXCEPT for the following reserved properties:
+        * category
         * id
-        * type
-        * curie
         * name
-        * set
+        * is_set
         Un-reserved properties with other types will be coerced to str.
         """
         max_connectivity = kwargs.get('max_connectivity', -1)
@@ -35,13 +41,13 @@ class NodeReference():
 
         node = dict(node)  # shallow copy
         self.name = '`' + node_id + '`' if not anonymous else ''
-        self.labels = node.pop('type', None) or []
+        self.labels = node.pop('category', None) or []
         if not isinstance(self.labels, list):
             self.labels = [self.labels]
 
         props = {}
         self._filters = []
-        curie = node.pop('curie', None)
+        curie = node.pop('id', None)
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
         if isinstance(curie, str):
@@ -59,7 +65,7 @@ class NodeReference():
             props['id'] = str(curie)
 
         if max_connectivity > -1:
-            self._filters.append('size( ({0})-[]-() ) <= {1}'.format(
+            self._filters.append('size( ({0})-[]-() ) < {1} + 1'.format(
                 self.name,
                 max_connectivity,
             ))
@@ -67,7 +73,7 @@ class NodeReference():
         props.update(
             (key, value)
             for key, value in node.items()
-            if key not in ('name', 'set')
+            if key not in ('name', 'is_set')
         )
 
         self.prop_string = ' {' + ', '.join([
@@ -123,26 +129,43 @@ class EdgeReference():
     def __init__(self, edge_id, edge, anonymous=False):
         """Create an edge reference."""
         self.name = edge_id if not anonymous else ''
-        self.label = edge.get('type', None)
+        self.predicates: List[str] = ensure_list(edge.get('predicate', []))
         self.filters = []
+        self.label = None
 
-        if isinstance(self.label, list) and len(self.label) == 1:
-            self.label = self.label[0]
+        # relationship is directed if any provided predicate is asymmetrical
+        self.directed = any(
+            not bmt.get_element(space_case(predicate[8:])).symmetric
+            for predicate in self.predicates
+        )
 
-        self.directed = edge.get('directed', bool(self.label))
-
-        if isinstance(self.label, list):
+        if len(self.predicates) == 1:
+            self.label = self.predicates[0]
+        elif len(self.predicates) > 1:
             self.filters.append(' OR '.join(
                 f'type({self.name}) = "{predicate}"'
-                for predicate in self.label
+                for predicate in self.predicates
             ))
-            self.label = None
+
+        props = {}
+        props.update(
+            (key, value)
+            for key, value in edge.items()
+            if key not in ('name', 'predicate', "subject", "object")
+        )
+
+        self.prop_string = ' {' + ', '.join([
+            f'`{key}`: {cypher_prop_string(props[key])}' for key in props
+        ]) + '}' if props else ''
 
     def __str__(self):
         """Return the cypher edge reference."""
         return '-[`{0}`{1}]-'.format(
             self.name,
-            f':`{self.label}`' if self.label else '',
+            (
+                (f':`{self.label}`' if self.label else '')
+                + f'{self.prop_string}'
+            ),
         ) + ('>' if self.directed else '')
 
 
@@ -168,8 +191,8 @@ def build_match_clause(
 def match_edge(qedge_id, qedge, node_references, **kwargs):
     """Get MATCH clause for edge."""
     eref = EdgeReference(qedge_id, qedge)
-    source_node = node_references[qedge['source_id']]
-    target_node = node_references[qedge['target_id']]
+    source_node = node_references[qedge['subject']]
+    target_node = node_references[qedge['object']]
     pattern = f'{source_node}{eref}{target_node}'
     edge_filters = [
         f'({c})'
@@ -192,8 +215,8 @@ def match_query(qgraph, **kwargs):
     defined_nodes = set(qgraph['nodes'])
     defined_edges = set(qgraph['edges'])
     referenced_nodes = set(
-        [e['source_id'] for e in qgraph['edges'].values()]
-        + [e['target_id'] for e in qgraph['edges'].values()]
+        [e['subject'] for e in qgraph['edges'].values()]
+        + [e['object'] for e in qgraph['edges'].values()]
     )
 
     # generate internal node and edge variable names

@@ -9,16 +9,16 @@ def test_too_many_xor():
     qgraph = [
         'XOR',
         {
-            'nodes': [],
-            'edges': [],
+            "nodes": dict(),
+            "edges": dict(),
         },
         {
-            'nodes': [],
-            'edges': [],
+            "nodes": dict(),
+            "edges": dict(),
         },
         {
-            'nodes': [],
-            'edges': [],
+            "nodes": dict(),
+            "edges": dict(),
         },
     ]
     with pytest.raises(ValueError) as excinfo:
@@ -31,12 +31,12 @@ def test_too_many_not():
     qgraph = [
         'NOT',
         {
-            'nodes': [],
-            'edges': [],
+            "nodes": dict(),
+            "edges": dict(),
         },
         {
-            'nodes': [],
-            'edges': [],
+            "nodes": dict(),
+            "edges": dict(),
         },
     ]
     with pytest.raises(ValueError) as excinfo:
@@ -49,8 +49,8 @@ def test_unknown_operator():
     qgraph = [
         'DNE',
         {
-            'nodes': [],
-            'edges': [],
+            "nodes": dict(),
+            "edges": dict(),
         },
     ]
     with pytest.raises(ValueError) as excinfo:
@@ -61,14 +61,13 @@ def test_unknown_operator():
 def test_invalid_node():
     """Test that an invalid node property value throws an error."""
     qgraph = {
-        "nodes": [
-            {
-                "id": "n0",
-                "type": "Thing",
+        "nodes": {
+            "n0": {
+                "category": "biolink:BiologicalEntity",
                 "dict": {"a": 1},
             },
-        ],
-        "edges": [],
+        },
+        "edges": dict(),
     }
     with pytest.raises(ValueError):
         get_query(qgraph)

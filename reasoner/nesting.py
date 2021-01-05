@@ -40,21 +40,14 @@ class Query():
     def compile(self, **kwargs):
         """Wrap hidden _compile method."""
         context = kwargs.get('context', set())
-        context_ids = {
-            var[3:-1] for var in context
-            if var.startswith('id(')
-        }
+        ext_context = kwargs.get('ext_context', set())
 
         clauses = []
-        clauses.extend([
-            f'CALL apoc.get.nodes($`id({var})`) YIELD node as {var}'
-            for var in context_ids & self.references
-        ])
-        context = {
-            var[3:-1] if var.startswith('id(')
-            else var
-            for var in context
-        }
+        imports = ext_context & self.references
+        if imports:
+            clauses.append("WITH " + ", ".join(imports))
+        context = context | ext_context
+        kwargs.pop("ext_context", None)
         kwargs['context'] = context
 
         return_ = kwargs.pop('return_', False)
@@ -101,35 +94,18 @@ class Query():
     def _compile_wrapped(self, **kwargs):
         """Compile wrapped query."""
         context = kwargs.pop('context', set())
-        inner_context = {
-            f'id({var})'
-            for var in context & self.references
-        }
+        inner_context = context & self.references
         return [
-            'CALL apoc.cypher.run(\'{query}\', {{{params}}})'.format(
+            'CALL {{{query}}}'.format(
                 query=(
                     ' '.join(self.compile(
-                        context=inner_context,
+                        ext_context=inner_context,
                         return_=True,
                         **kwargs,
                     ))
                     .replace('\\', '\\\\')
                     .replace('\'', '\\\'')
                 ),
-                params=', '.join(
-                    f'`{var}`: {var}'
-                    for var in inner_context
-                )
-            ),
-            'YIELD value',
-            'WITH {accessors}'.format(
-                accessors=', '.join(
-                    [
-                        f'value.{qid} AS {qid}'
-                        for qid in self.qids - context
-                    ]
-                    + list(context)
-                )
             ),
         ]
 
@@ -147,10 +123,8 @@ class Query():
         """Get qids."""
         return self._qids
 
-    def where_clause(self, context=None):
+    def where_clause(self):
         """Get WHERE clause."""
-        if context is None:
-            context = set()
         conditions = self.logic()
         return conditions and 'WHERE ' + conditions
 
@@ -293,24 +267,22 @@ class UnionQuery(CompoundQuery):
         """Initialize."""
         super().__init__(*args, **kwargs)
         self.return_ = None
-        self.context = None
+        self.ext_context = None
 
     def compile(self, **kwargs):
         """Return query string."""
         assert kwargs.get('return_', False)
+
+        # save these things and later pass them, unmodified, to subqueries
         self.return_ = kwargs.pop('return_', set())
-        self.context = kwargs.pop('context', set())
-        context = {
-            var[3:-1] if var.startswith('id(')
-            else var
-            for var in self.context
-        }
-        return super().compile(context=context, **kwargs)
+        self.ext_context = kwargs.pop('ext_context', set())
+
+        return super().compile(**kwargs)
 
     def _compile(self, **kwargs):
         """Return query string."""
         kwargs.update(
-            context=self.context,
+            ext_context=self.ext_context,
             return_=self.return_,
         )
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Initialize neo4j database."""
+import argparse
 import logging
 import time
 
@@ -33,31 +34,39 @@ def get_driver(url):
             seconds *= 2
 
 
-def main():
+def main(hash: str = "master"):
     """Delete any existing data and initialize with dummy data."""
     url = 'bolt://localhost:7687'
     driver = get_driver(url)
     LOGGER.info('Connected to Neo4j. Initializing...')
+    node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/nodes.csv"
+    edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/edges.csv"
     with driver.session() as session:
         session.run("MATCH (m) DETACH DELETE m")
-        session.run("LOAD CSV WITH HEADERS FROM 'file:///nodes.csv' "
+        session.run(f"LOAD CSV WITH HEADERS FROM '{node_file}' "
                     "AS row "
-                    "CALL apoc.create.node([row.label], {"
-                    "name: row.name, id: row.id,"
-                    "subtype: row.subtype, gender: row.gender,"
-                    "occurences: toInteger(row.occurences),"
-                    "good: toBoolean(row.good)"
-                    "}) YIELD node "
+                    "CALL apoc.create.node([row.category], apoc.map.merge({"
+                    "name: row.name, id: row.id"
+                    "}, apoc.convert.fromJsonMap(row.props))) YIELD node "
                     "RETURN count(*)")
-        session.run("LOAD CSV WITH HEADERS FROM 'file:///edges.csv' "
+        session.run(f"LOAD CSV WITH HEADERS FROM '{edge_file}' "
                     "AS edge "
-                    "MATCH (source), (target) "
-                    "WHERE source.id = edge.source_id AND target.id = edge.target_id "
-                    "CALL apoc.create.relationship(source, toUpper(edge.predicate), "
-                    "{predicate: edge.predicate, id: edge.id}, target) YIELD rel "
+                    "MATCH (subject), (object) "
+                    "WHERE subject.id = edge.subject AND object.id = edge.object "
+                    "CALL apoc.create.relationship(subject, edge.predicate, "
+                    "apoc.map.merge({predicate: edge.predicate, id: edge.id}, "
+                    "apoc.convert.fromJsonMap(edge.props)), object) YIELD rel "
                     "RETURN count(*)")
     LOGGER.info('Done. Neo4j is ready for testing.')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="Initialize Neo4j.")
+    parser.add_argument(
+        'commit_hash',
+        type=str,
+        help='a commit hash from github.com/ranking-agent/reasoner',
+    )
+
+    args = parser.parse_args()
+    main(args.commit_hash)
