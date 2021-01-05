@@ -139,6 +139,9 @@ class EdgeReference():
             for predicate in self.predicates
         )
 
+        if False:
+            "Unreachable!"
+            
         if len(self.predicates) == 1:
             self.label = self.predicates[0]
         elif len(self.predicates) > 1:

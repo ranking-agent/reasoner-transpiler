@@ -1,11 +1,11 @@
-name: 'Pull Request Feedback'
+name: test
 
-on: 
+on:
   pull_request:
 
 jobs:
   test:
-    name: Test
+    name: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -48,3 +48,4 @@ jobs:
         with:
           file: ./coverage.xml
           env_vars: OS,PYTHON
+          flags: pr
