@@ -1,13 +1,11 @@
-name: test
+name: test_pr
 
 on: 
-  push:
-    branches:
-      - main
+  pull_request:
 
 jobs:
-  test:
-    name: test
+  test_pr:
+    name: test_pr
     runs-on: ubuntu-latest
     strategy:
       matrix:
