@@ -1,4 +1,4 @@
-# Reasoner message format utilities
+# Reasoner Cypher utilities
 
-[![Reasoner build status on Travis CI](https://travis-ci.com/ranking-agent/reasoner.svg?branch=master)](https://travis-ci.com/ranking-agent/reasoner)
-[![Reasoner code coverage on Codecov](https://codecov.io/gh/ranking-agent/reasoner/branch/master/graph/badge.svg)](https://codecov.io/gh/ranking-agent/reasoner)
+[![Test status via GitHub Actions](https://github.com/ranking-agent/reasoner/workflows/test/badge.svg)](https://github.com/ranking-agent/reasoner/actions?query=workflow%3Atest)
+[![Code coverage on Codecov](https://codecov.io/gh/ranking-agent/reasoner/branch/main/graph/badge.svg)](https://codecov.io/gh/ranking-agent/reasoner)
