@@ -139,7 +139,7 @@ class EdgeReference():
             for predicate in self.predicates
         )
 
-        if False:
+        if self.directed == "a":
             err = "Unreachable!"
 
         if len(self.predicates) == 1:
