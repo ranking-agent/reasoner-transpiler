@@ -41,4 +41,10 @@ jobs:
       - name: Run pytest
         run: |
           export PYTHONPATH=$(pwd)
-          pytest tests
+          pytest --cov=reasoner --cov-report=xml tests/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          env_vars: OS,PYTHON
