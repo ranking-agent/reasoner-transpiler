@@ -46,3 +46,25 @@ def test_any(database):
     output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 4
+
+
+def test_sub(database):
+    """Test sub predicate."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "id": "MONDO:0004993",
+            },
+            "n1": {},
+        },
+        "edges": {
+            "e10": {
+                'subject': 'n0',
+                'object': 'n1',
+                "predicate": "biolink:genetic_association",
+            },
+        },
+    }
+    output = database.run(get_query(qgraph))
+    for record in output:
+        assert len(record['results']) == 2
