@@ -4,7 +4,7 @@ from typing import List
 from bmt import Toolkit
 
 from reasoner.nesting import Query
-from reasoner.util import ensure_list, space_case, pascal_case
+from reasoner.util import ensure_list, snake_case, space_case, pascal_case
 
 bmt = Toolkit()
 
@@ -138,6 +138,13 @@ class EdgeReference():
             not bmt.get_element(space_case(predicate[8:])).symmetric
             for predicate in self.predicates
         )
+
+        # get all descendant predicates
+        self.predicates = [
+            f"biolink:{snake_case(p)}"
+            for predicate in self.predicates
+            for p in bmt.get_descendants(space_case(predicate[8:]))
+        ]
 
         if len(self.predicates) == 1:
             self.label = self.predicates[0]
