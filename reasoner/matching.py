@@ -146,13 +146,10 @@ class EdgeReference():
             for p in bmt.get_descendants(space_case(predicate[8:]))
         ]
 
-        if len(self.predicates) == 1:
-            self.label = self.predicates[0]
-        elif len(self.predicates) > 1:
-            self.filters.append(' OR '.join(
-                f'type({self.name}) = "{predicate}"'
-                for predicate in self.predicates
-            ))
+        self.label = "|".join(
+            f"`{predicate}`"
+            for predicate in self.predicates
+        )
 
         props = {}
         props.update(
@@ -172,7 +169,7 @@ class EdgeReference():
         return '-[`{0}`{1}]-'.format(
             self.name,
             (
-                (f':`{self.label}`' if self.label else '')
+                (f':{self.label}' if self.label else '')
                 + f'{self.prop_string}'
             ),
         ) + ('>' if self.directed else '')
