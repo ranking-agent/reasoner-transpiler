@@ -77,7 +77,9 @@ class NodeReference():
         )
 
         self.prop_string = ' {' + ', '.join([
-            f'`{key}`: {cypher_prop_string(props[key])}' for key in props
+            f'`{key}`: {cypher_prop_string(value)}'
+            for key, value in props.items()
+            if value is not None
         ]) + '}' if props else ''
         self._hints = []
         if curie and self.labels:
