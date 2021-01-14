@@ -55,3 +55,27 @@ def test_relation_none(database):
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
     assert len(output['results']) == 5
+
+
+def test_qnode_addl_null(database):
+    """Test qnode with null-valued additional property."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "category": "biolink:Disease",
+            },
+            "n1": {
+                "category": "biolink:Gene",
+                "chromosome": None,
+            },
+        },
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+            }
+        },
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    assert len(output['results']) == 5
