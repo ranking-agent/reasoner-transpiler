@@ -68,3 +68,25 @@ def test_sub(database):
     output = database.run(get_query(qgraph))
     for record in output:
         assert len(record['results']) == 2
+
+
+def test_inverse(database):
+    """Test inverse predicate."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "id": "NCBIGene:672",
+            },
+            "n1": {},
+        },
+        "edges": {
+            "e10": {
+                'subject': 'n0',
+                'object': 'n1',
+                "predicate": "biolink:gene_associated_with_condition",
+            },
+        },
+    }
+    output = database.run(get_query(qgraph))
+    for record in output:
+        assert len(record['results']) == 1
