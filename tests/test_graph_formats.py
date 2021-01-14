@@ -102,20 +102,20 @@ def test_single_edge_type_list():
                 "category": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:ChemicalSubstance",
+                "category": "biolink:PhenotypicFeature",
             },
         },
         "edges": {
             "e01": {
-                "predicate": ["biolink:treats"],
-                "subject": "n1",
-                "object": "n0",
+                "predicate": ["biolink:has_phenotype"],
+                "subject": "n0",
+                "object": "n1",
             },
         },
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n1`:`biolink:ChemicalSubstance`)-[`e01`:`biolink:treats`]->(`n0`:`biolink:Disease`)" in clause
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:has_phenotype`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
 def test_curie_int():
