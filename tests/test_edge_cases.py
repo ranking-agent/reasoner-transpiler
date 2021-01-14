@@ -17,7 +17,7 @@ def test_empty(database):
     assert output['knowledge_graph']['edges'] == []
 
 
-def test_type_none(database):
+def test_category_none(database):
     """Test node with type None."""
     qgraph = {
         "nodes": {
@@ -31,3 +31,27 @@ def test_type_none(database):
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
     assert len(output['results']) == 1
+
+
+def test_relation_none(database):
+    """Test edge with relation None."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "category": "biolink:Disease",
+            },
+            "n1": {
+                "category": "biolink:Gene",
+            },
+        },
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+                "relation": None,
+            }
+        },
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    assert len(output['results']) == 5
