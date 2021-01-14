@@ -139,17 +139,43 @@ class EdgeReference():
             for predicate in self.predicates
         )
 
+        self.inverse_predicates = []
+        for predicate in self.predicates:
+            inverse = bmt.get_element(space_case(predicate[8:])).inverse
+            if inverse is None:
+                continue
+            self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
+
         # get all descendant predicates
         self.predicates = [
             f"biolink:{snake_case(p)}"
             for predicate in self.predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
         ]
+        self.inverse_predicates = [
+            f"biolink:{snake_case(p)}"
+            for predicate in self.inverse_predicates
+            for p in bmt.get_descendants(space_case(predicate[8:]))
+        ]
 
         self.label = "|".join(
             f"`{predicate}`"
-            for predicate in self.predicates
+            for predicate in self.predicates + self.inverse_predicates
         )
+
+        if self.inverse_predicates:
+            self.directed = False
+            self.filters.append(' OR '.join([
+                "(type({0}) = \"{1}\" AND startNode({0}) = `{2}`)".format(
+                    self.name, predicate, edge["subject"],
+                )
+                for predicate in self.predicates
+            ] + [
+                "(type({0}) = \"{1}\" AND startNode({0}) = `{2}`)".format(
+                    self.name, predicate, edge["object"],
+                )
+                for predicate in self.inverse_predicates
+            ]))
 
         props = {}
         props.update(
