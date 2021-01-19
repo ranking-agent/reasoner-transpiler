@@ -79,3 +79,27 @@ def test_qnode_addl_null(database):
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
     assert len(output['results']) == 5
+
+
+def test_predicate_none(database):
+    """Test edge with predicate None."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "category": "biolink:Disease",
+            },
+            "n1": {
+                "category": "biolink:Gene",
+            },
+        },
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+                "predicate": None,
+            }
+        },
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    assert len(output['results']) == 5
