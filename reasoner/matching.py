@@ -131,7 +131,9 @@ class EdgeReference():
     def __init__(self, edge_id, edge, anonymous=False):
         """Create an edge reference."""
         self.name = edge_id if not anonymous else ''
-        self.predicates: List[str] = ensure_list(edge.get('predicate', []))
+        self.predicates: List[str] = ensure_list(
+            edge.get('predicate', []) or []
+        )
         self.filters = []
         self.label = None
 
