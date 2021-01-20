@@ -1,8 +1,15 @@
 """Tools for compiling QGraph into Cypher query."""
 from functools import reduce
+import json
 from operator import and_
+from pathlib import Path
 
+from reasoner import cypher_expression
 from reasoner.matching import match_query
+
+DIR_PATH = Path(__file__).parent
+with open(DIR_PATH / "attribute_types.json", "r") as stream:
+    ATTRIBUTE_TYPES = json.load(stream)
 
 
 def nest_op(operator, *args):
@@ -110,20 +117,32 @@ def assemble_results(qnodes, qedges, **kwargs):
         clauses.append('UNWIND knowledge_graph.edges AS kedge')
     aggregate_clause = 'WITH collect(DISTINCT result) AS results, {'
     aggregate_clause += (
-        'nodes: apoc.map.fromLists('
-        '[n IN collect(DISTINCT knode) | n.id], '
-        '[n IN collect(DISTINCT knode) | {'
-        'category: labels(n), name: n.name, '
-        'attributes: [{value: apoc.map.removeKeys(n{.*}, ["id", "name"])}]}]), '
+        (
+            'nodes: apoc.map.fromLists('
+            '[n IN collect(DISTINCT knode) | n.id], '
+            '[n IN collect(DISTINCT knode) | {'
+            'category: labels(n), name: n.name, '
+            'attributes: [key in apoc.coll.subtract(keys(n), '
+            '["id", "name"]'
+            ') | {name: key, type: COALESCE('
+            + cypher_expression.dumps(ATTRIBUTE_TYPES) +
+            '[key], "NA"), value: n[key]}]}]), '
+        )
         if qnodes else
         'nodes: [], '
     )
     aggregate_clause += (
-        'edges: apoc.map.fromLists('
-        '[e IN collect(DISTINCT kedge) | e.id], '
-        '[e IN collect(DISTINCT kedge) | {'
-        'predicate: type(e), subject: startNode(e).id, object: endNode(e).id, '
-        'attributes: [{value: apoc.map.removeKeys(e{.*}, ["id"])}]}])'
+        (
+            'edges: apoc.map.fromLists('
+            '[e IN collect(DISTINCT kedge) | e.id], '
+            '[e IN collect(DISTINCT kedge) | {'
+            'predicate: type(e), subject: startNode(e).id, object: endNode(e).id, '
+            'attributes: [key in apoc.coll.subtract(keys(e), '
+            '["id"]'
+            ') | {name: key, type: COALESCE('
+            + cypher_expression.dumps(ATTRIBUTE_TYPES) +
+            '[key], "NA"), value: e[key]}]}])'
+        )
         if qedges else
         'edges: []'
     )
