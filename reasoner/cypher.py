@@ -11,6 +11,14 @@ DIR_PATH = Path(__file__).parent
 with open(DIR_PATH / "attribute_types.json", "r") as stream:
     ATTRIBUTE_TYPES = json.load(stream)
 
+RESERVED_NODE_PROPS = [
+    "id",
+    "category",
+]
+RESERVED_EDGE_PROPS = [
+    "id",
+    "predicate",
+]
 
 def nest_op(operator, *args):
     """Generate a nested set of operations from a flat expression."""
@@ -123,7 +131,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             '[n IN collect(DISTINCT knode) | {'
             'category: labels(n), name: n.name, '
             'attributes: [key in apoc.coll.subtract(keys(n), '
-            '["id", "name"]'
+            + cypher_expression.dumps(RESERVED_NODE_PROPS) +
             ') | {name: key, type: COALESCE('
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
             '[key], "NA"), value: n[key]}]}]), '
@@ -138,7 +146,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             '[e IN collect(DISTINCT kedge) | {'
             'predicate: type(e), subject: startNode(e).id, object: endNode(e).id, '
             'attributes: [key in apoc.coll.subtract(keys(e), '
-            '["id"]'
+            + cypher_expression.dumps(RESERVED_EDGE_PROPS) +
             ') | {name: key, type: COALESCE('
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
             '[key], "NA"), value: e[key]}]}])'
