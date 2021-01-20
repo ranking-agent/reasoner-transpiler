@@ -85,3 +85,34 @@ def test_bool(database):
         ]
         for ind, result in enumerate(results):
             assert result['name'] == expected_nodes[ind]
+
+
+def test_publications(database):
+    """Test publications."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "id": "NCBIGene:836",
+            },
+            "n1": {
+                "id": "NCBIGene:841",
+            },
+        },
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+            },
+        },
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    edges = output["knowledge_graph"]["edges"]
+    assert len(edges) == 1
+    attributes = list(edges.values())[0]["attributes"]
+    assert len(attributes) == 1
+    assert attributes[0] == {
+        "name": "publications",
+        "type": "EDAM:data_0971",
+        "value": ["xxx"],
+    }
