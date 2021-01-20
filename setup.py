@@ -9,7 +9,7 @@ setup(
     url='https://github.com/ranking-agent/reasoner',
     description='Utilities for working with the Reasoner format',
     packages=['reasoner'],
-    include_package_data=True,
+    package_data={'reasoner': ['attribute_types.json']},
     zip_safe=False,
     license='MIT',
     python_requires='>=3.6',
