@@ -3,6 +3,19 @@ from reasoner.cypher import get_query
 from .fixtures import fixture_database
 
 
+def test_categories(database):
+    """Test multiple categories."""
+    qgraph = {
+        "nodes": {"n0": {"category": [
+            "biolink:Disease",
+            "biolink:Gene",
+        ]}},
+        "edges": dict(),
+    }
+    output = list(database.run(get_query(qgraph)))[0]
+    assert len(output['results']) == 6
+
+
 def test_empty(database):
     """Test empty qgraph."""
     qgraph = {
