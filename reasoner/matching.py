@@ -46,12 +46,26 @@ class NodeReference():
 
         node = dict(node)  # shallow copy
         self.name = '`' + node_id + '`' if not anonymous else ''
-        self.labels = node.pop('category', None) or []
-        if not isinstance(self.labels, list):
-            self.labels = [self.labels]
 
         props = {}
         self._filters = []
+        self.labels = []
+
+        category = node.pop('category', None)
+        if isinstance(category, list) and len(category) == 1:
+            category = category[0]
+        if isinstance(category, list):
+            self._filters.append(' OR '.join([
+                '{1} in labels({0})'.format(
+                    self.name,
+                    cypher_prop_string(ci)
+                )
+                for ci in category
+            ]))
+        elif category is not None:
+            # coerce to a string
+            self.labels = [str(category)]
+
         curie = node.pop('id', None)
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
