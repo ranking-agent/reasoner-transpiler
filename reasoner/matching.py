@@ -69,9 +69,7 @@ class NodeReference():
         curie = node.pop('id', None)
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
-        if isinstance(curie, str):
-            props['id'] = curie
-        elif isinstance(curie, list):
+        if isinstance(curie, list):
             self._filters.append(' OR '.join([
                 '{0}.id = {1}'.format(
                     self.name,
