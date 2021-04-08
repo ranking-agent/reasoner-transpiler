@@ -142,6 +142,30 @@ def test_single_edge_type_list():
     assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:increases_abundance_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
+def test_invertible():
+    """Test edge predicate inversion ca. biolink model 1.8.0."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "category": "biolink:Disease",
+            },
+            "n1": {
+                "category": "biolink:PhenotypicFeature",
+            },
+        },
+        "edges": {
+            "e01": {
+                "predicate": "biolink:has_phenotype",
+                "subject": "n0",
+                "object": "n1",
+            },
+        },
+    }
+    clause = get_query(qgraph, reasoner=False)
+    # edges with types should be directed
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:has_phenotype`|`biolink:phenotype_of`]-(`n1`:`biolink:PhenotypicFeature`)" in clause
+
+
 def test_curie_int():
     """Test unusual curie formats."""
     qgraph = {
