@@ -94,6 +94,30 @@ def test_curie_formats(database):
 #         ]
 
 
+def test_predicate_list():
+    """Test that an edge with a list of predicates works properly."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "category": "biolink:Disease",
+            },
+            "n1": {
+                "category": "biolink:PhenotypicFeature",
+            },
+        },
+        "edges": {
+            "e01": {
+                "predicate": ["biolink:increases_expression_of", "biolink:decreases_abundance_of"],
+                "subject": "n0",
+                "object": "n1",
+            },
+        },
+    }
+    clause = get_query(qgraph, reasoner=False)
+    # edges with types should be directed
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:increases_expression_of`|`biolink:decreases_abundance_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
+
+
 def test_single_edge_type_list():
     """Test that an edge with a edge type list of one works properly."""
     qgraph = {
