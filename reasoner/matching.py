@@ -6,7 +6,12 @@ from bmt import Toolkit
 from reasoner.nesting import Query
 from reasoner.util import ensure_list, snake_case, space_case, pascal_case
 
-bmt = Toolkit()
+biolink_version = "1.8.0"
+bmt = Toolkit(schema=(
+    "https://raw.githubusercontent.com/"
+    f"biolink/biolink-model/{biolink_version}/"
+    "biolink-model.yaml"
+))
 
 
 def cypher_prop_string(value):
