@@ -131,7 +131,7 @@ def test_single_edge_type_list():
         },
         "edges": {
             "e01": {
-                "predicate": ["biolink:has_phenotype"],
+                "predicate": ["biolink:increases_abundance_of"],
                 "subject": "n0",
                 "object": "n1",
             },
@@ -139,7 +139,7 @@ def test_single_edge_type_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:has_phenotype`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:increases_abundance_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
 def test_curie_int():
