@@ -1,1 +1,1 @@
-git+git://github.com/patrickkwang/biolink-model-toolkit@master#egg=bmt
+git+git://github.com/biolink/biolink-model-toolkit@0.6.0#egg=bmt
