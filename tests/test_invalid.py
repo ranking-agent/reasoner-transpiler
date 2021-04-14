@@ -7,7 +7,7 @@ from reasoner.cypher import get_query
 def test_too_many_xor():
     """Test too many XOR operands."""
     qgraph = [
-        'XOR',
+        "XOR",
         {
             "nodes": dict(),
             "edges": dict(),
@@ -23,13 +23,13 @@ def test_too_many_xor():
     ]
     with pytest.raises(ValueError) as excinfo:
         get_query(qgraph)
-    assert 'XOR must have exactly two operands' in str(excinfo.value)
+    assert "XOR must have exactly two operands" in str(excinfo.value)
 
 
 def test_too_many_not():
     """Test too many NOT operands."""
     qgraph = [
-        'NOT',
+        "NOT",
         {
             "nodes": dict(),
             "edges": dict(),
@@ -41,13 +41,13 @@ def test_too_many_not():
     ]
     with pytest.raises(ValueError) as excinfo:
         get_query(qgraph)
-    assert 'NOT must have exactly one operand' in str(excinfo.value)
+    assert "NOT must have exactly one operand" in str(excinfo.value)
 
 
 def test_unknown_operator():
     """Test unknown operator."""
     qgraph = [
-        'DNE',
+        "DNE",
         {
             "nodes": dict(),
             "edges": dict(),
@@ -55,7 +55,7 @@ def test_unknown_operator():
     ]
     with pytest.raises(ValueError) as excinfo:
         get_query(qgraph)
-    assert 'Unrecognized operator' in str(excinfo.value)
+    assert "Unrecognized operator" in str(excinfo.value)
 
 
 def test_invalid_node():

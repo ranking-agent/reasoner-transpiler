@@ -23,11 +23,11 @@ def test_empty(database):
         "edges": dict(),
     }
     output = list(database.run(get_query(qgraph)))[0]
-    assert len(output['results']) == 1
-    assert output['results'][0]['node_bindings'] == dict()
-    assert output['results'][0]['edge_bindings'] == dict()
-    assert output['knowledge_graph']['nodes'] == []
-    assert output['knowledge_graph']['edges'] == []
+    assert len(output["results"]) == 1
+    assert output["results"][0]["node_bindings"] == dict()
+    assert output["results"][0]["edge_bindings"] == dict()
+    assert output["knowledge_graph"]["nodes"] == []
+    assert output["knowledge_graph"]["edges"] == []
 
 
 def test_category_none(database):
@@ -43,7 +43,7 @@ def test_category_none(database):
     }
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
-    assert len(output['results']) == 1
+    assert len(output["results"]) == 1
 
 
 def test_relation_none(database):
@@ -67,7 +67,7 @@ def test_relation_none(database):
     }
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
-    assert len(output['results']) == 5
+    assert len(output["results"]) == 5
 
 
 def test_qnode_addl_null(database):
@@ -91,7 +91,7 @@ def test_qnode_addl_null(database):
     }
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
-    assert len(output['results']) == 5
+    assert len(output["results"]) == 5
 
 
 def test_predicate_none(database):
@@ -115,4 +115,4 @@ def test_predicate_none(database):
     }
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
-    assert len(output['results']) == 5
+    assert len(output["results"]) == 5

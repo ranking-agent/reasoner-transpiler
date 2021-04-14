@@ -27,20 +27,20 @@ class Query():
     def logic(self, simple=True):
         """Return whether qid is required."""
         if simple:
-            return ''
+            return ""
         conditions = [
-            f'{qid} IS NOT null' for qid in self.qids
+            f"{qid} IS NOT null" for qid in self.qids
         ]
         if len(self.qids) > 1:
             conditions = [
-                f'({condition})' for condition in conditions
+                f"({condition})" for condition in conditions
             ]
-        return ' AND '.join(conditions)
+        return " AND ".join(conditions)
 
     def compile(self, **kwargs):
         """Wrap hidden _compile method."""
-        context = kwargs.get('context', set())
-        ext_context = kwargs.get('ext_context', set())
+        context = kwargs.get("context", set())
+        ext_context = kwargs.get("ext_context", set())
 
         clauses = []
         imports = ext_context & self.references
@@ -48,13 +48,13 @@ class Query():
             clauses.append("WITH " + ", ".join(imports))
         context = context | ext_context
         kwargs.pop("ext_context", None)
-        kwargs['context'] = context
+        kwargs["context"] = context
 
-        return_ = kwargs.pop('return_', False)
-        wrap = kwargs.pop('wrap', False)
+        return_ = kwargs.pop("return_", False)
+        wrap = kwargs.pop("wrap", False)
 
-        optional = kwargs.get('optional', False)
-        extension = kwargs.pop('extension', [])
+        optional = kwargs.get("optional", False)
+        extension = kwargs.pop("extension", [])
 
         if optional and not isinstance(self, CompoundQuery):
             if len(self.references) >= 5:
@@ -63,21 +63,21 @@ class Query():
                 kwargs.update(
                     optional=False,
                     extension=[(
-                        'WITH CASE WHEN count(*) > 0 '
-                        + 'THEN collect([{0}]) '.format(
-                            ', '.join(self.qids - context)
+                        "WITH CASE WHEN count(*) > 0 "
+                        + "THEN collect([{0}]) ".format(
+                            ", ".join(self.qids - context)
                         )
-                        + 'ELSE [[]] '
-                        + 'END AS results '
-                        + 'UNWIND results as result '
-                        + 'WITH {0}'.format(', '.join(
-                            f'result[{idx}] AS {qid}'
+                        + "ELSE [[]] "
+                        + "END AS results "
+                        + "UNWIND results as result "
+                        + "WITH {0}".format(", ".join(
+                            f"result[{idx}] AS {qid}"
                             for idx, qid in enumerate(self.qids - context)
                         ))
                     )],
                 )
             else:
-                clauses.append('OPTIONAL')
+                clauses.append("OPTIONAL")
 
         if wrap:
             clauses.extend(self._compile_wrapped(**kwargs))
@@ -93,18 +93,17 @@ class Query():
 
     def _compile_wrapped(self, **kwargs):
         """Compile wrapped query."""
-        context = kwargs.pop('context', set())
+        context = kwargs.pop("context", set())
         inner_context = context & self.references
         return [
-            'CALL {{{query}}}'.format(
+            "CALL {{{query}}}".format(
                 query=(
-                    ' '.join(self.compile(
+                    " ".join(self.compile(
                         ext_context=inner_context,
                         return_=True,
                         **kwargs,
                     ))
-                    .replace('\\', '\\\\')
-                    .replace('\'', '\\\'')
+                    .replace("\\", "\\\\")
                 ),
             ),
         ]
@@ -126,17 +125,17 @@ class Query():
     def where_clause(self):
         """Get WHERE clause."""
         conditions = self.logic()
-        return conditions and 'WHERE ' + conditions
+        return conditions and "WHERE " + conditions
 
     def with_clause(self, **kwargs):
         """Get WITH clause."""
-        context = kwargs.get('context', set())
-        return 'WITH ' + ', '.join(self.qids | context)
+        context = kwargs.get("context", set())
+        return "WITH " + ", ".join(self.qids | context)
 
     def return_clause(self, **kwargs):
         """Get RETURN clause."""
-        context = kwargs.get('context', set())
-        return 'RETURN ' + ', '.join(self.qids - context)
+        context = kwargs.get("context", set())
+        return "RETURN " + ", ".join(self.qids - context)
 
     def __and__(self, other):
         """AND two queries together."""
@@ -176,11 +175,11 @@ class CompoundQuery(Query):
         qnodes = dict()
         qedges = dict()
         for subquery in self.subqueries:
-            qnodes.update(subquery.qgraph['nodes'])
-            qedges.update(subquery.qgraph['edges'])
+            qnodes.update(subquery.qgraph["nodes"])
+            qedges.update(subquery.qgraph["edges"])
         return {
-            'nodes': qnodes,
-            'edges': qedges,
+            "nodes": qnodes,
+            "edges": qedges,
         }
 
     @property
@@ -197,7 +196,7 @@ class AndQuery(CompoundQuery):
 
     def _compile(self, **kwargs):
         """Get query string."""
-        context = kwargs.pop('context', set())
+        context = kwargs.pop("context", set())
         subquery_strings = []
         for query in self.subqueries:
             subquery_strings.extend(query.compile(context=context, **kwargs))
@@ -213,9 +212,9 @@ class AndQuery(CompoundQuery):
         ]
         if len(conditions) > 1:
             conditions = [
-                f'({condition})' for condition in conditions
+                f"({condition})" for condition in conditions
             ]
-        return ' AND '.join(conditions)
+        return " AND ".join(conditions)
 
 
 class NotQuery(CompoundQuery):
@@ -228,7 +227,7 @@ class NotQuery(CompoundQuery):
 
     def logic(self, simple=True):
         """Return whether qid is required."""
-        return f'NOT ({self.subqueries[0].logic(False)})'
+        return f"NOT ({self.subqueries[0].logic(False)})"
 
 
 class AltQuery(CompoundQuery):
@@ -271,11 +270,11 @@ class UnionQuery(CompoundQuery):
 
     def compile(self, **kwargs):
         """Return query string."""
-        assert kwargs.get('return_', False)
+        assert kwargs.get("return_", False)
 
         # save these things and later pass them, unmodified, to subqueries
-        self.return_ = kwargs.pop('return_', set())
-        self.ext_context = kwargs.pop('ext_context', set())
+        self.return_ = kwargs.pop("return_", set())
+        self.ext_context = kwargs.pop("ext_context", set())
 
         return super().compile(**kwargs)
 
@@ -286,8 +285,8 @@ class UnionQuery(CompoundQuery):
             return_=self.return_,
         )
 
-        return [' UNION '.join(
-            ' '.join(subquery.compile(
+        return [" UNION ".join(
+            " ".join(subquery.compile(
                 **kwargs,
             ))
             for subquery in self.subqueries
@@ -299,8 +298,8 @@ class OrQuery(AltQuery):
 
     def logic(self, simple=True):
         """Get conditions."""
-        return ' OR '.join(
-            f'({query.logic(False)})' for query in self.subqueries
+        return " OR ".join(
+            f"({query.logic(False)})" for query in self.subqueries
         )
 
 
@@ -309,6 +308,6 @@ class XorQuery(AltQuery):
 
     def logic(self, simple=True):
         """Get conditions."""
-        return ' XOR '.join(
-            f'({query.logic(False)})' for query in self.subqueries
+        return " XOR ".join(
+            f"({query.logic(False)})" for query in self.subqueries
         )

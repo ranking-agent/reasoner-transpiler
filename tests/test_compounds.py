@@ -8,7 +8,7 @@ from .fixtures import fixture_database
 def test_multiedge_or_complicated(database):
     """Test parsing of compound qgraph."""
     qgraph = [
-        'OR',
+        "OR",
         {
             "nodes": {
                 "n0": {},
@@ -18,8 +18,8 @@ def test_multiedge_or_complicated(database):
             },
             "edges": {
                 "e10a": {
-                    'subject': 'n0',
-                    'object': 'n1a',
+                    "subject": "n0",
+                    "object": "n1a",
                     "predicate": "biolink:genetic_association",
                 },
             },
@@ -36,13 +36,13 @@ def test_multiedge_or_complicated(database):
             },
             "edges": {
                 "e10b": {
-                    'subject': 'n0',
-                    'object': 'n1b',
+                    "subject": "n0",
+                    "object": "n1b",
                     "predicate": "biolink:genetic_association",
                 },
                 "e20b": {
-                    'subject': 'n0',
-                    'object': 'n2b',
+                    "subject": "n0",
+                    "object": "n2b",
                     "predicate": "biolink:has_phenotype",
                 },
             },
@@ -50,24 +50,24 @@ def test_multiedge_or_complicated(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 2
+        assert len(record["results"]) == 2
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
-            "CASP3", "CASP8", 'albuminaria', 'obesity disorder',
-            'type 2 diabetes mellitus',
+            "CASP3", "CASP8", "albuminaria", "obesity disorder",
+            "type 2 diabetes mellitus",
         ]
-        assert len(record['knowledge_graph']['nodes']) == 5
+        assert len(record["knowledge_graph"]["nodes"]) == 5
         for ind, node in enumerate(results):
-            assert node['name'] == expected_nodes[ind]
+            assert node["name"] == expected_nodes[ind]
 
 
 def test_complex_and(database):
     """Test parsing of compound qgraph."""
     qgraph = [
-        'AND',
+        "AND",
         {
             "nodes": {
                 "n0": {},
@@ -75,7 +75,7 @@ def test_complex_and(database):
             "edges": dict(),
         },
         [
-            'OR',
+            "OR",
             {
                 "nodes": {
                     "n0": {},
@@ -85,8 +85,8 @@ def test_complex_and(database):
                 },
                 "edges": {
                     "e10a": {
-                        'subject': 'n0',
-                        'object': 'n1a',
+                        "subject": "n0",
+                        "object": "n1a",
                         "predicate": "biolink:genetic_association",
                     },
                 },
@@ -100,15 +100,15 @@ def test_complex_and(database):
                 },
                 "edges": {
                     "e10b": {
-                        'subject': 'n0',
-                        'object': 'n1b',
+                        "subject": "n0",
+                        "object": "n1b",
                         "predicate": "biolink:genetic_association",
                     },
                 },
             },
         ],
         [
-            'OR',
+            "OR",
             {
                 "nodes": {
                     "n0": {},
@@ -118,8 +118,8 @@ def test_complex_and(database):
                 },
                 "edges": {
                     "e20a": {
-                        'subject': 'n0',
-                        'object': 'n2b',
+                        "subject": "n0",
+                        "object": "n2b",
                         "predicate": "biolink:has_phenotype",
                     },
                 },
@@ -133,8 +133,8 @@ def test_complex_and(database):
                 },
                 "edges": {
                     "e20b": {
-                        'subject': 'n0',
-                        'object': 'n2b',
+                        "subject": "n0",
+                        "object": "n2b",
                         "predicate": "biolink:has_phenotype",
                     },
                 },
@@ -143,13 +143,13 @@ def test_complex_and(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert record['results']
+        assert record["results"]
 
 
 def test_multiedge_or(database):
     """Test parsing of compound qgraph."""
     qgraph = [
-        'AND',
+        "AND",
         {
             "nodes": {
                 "n0": {},
@@ -157,7 +157,7 @@ def test_multiedge_or(database):
             "edges": dict(),
         },
         [
-            'OR',
+            "OR",
             {
                 "nodes": {
                     "n0": {},
@@ -167,8 +167,8 @@ def test_multiedge_or(database):
                 },
                 "edges": {
                     "e10a": {
-                        'subject': 'n0',
-                        'object': 'n1a',
+                        "subject": "n0",
+                        "object": "n1a",
                         "predicate": "biolink:genetic_association",
                     },
                 },
@@ -185,13 +185,13 @@ def test_multiedge_or(database):
                 },
                 "edges": {
                     "e10b": {
-                        'subject': 'n0',
-                        'object': 'n1b',
+                        "subject": "n0",
+                        "object": "n1b",
                         "predicate": "biolink:genetic_association",
                     },
                     "e20b": {
-                        'subject': 'n0',
-                        'object': 'n2b',
+                        "subject": "n0",
+                        "object": "n2b",
                         "predicate": "biolink:has_phenotype",
                     },
                 },
@@ -200,24 +200,24 @@ def test_multiedge_or(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 2
+        assert len(record["results"]) == 2
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
-            "CASP3", "CASP8", 'albuminaria', 'obesity disorder',
-            'type 2 diabetes mellitus',
+            "CASP3", "CASP8", "albuminaria", "obesity disorder",
+            "type 2 diabetes mellitus",
         ]
-        assert len(record['knowledge_graph']['nodes']) == 5
+        assert len(record["knowledge_graph"]["nodes"]) == 5
         for ind, node in enumerate(results):
-            assert node['name'] == expected_nodes[ind]
+            assert node["name"] == expected_nodes[ind]
 
 
 def test_or(database):
     """Test parsing of compound qgraph."""
     qgraph = [
-        'AND',
+        "AND",
         {
             "nodes": {
                 "n0": {}
@@ -225,7 +225,7 @@ def test_or(database):
             "edges": dict(),
         },
         [
-            'OR',
+            "OR",
             {
                 "nodes": {
                     "n1a": {
@@ -234,8 +234,8 @@ def test_or(database):
                 },
                 "edges": {
                     "e10a": {
-                        'subject': 'n0',
-                        'object': 'n1a',
+                        "subject": "n0",
+                        "object": "n1a",
                         "predicate": "biolink:genetic_association",
                     },
                 },
@@ -248,8 +248,8 @@ def test_or(database):
                 },
                 "edges": {
                     "e10b": {
-                        'subject': 'n0',
-                        'object': 'n1b',
+                        "subject": "n0",
+                        "object": "n1b",
                         "predicate": "biolink:genetic_association",
                     },
                 },
@@ -262,8 +262,8 @@ def test_or(database):
                 },
                 "edges": {
                     "e10c": {
-                        'subject': 'n1c',
-                        'object': 'n0',
+                        "subject": "n1c",
+                        "object": "n0",
                         "predicate": "biolink:has_phenotype",
                     },
                 },
@@ -272,35 +272,35 @@ def test_or(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 5
+        assert len(record["results"]) == 5
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
-            "CASP3", "CASP8", 'albuminaria', 'carcinoma',
-            'increased body weight', 'obesity disorder',
-            'type 2 diabetes mellitus',
+            "CASP3", "CASP8", "albuminaria", "carcinoma",
+            "increased body weight", "obesity disorder",
+            "type 2 diabetes mellitus",
         ]
-        assert len(record['knowledge_graph']['nodes']) == 7
+        assert len(record["knowledge_graph"]["nodes"]) == 7
         for ind, node in enumerate(results):
-            assert node['name'] == expected_nodes[ind]
+            assert node["name"] == expected_nodes[ind]
 
 
 def test_xor(database):
     """Test transpiling of compound qgraph."""
     qgraph = [
-        'AND',
+        "AND",
         {
             "nodes": {
                 "n0": {
-                    "category": 'biolink:Disease',
+                    "category": "biolink:Disease",
                 },
             },
             "edges": {},
         },
         [
-            'XOR',
+            "XOR",
             {
                 "nodes": {
                     "n1": {
@@ -310,9 +310,9 @@ def test_xor(database):
                 },
                 "edges": {
                     "e01": {
-                        'subject': 'n1',
-                        'object': 'n0',
-                        "predicate": 'biolink:treats',
+                        "subject": "n1",
+                        "object": "n0",
+                        "predicate": "biolink:treats",
                     },
                 },
             },
@@ -325,9 +325,9 @@ def test_xor(database):
                 },
                 "edges": {
                     "e02": {
-                        'subject': 'n2',
-                        'object': 'n0',
-                        "predicate": 'biolink:treats',
+                        "subject": "n2",
+                        "object": "n0",
+                        "predicate": "biolink:treats",
                     },
                 },
             },
@@ -335,48 +335,48 @@ def test_xor(database):
     ]
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 2
-        assert len(record['knowledge_graph']['nodes']) == 3
+        assert len(record["results"]) == 2
+        assert len(record["knowledge_graph"]["nodes"]) == 3
 
 
 def test_not(database):
     """Test transpiling of compound qgraph."""
     qgraph = [
-        'AND',
+        "AND",
         {
             "nodes": {
                 "n0": {
-                    "category": 'biolink:ChemicalSubstance',
+                    "category": "biolink:ChemicalSubstance",
                 },
                 "n1": {
-                    "category": 'biolink:Disease',
-                    'id': 'MONDO:0005148',
+                    "category": "biolink:Disease",
+                    "id": "MONDO:0005148",
                 },
             },
             "edges": {
                 "e01": {
-                    'subject': 'n0',
-                    'object': 'n1',
-                    "predicate": 'biolink:treats',
+                    "subject": "n0",
+                    "object": "n1",
+                    "predicate": "biolink:treats",
                 },
             },
         },
         [
-            'NOT',
+            "NOT",
             {
-                'nodes': {
+                "nodes": {
                     "n2": {
                         "category": [
-                            'biolink:Disease',
+                            "biolink:Disease",
                         ],
                         "id": "MONDO:0011122"
                     },
                 },
                 "edges": {
                     "e20": {
-                        'subject': 'n0',
-                        'object': 'n2',
-                        "predicate": 'biolink:treats',
+                        "subject": "n0",
+                        "object": "n2",
+                        "predicate": "biolink:treats",
                     },
                 },
             },
@@ -385,67 +385,67 @@ def test_not(database):
     output = database.run(get_query(qgraph))
     for record in output:
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
-        expected_nodes = ['anagliptin', "type 2 diabetes mellitus"]
+        expected_nodes = ["anagliptin", "type 2 diabetes mellitus"]
         for ind, node in enumerate(results):
-            assert node['name'] == expected_nodes[ind]
+            assert node["name"] == expected_nodes[ind]
 
 
 def test_not_or(database):
     """Test transpiling of compound qgraph."""
     qgraph = [
-        'AND',
+        "AND",
         {
             "nodes": {
                 "n0": {
-                    "category": 'biolink:Disease',
+                    "category": "biolink:Disease",
                 },
                 "n1": {
-                    "category": 'biolink:ChemicalSubstance',
-                    'id': 'CHEBI:6801',
+                    "category": "biolink:ChemicalSubstance",
+                    "id": "CHEBI:6801",
                 },
             },
             "edges": {
                 "e01": {
-                    'subject': 'n1',
-                    'object': 'n0',
-                    "predicate": 'biolink:treats',
+                    "subject": "n1",
+                    "object": "n0",
+                    "predicate": "biolink:treats",
                 },
             },
         },
         [
-            'NOT',
+            "NOT",
             [
-                'OR',
+                "OR",
                 {
                     "nodes": {
                         "n2": {
-                            "category": 'biolink:PhenotypicFeature',
+                            "category": "biolink:PhenotypicFeature",
                             "id": "HP:0012592",
                         },
                     },
                     "edges": {
                         "e20": {
-                            'subject': 'n0',
-                            'object': 'n2',
-                            "predicate": 'biolink:has_phenotype',
+                            "subject": "n0",
+                            "object": "n2",
+                            "predicate": "biolink:has_phenotype",
                         },
                     },
                 },
                 {
                     "nodes": {
                         "n3": {
-                            "category": 'biolink:Gene',
+                            "category": "biolink:Gene",
                             "id": "NCBIGene:672",
                         },
                     },
                     "edges": {
                         "e30": {
-                            'subject': 'n0',
-                            'object': 'n3',
-                            "predicate": 'biolink:genetic_association',
+                            "subject": "n0",
+                            "object": "n3",
+                            "predicate": "biolink:genetic_association",
                         },
                     },
                 },
@@ -453,11 +453,11 @@ def test_not_or(database):
         ],
     ]
     output = dict(list(database.run(get_query(qgraph)))[0])
-    assert len(output['results']) == 1
+    assert len(output["results"]) == 1
     results = sorted(
-        output['knowledge_graph']['nodes'].values(),
-        key=lambda node: node['name'],
+        output["knowledge_graph"]["nodes"].values(),
+        key=lambda node: node["name"],
     )
-    expected_nodes = ['metformin', "obesity disorder"]
+    expected_nodes = ["metformin", "obesity disorder"]
     for ind, node in enumerate(results):
-        assert node['name'] == expected_nodes[ind]
+        assert node["name"] == expected_nodes[ind]

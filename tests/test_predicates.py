@@ -16,15 +16,15 @@ def test_symmetric(database):
         },
         "edges": {
             "e10a": {
-                'subject': 'n1',
-                'object': 'n0',
+                "subject": "n1",
+                "object": "n0",
                 "predicate": "biolink:genetic_association",
             },
         },
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 2
+        assert len(record["results"]) == 2
 
 
 def test_any(database):
@@ -38,14 +38,14 @@ def test_any(database):
         },
         "edges": {
             "e10a": {
-                'subject': 'n1',
-                'object': 'n0',
+                "subject": "n1",
+                "object": "n0",
             },
         },
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 4
+        assert len(record["results"]) == 4
 
 
 def test_sub(database):
@@ -59,15 +59,15 @@ def test_sub(database):
         },
         "edges": {
             "e10": {
-                'subject': 'n0',
-                'object': 'n1',
+                "subject": "n0",
+                "object": "n1",
                 "predicate": "biolink:genetic_association",
             },
         },
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 2
+        assert len(record["results"]) == 2
 
 
 def test_inverse(database):
@@ -81,12 +81,12 @@ def test_inverse(database):
         },
         "edges": {
             "e10": {
-                'subject': 'n0',
-                'object': 'n1',
+                "subject": "n0",
+                "object": "n1",
                 "predicate": "biolink:gene_associated_with_condition",
             },
         },
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 1
+        assert len(record["results"]) == 1

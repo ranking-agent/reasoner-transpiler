@@ -26,16 +26,16 @@ def test_skip_limit(database):
     all_results = []
     output = database.run(get_query(qgraph, limit=2))
     for record in output:
-        all_results.extend(record['results'])
-        assert len(record['results']) == 2
+        all_results.extend(record["results"])
+        assert len(record["results"]) == 2
     output = database.run(get_query(qgraph, skip=2, limit=2))
     for record in output:
-        all_results.extend(record['results'])
-        assert len(record['results']) == 1
+        all_results.extend(record["results"])
+        assert len(record["results"]) == 1
     assert {
         "CHEBI:6801", "CHEBI:47612", "CHEBI:136043",
     } == set(
-        result['node_bindings']["n1"][0]['id']
+        result["node_bindings"]["n1"][0]["id"]
         for result in all_results
     )
 
@@ -65,14 +65,14 @@ def test_max_connectivity(database):
         max_connectivity=5,
     ))
     for record in output:
-        assert len(record['results']) == 2
+        assert len(record["results"]) == 2
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = ["carcinoma", "metformin", "obesity disorder"]
         for ind, node in enumerate(results):
-            assert node['name'] == expected_nodes[ind]
+            assert node["name"] == expected_nodes[ind]
 
 
 def test_use_hints():

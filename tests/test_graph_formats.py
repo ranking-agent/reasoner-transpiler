@@ -30,10 +30,10 @@ def test_curie_formats(database):
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 5
+        assert len(record["results"]) == 5
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
             "anagliptin",
@@ -43,11 +43,11 @@ def test_curie_formats(database):
             "type 2 diabetes mellitus",
         ]
         for ind, result in enumerate(results):
-            assert result['name'] == expected_nodes[ind]
+            assert result["name"] == expected_nodes[ind]
 
 
 # def test_complex_query(database):
-#     """Test that db get's initialized successfully."""
+#     """Test that db get"s initialized successfully."""
 #     qgraph = {
 #         "nodes": {
 #             "n1": {
@@ -86,11 +86,11 @@ def test_curie_formats(database):
 #     }
 #     output = database.run(get_query(qgraph))
 #     for record in output:
-#         assert len(record['results']) == 1
-#         assert record['results'][0]['node_bindings'] == [
-#             {'kg_id': 'TGATE:Sting', 'qg_id': 'n1'},
-#             {'kg_id': 'TGATE:Frodo', 'qg_id': 'n0'},
-#             {'kg_id': 'TGATE:Bilbo', 'qg_id': 'n2'},
+#         assert len(record["results"]) == 1
+#         assert record["results"][0]["node_bindings"] == [
+#             {"kg_id": "TGATE:Sting", "qg_id": "n1"},
+#             {"kg_id": "TGATE:Frodo", "qg_id": "n0"},
+#             {"kg_id": "TGATE:Bilbo", "qg_id": "n2"},
 #         ]
 
 
@@ -179,4 +179,4 @@ def test_curie_int():
     }
     clause = get_query(qgraph, reasoner=False)
     # the curie integer should be converted to a string
-    assert clause == 'MATCH (`n0`:`biolink:Disease` {`id`: "12"}) RETURN n0'
+    assert clause == "MATCH (`n0`:`biolink:Disease` {`id`: \"12\"}) RETURN n0"

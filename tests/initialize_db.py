@@ -21,35 +21,39 @@ def get_driver(url):
             driver = GraphDatabase.driver(url, auth=None)
             # make sure we can start and finish a session
             with driver.session() as session:
-                session.run('CALL dbms.procedures()')
+                session.run("CALL dbms.procedures()")
             return driver
         except (OSError, ServiceUnavailable, DatabaseUnavailable) as err:
             if seconds >= 256:
                 raise err
             LOGGER.error(
-                'Neo4j service unavailable. Trying again in %d seconds...',
+                "Neo4j service unavailable. Trying again in %d seconds...",
                 seconds
             )
             time.sleep(seconds)
             seconds *= 2
 
 
-def main(hash: str = "master"):
+def main(hash: str = None):
     """Delete any existing data and initialize with dummy data."""
-    url = 'bolt://localhost:7687'
+    url = "bolt://localhost:7687"
     driver = get_driver(url)
-    LOGGER.info('Connected to Neo4j. Initializing...')
-    node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/nodes.csv"
-    edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/edges.csv"
+    LOGGER.info("Connected to Neo4j. Initializing...")
+    if hash is not None:
+        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/nodes.csv"
+        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/edges.csv"
+    else:
+        node_file = f"file:///nodes.csv"
+        edge_file = f"file:///edges.csv"
     with driver.session() as session:
         session.run("MATCH (m) DETACH DELETE m")
-        session.run(f"LOAD CSV WITH HEADERS FROM '{node_file}' "
+        session.run(f"LOAD CSV WITH HEADERS FROM \"{node_file}\" "
                     "AS row "
                     "CALL apoc.create.node([row.category], apoc.map.merge({"
                     "name: row.name, id: row.id"
                     "}, apoc.convert.fromJsonMap(row.props))) YIELD node "
                     "RETURN count(*)")
-        session.run(f"LOAD CSV WITH HEADERS FROM '{edge_file}' "
+        session.run(f"LOAD CSV WITH HEADERS FROM \"{edge_file}\" "
                     "AS edge "
                     "MATCH (subject), (object) "
                     "WHERE subject.id = edge.subject AND object.id = edge.object "
@@ -57,15 +61,16 @@ def main(hash: str = "master"):
                     "apoc.map.merge({predicate: edge.predicate, id: edge.id}, "
                     "apoc.convert.fromJsonMap(edge.props)), object) YIELD rel "
                     "RETURN count(*)")
-    LOGGER.info('Done. Neo4j is ready for testing.')
+    LOGGER.info("Done. Neo4j is ready for testing.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Initialize Neo4j.")
     parser.add_argument(
-        'commit_hash',
+        "commit_hash",
         type=str,
-        help='a commit hash from github.com/ranking-agent/reasoner',
+        help="a commit hash from github.com/ranking-agent/reasoner",
+        nargs="?",
     )
 
     args = parser.parse_args()

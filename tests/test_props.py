@@ -16,16 +16,16 @@ def test_numeric(database):
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 1
+        assert len(record["results"]) == 1
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
             "CASP3",
         ]
         for ind, result in enumerate(results):
-            assert result['name'] == expected_nodes[ind]
+            assert result["name"] == expected_nodes[ind]
 
 
 def test_string(database):
@@ -41,16 +41,16 @@ def test_string(database):
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 1
+        assert len(record["results"]) == 1
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
             "BRCA1",
         ]
         for ind, result in enumerate(results):
-            assert result['name'] == expected_nodes[ind]
+            assert result["name"] == expected_nodes[ind]
 
 
 def test_bool(database):
@@ -75,16 +75,16 @@ def test_bool(database):
     }
     output = database.run(get_query(qgraph))
     for record in output:
-        assert len(record['results']) == 1
+        assert len(record["results"]) == 1
         results = sorted(
-            record['knowledge_graph']['nodes'].values(),
-            key=lambda node: node['name'],
+            record["knowledge_graph"]["nodes"].values(),
+            key=lambda node: node["name"],
         )
         expected_nodes = [
             "metformin", "type 2 diabetes mellitus",
         ]
         for ind, result in enumerate(results):
-            assert result['name'] == expected_nodes[ind]
+            assert result["name"] == expected_nodes[ind]
 
 
 def test_publications(database):
