@@ -129,10 +129,10 @@ def assemble_results(qnodes, qedges, **kwargs):
             "nodes: apoc.map.fromLists("
             "[n IN collect(DISTINCT knode) | n.id], "
             "[n IN collect(DISTINCT knode) | {"
-            "category: labels(n), name: n.name, "
+            "categories: labels(n), name: n.name, "
             "attributes: [key in apoc.coll.subtract(keys(n), "
             + cypher_expression.dumps(RESERVED_NODE_PROPS) +
-            ") | {name: key, type: COALESCE("
+            ") | {original_attribute_name: key, attribute_type_id: COALESCE("
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
             "[key], \"NA\"), value: n[key]}]}]), "
         )
@@ -147,7 +147,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             "predicate: type(e), subject: startNode(e).id, object: endNode(e).id, "
             "attributes: [key in apoc.coll.subtract(keys(e), "
             + cypher_expression.dumps(RESERVED_EDGE_PROPS) +
-            ") | {name: key, type: COALESCE("
+            ") | {original_attribute_name: key, attribute_type_id: COALESCE("
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
             "[key], \"NA\"), value: e[key]}]}])"
         )
