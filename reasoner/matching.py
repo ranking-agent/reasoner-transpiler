@@ -35,8 +35,8 @@ class NodeReference():
 
         All node properties of types [str, bool, float/int] will be enforced
         verbatim EXCEPT for the following reserved properties:
-        * category
-        * id
+        * categories
+        * ids
         * name
         * is_set
         Un-reserved properties with other types will be coerced to str.
@@ -51,7 +51,7 @@ class NodeReference():
         self._filters = []
         self.labels = []
 
-        category = node.pop("category", None)
+        category = node.pop("categories", None)
         if isinstance(category, list) and len(category) == 1:
             category = category[0]
         if isinstance(category, list):
@@ -66,7 +66,7 @@ class NodeReference():
             # coerce to a string
             self.labels = [str(category)]
 
-        curie = node.pop("id", None)
+        curie = node.pop("ids", None)
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
         if isinstance(curie, list):
@@ -149,7 +149,7 @@ class EdgeReference():
         """Create an edge reference."""
         self.name = edge_id if not anonymous else ""
         self.predicates: List[str] = ensure_list(
-            edge.get("predicate", []) or []
+            edge.get("predicates", []) or []
         )
         self.filters = []
         self.label = None
@@ -202,7 +202,7 @@ class EdgeReference():
         props.update(
             (key, value)
             for key, value in edge.items()
-            if key not in ("name", "predicate", "subject", "object")
+            if key not in ("name", "predicates", "subject", "object")
         )
 
         self.prop_string = " {" + ", ".join([
