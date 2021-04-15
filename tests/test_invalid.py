@@ -63,7 +63,7 @@ def test_invalid_node():
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:BiologicalEntity",
+                "categories": "biolink:BiologicalEntity",
                 "dict": {"a": 1},
             },
         },

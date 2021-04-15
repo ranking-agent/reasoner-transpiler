@@ -8,7 +8,7 @@ def test_numeric(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
                 "length": 277,
             },
         },
@@ -33,7 +33,7 @@ def test_string(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
                 "chromosome": "17",
             },
         },
@@ -58,17 +58,17 @@ def test_bool(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:ChemicalSubstance",
+                "categories": "biolink:ChemicalSubstance",
             },
             "n1": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
         },
         "edges": {
             "e01": {
                 "subject": "n0",
                 "object": "n1",
-                "predicate": "biolink:treats",
+                "predicates": "biolink:treats",
                 "fda_approved": True,
             },
         },
@@ -92,10 +92,10 @@ def test_publications(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "id": "NCBIGene:836",
+                "ids": "NCBIGene:836",
             },
             "n1": {
-                "id": "NCBIGene:841",
+                "ids": "NCBIGene:841",
             },
         },
         "edges": {

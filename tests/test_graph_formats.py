@@ -8,19 +8,19 @@ def test_curie_formats(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "id": [
+                "ids": [
                     "MONDO:0005148",
                     "MONDO:0011122",
                 ],
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:ChemicalSubstance",
+                "categories": "biolink:ChemicalSubstance",
             },
         },
         "edges": {
             "e01": {
-                "predicate": [
+                "predicates": [
                     "biolink:treats",
                 ],
                 "subject": "n1",
@@ -51,15 +51,15 @@ def test_curie_formats(database):
 #     qgraph = {
 #         "nodes": {
 #             "n1": {
-#                 "category": "biolink:PhenotypicFeature",
+#                 "categories": "biolink:PhenotypicFeature",
 #             },
 #             "n0": {
-#                 "category": "biolink:Disease",
-#                 "id": "MONDO:0005148",
+#                 "categories": "biolink:Disease",
+#                 "ids": "MONDO:0005148",
 #             },
 #             "n2": {
-#                 "category": "biolink:ChemicalSubstance",
-#                 "id": [
+#                 "categories": "biolink:ChemicalSubstance",
+#                 "ids": [
 #                     "CHEBI:6801",
 #                 ],
 #             },
@@ -72,12 +72,12 @@ def test_curie_formats(database):
 #             "e01": {
 #                 "subject": "n0",
 #                 "object": "n1",
-#                 "predicate": "INHERITS",
+#                 "predicates": "INHERITS",
 #             },
 #             "e21": {
 #                 "subject": "n2",
 #                 "object": "n1",
-#                 "predicate": [
+#                 "predicates": [
 #                     "WIELDS",
 #                     "FINDS",
 #                 ],
@@ -99,15 +99,15 @@ def test_predicate_list():
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:PhenotypicFeature",
+                "categories": "biolink:PhenotypicFeature",
             },
         },
         "edges": {
             "e01": {
-                "predicate": ["biolink:increases_expression_of", "biolink:decreases_abundance_of"],
+                "predicates": ["biolink:increases_expression_of", "biolink:decreases_abundance_of"],
                 "subject": "n0",
                 "object": "n1",
             },
@@ -123,15 +123,15 @@ def test_single_edge_type_list():
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:PhenotypicFeature",
+                "categories": "biolink:PhenotypicFeature",
             },
         },
         "edges": {
             "e01": {
-                "predicate": ["biolink:increases_abundance_of"],
+                "predicates": ["biolink:increases_abundance_of"],
                 "subject": "n0",
                 "object": "n1",
             },
@@ -147,15 +147,15 @@ def test_invertible():
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:PhenotypicFeature",
+                "categories": "biolink:PhenotypicFeature",
             },
         },
         "edges": {
             "e01": {
-                "predicate": "biolink:has_phenotype",
+                "predicates": "biolink:has_phenotype",
                 "subject": "n0",
                 "object": "n1",
             },
@@ -171,8 +171,8 @@ def test_curie_int():
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
-                "id": 12,
+                "categories": "biolink:Disease",
+                "ids": 12,
             },
         },
         "edges": dict(),
