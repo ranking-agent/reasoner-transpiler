@@ -112,7 +112,7 @@ def test_publications(database):
     attributes = list(edges.values())[0]["attributes"]
     assert len(attributes) == 1
     assert attributes[0] == {
-        "name": "publications",
-        "type": "EDAM:data_0971",
+        "original_attribute_name": "publications",
+        "attribute_type_id": "EDAM:data_0971",
         "value": ["xxx"],
     }
