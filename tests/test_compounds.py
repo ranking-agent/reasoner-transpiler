@@ -13,14 +13,14 @@ def test_multiedge_or_complicated(database):
             "nodes": {
                 "n0": {},
                 "n1a": {
-                    "id": ["NCBIGene:836"]
+                    "ids": ["NCBIGene:836"]
                 },
             },
             "edges": {
                 "e10a": {
                     "subject": "n0",
                     "object": "n1a",
-                    "predicate": "biolink:genetic_association",
+                    "predicates": "biolink:genetic_association",
                 },
             },
         },
@@ -28,22 +28,22 @@ def test_multiedge_or_complicated(database):
             "nodes": {
                 "n0": {},
                 "n1b": {
-                    "id": "NCBIGene:841"
+                    "ids": "NCBIGene:841"
                 },
                 "n2b": {
-                    "id": "HP:0012592"
+                    "ids": "HP:0012592"
                 },
             },
             "edges": {
                 "e10b": {
                     "subject": "n0",
                     "object": "n1b",
-                    "predicate": "biolink:genetic_association",
+                    "predicates": "biolink:genetic_association",
                 },
                 "e20b": {
                     "subject": "n0",
                     "object": "n2b",
-                    "predicate": "biolink:has_phenotype",
+                    "predicates": "biolink:has_phenotype",
                 },
             },
         },
@@ -80,14 +80,14 @@ def test_complex_and(database):
                 "nodes": {
                     "n0": {},
                     "n1a": {
-                        "id": "NCBIGene:836"
+                        "ids": "NCBIGene:836"
                     },
                 },
                 "edges": {
                     "e10a": {
                         "subject": "n0",
                         "object": "n1a",
-                        "predicate": "biolink:genetic_association",
+                        "predicates": "biolink:genetic_association",
                     },
                 },
             },
@@ -95,14 +95,14 @@ def test_complex_and(database):
                 "nodes": {
                     "n0": {},
                     "n1b": {
-                        "id": "NCBIGene:841"
+                        "ids": "NCBIGene:841"
                     },
                 },
                 "edges": {
                     "e10b": {
                         "subject": "n0",
                         "object": "n1b",
-                        "predicate": "biolink:genetic_association",
+                        "predicates": "biolink:genetic_association",
                     },
                 },
             },
@@ -113,14 +113,14 @@ def test_complex_and(database):
                 "nodes": {
                     "n0": {},
                     "n2a": {
-                        "id": "HP:0012592"
+                        "ids": "HP:0012592"
                     },
                 },
                 "edges": {
                     "e20a": {
                         "subject": "n0",
                         "object": "n2b",
-                        "predicate": "biolink:has_phenotype",
+                        "predicates": "biolink:has_phenotype",
                     },
                 },
             },
@@ -128,14 +128,14 @@ def test_complex_and(database):
                 "nodes": {
                     "n0": {},
                     "n2b": {
-                        "id": "HP:0004324"
+                        "ids": "HP:0004324"
                     },
                 },
                 "edges": {
                     "e20b": {
                         "subject": "n0",
                         "object": "n2b",
-                        "predicate": "biolink:has_phenotype",
+                        "predicates": "biolink:has_phenotype",
                     },
                 },
             },
@@ -162,14 +162,14 @@ def test_multiedge_or(database):
                 "nodes": {
                     "n0": {},
                     "n1a": {
-                        "id": ["NCBIGene:836"]
+                        "ids": ["NCBIGene:836"]
                     },
                 },
                 "edges": {
                     "e10a": {
                         "subject": "n0",
                         "object": "n1a",
-                        "predicate": "biolink:genetic_association",
+                        "predicates": "biolink:genetic_association",
                     },
                 },
             },
@@ -177,22 +177,22 @@ def test_multiedge_or(database):
                 "nodes": {
                     "n0": {},
                     "n1b": {
-                        "id": "NCBIGene:841"
+                        "ids": "NCBIGene:841"
                     },
                     "n2b": {
-                        "id": "HP:0012592"
+                        "ids": "HP:0012592"
                     },
                 },
                 "edges": {
                     "e10b": {
                         "subject": "n0",
                         "object": "n1b",
-                        "predicate": "biolink:genetic_association",
+                        "predicates": "biolink:genetic_association",
                     },
                     "e20b": {
                         "subject": "n0",
                         "object": "n2b",
-                        "predicate": "biolink:has_phenotype",
+                        "predicates": "biolink:has_phenotype",
                     },
                 },
             },
@@ -229,42 +229,42 @@ def test_or(database):
             {
                 "nodes": {
                     "n1a": {
-                        "id": "NCBIGene:836"
+                        "ids": "NCBIGene:836"
                     },
                 },
                 "edges": {
                     "e10a": {
                         "subject": "n0",
                         "object": "n1a",
-                        "predicate": "biolink:genetic_association",
+                        "predicates": "biolink:genetic_association",
                     },
                 },
             },
             {
                 "nodes": {
                     "n1b": {
-                        "id": "NCBIGene:841"
+                        "ids": "NCBIGene:841"
                     },
                 },
                 "edges": {
                     "e10b": {
                         "subject": "n0",
                         "object": "n1b",
-                        "predicate": "biolink:genetic_association",
+                        "predicates": "biolink:genetic_association",
                     },
                 },
             },
             {
                 "nodes": {
                     "n1c": {
-                        "id": "MONDO:0005148"
+                        "ids": "MONDO:0005148"
                     },
                 },
                 "edges": {
                     "e10c": {
                         "subject": "n1c",
                         "object": "n0",
-                        "predicate": "biolink:has_phenotype",
+                        "predicates": "biolink:has_phenotype",
                     },
                 },
             },
@@ -294,7 +294,7 @@ def test_xor(database):
         {
             "nodes": {
                 "n0": {
-                    "category": "biolink:Disease",
+                    "categories": "biolink:Disease",
                 },
             },
             "edges": {},
@@ -304,30 +304,30 @@ def test_xor(database):
             {
                 "nodes": {
                     "n1": {
-                        "category": "biolink:ChemicalSubstance",
-                        "id": "CHEBI:6801",
+                        "categories": "biolink:ChemicalSubstance",
+                        "ids": "CHEBI:6801",
                     }
                 },
                 "edges": {
                     "e01": {
                         "subject": "n1",
                         "object": "n0",
-                        "predicate": "biolink:treats",
+                        "predicates": "biolink:treats",
                     },
                 },
             },
             {
                 "nodes": {
                     "n2": {
-                        "category": "biolink:ChemicalSubstance",
-                        "id": "CHEBI:136043",
+                        "categories": "biolink:ChemicalSubstance",
+                        "ids": "CHEBI:136043",
                     }
                 },
                 "edges": {
                     "e02": {
                         "subject": "n2",
                         "object": "n0",
-                        "predicate": "biolink:treats",
+                        "predicates": "biolink:treats",
                     },
                 },
             },
@@ -346,18 +346,18 @@ def test_not(database):
         {
             "nodes": {
                 "n0": {
-                    "category": "biolink:ChemicalSubstance",
+                    "categories": "biolink:ChemicalSubstance",
                 },
                 "n1": {
-                    "category": "biolink:Disease",
-                    "id": "MONDO:0005148",
+                    "categories": "biolink:Disease",
+                    "ids": "MONDO:0005148",
                 },
             },
             "edges": {
                 "e01": {
                     "subject": "n0",
                     "object": "n1",
-                    "predicate": "biolink:treats",
+                    "predicates": "biolink:treats",
                 },
             },
         },
@@ -366,17 +366,17 @@ def test_not(database):
             {
                 "nodes": {
                     "n2": {
-                        "category": [
+                        "categories": [
                             "biolink:Disease",
                         ],
-                        "id": "MONDO:0011122"
+                        "ids": "MONDO:0011122"
                     },
                 },
                 "edges": {
                     "e20": {
                         "subject": "n0",
                         "object": "n2",
-                        "predicate": "biolink:treats",
+                        "predicates": "biolink:treats",
                     },
                 },
             },
@@ -400,18 +400,18 @@ def test_not_or(database):
         {
             "nodes": {
                 "n0": {
-                    "category": "biolink:Disease",
+                    "categories": "biolink:Disease",
                 },
                 "n1": {
-                    "category": "biolink:ChemicalSubstance",
-                    "id": "CHEBI:6801",
+                    "categories": "biolink:ChemicalSubstance",
+                    "ids": "CHEBI:6801",
                 },
             },
             "edges": {
                 "e01": {
                     "subject": "n1",
                     "object": "n0",
-                    "predicate": "biolink:treats",
+                    "predicates": "biolink:treats",
                 },
             },
         },
@@ -422,30 +422,30 @@ def test_not_or(database):
                 {
                     "nodes": {
                         "n2": {
-                            "category": "biolink:PhenotypicFeature",
-                            "id": "HP:0012592",
+                            "categories": "biolink:PhenotypicFeature",
+                            "ids": "HP:0012592",
                         },
                     },
                     "edges": {
                         "e20": {
                             "subject": "n0",
                             "object": "n2",
-                            "predicate": "biolink:has_phenotype",
+                            "predicates": "biolink:has_phenotype",
                         },
                     },
                 },
                 {
                     "nodes": {
                         "n3": {
-                            "category": "biolink:Gene",
-                            "id": "NCBIGene:672",
+                            "categories": "biolink:Gene",
+                            "ids": "NCBIGene:672",
                         },
                     },
                     "edges": {
                         "e30": {
                             "subject": "n0",
                             "object": "n3",
-                            "predicate": "biolink:genetic_association",
+                            "predicates": "biolink:genetic_association",
                         },
                     },
                 },

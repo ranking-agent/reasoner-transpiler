@@ -11,14 +11,14 @@ def test_symmetric(database):
         "nodes": {
             "n0": {},
             "n1": {
-                "id": "NCBIGene:836"
+                "ids": "NCBIGene:836"
             },
         },
         "edges": {
             "e10a": {
                 "subject": "n1",
                 "object": "n0",
-                "predicate": "biolink:genetic_association",
+                "predicates": "biolink:genetic_association",
             },
         },
     }
@@ -33,7 +33,7 @@ def test_any(database):
         "nodes": {
             "n0": {},
             "n1": {
-                "id": "NCBIGene:836"
+                "ids": "NCBIGene:836"
             },
         },
         "edges": {
@@ -53,7 +53,7 @@ def test_sub(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "id": "MONDO:0004993",
+                "ids": "MONDO:0004993",
             },
             "n1": {},
         },
@@ -61,7 +61,7 @@ def test_sub(database):
             "e10": {
                 "subject": "n0",
                 "object": "n1",
-                "predicate": "biolink:genetic_association",
+                "predicates": "biolink:genetic_association",
             },
         },
     }
@@ -75,7 +75,7 @@ def test_inverse(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "id": "NCBIGene:672",
+                "ids": "NCBIGene:672",
             },
             "n1": {},
         },
@@ -83,7 +83,7 @@ def test_inverse(database):
             "e10": {
                 "subject": "n0",
                 "object": "n1",
-                "predicate": "biolink:gene_associated_with_condition",
+                "predicates": "biolink:gene_associated_with_condition",
             },
         },
     }

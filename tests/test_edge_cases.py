@@ -6,7 +6,7 @@ from .fixtures import fixture_database
 def test_categories(database):
     """Test multiple categories."""
     qgraph = {
-        "nodes": {"n0": {"category": [
+        "nodes": {"n0": {"categories": [
             "biolink:Disease",
             "biolink:Gene",
         ]}},
@@ -35,8 +35,8 @@ def test_category_none(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "id": "MONDO:0005148",
-                "category": None,
+                "ids": "MONDO:0005148",
+                "categories": None,
             }
         },
         "edges": dict(),
@@ -51,10 +51,10 @@ def test_relation_none(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
             },
         },
         "edges": {
@@ -75,10 +75,10 @@ def test_qnode_addl_null(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
                 "chromosome": None,
             },
         },
@@ -99,17 +99,17 @@ def test_predicate_none(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
             },
         },
         "edges": {
             "e01": {
                 "subject": "n0",
                 "object": "n1",
-                "predicate": None,
+                "predicates": None,
             }
         },
     }
@@ -123,10 +123,10 @@ def test_fancy_key(database):
     qgraph = {
         "nodes": {
             "type-2 diabetes": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
             },
         },
         "edges": {

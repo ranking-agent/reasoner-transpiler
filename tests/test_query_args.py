@@ -8,18 +8,18 @@ def test_skip_limit(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
-                "id": "MONDO:0005148",
+                "categories": "biolink:Disease",
+                "ids": "MONDO:0005148",
             },
             "n1": {
-                "category": "biolink:ChemicalSubstance",
+                "categories": "biolink:ChemicalSubstance",
             },
         },
         "edges": {
             "e01": {
                 "subject": "n1",
                 "object": "n0",
-                "predicate": "biolink:treats",
+                "predicates": "biolink:treats",
             },
         },
     }
@@ -45,16 +45,16 @@ def test_max_connectivity(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "category": "biolink:Disease",
+                "categories": "biolink:Disease",
             },
             "n1": {
-                "category": "biolink:ChemicalSubstance",
-                "id": "CHEBI:6801",
+                "categories": "biolink:ChemicalSubstance",
+                "ids": "CHEBI:6801",
             },
         },
         "edges": {
             "e01": {
-                "predicate": "biolink:treats",
+                "predicates": "biolink:treats",
                 "subject": "n1",
                 "object": "n0",
             },
@@ -80,17 +80,17 @@ def test_use_hints():
     qgraph = {
         "nodes": {
             "n0": {
-                "id": [
+                "ids": [
                     "NCBIGene:841",
                 ],
-                "category": "biolink:Gene",
+                "categories": "biolink:Gene",
             },
             "n1": {
             },
         },
         "edges": {
             "e01": {
-                "predicate": [
+                "predicates": [
                     "biolink:molecularly_interacts_with",
                     "biolink:increases_expression_of",
                 ],
