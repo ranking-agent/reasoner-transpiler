@@ -147,9 +147,12 @@ class EdgeReference():
 
     def __init__(self, edge_id, edge, anonymous=False):
         """Create an edge reference."""
+        edge = dict(edge)  # make shallow copy
+        _subject = edge.pop("subject")
+        _object = edge.pop("object")
         self.name = edge_id if not anonymous else ""
         self.predicates: List[str] = ensure_list(
-            edge.get("predicates", []) or []
+            edge.pop("predicates", []) or []
         )
         self.filters = []
         self.label = None
@@ -188,12 +191,12 @@ class EdgeReference():
             self.directed = False
             self.filters.append(" OR ".join([
                 "(type({0}) = \"{1}\" AND startNode({0}) = `{2}`)".format(
-                    self.name, predicate, edge["subject"],
+                    self.name, predicate, _subject,
                 )
                 for predicate in self.predicates
             ] + [
                 "(type({0}) = \"{1}\" AND startNode({0}) = `{2}`)".format(
-                    self.name, predicate, edge["object"],
+                    self.name, predicate, _object,
                 )
                 for predicate in self.inverse_predicates
             ]))
@@ -202,7 +205,7 @@ class EdgeReference():
         props.update(
             (key, value)
             for key, value in edge.items()
-            if key not in ("name", "predicates", "subject", "object")
+            if key not in ("name",)
         )
 
         self.prop_string = " {" + ", ".join([
