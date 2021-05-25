@@ -64,15 +64,15 @@ def assemble_results(qnodes, qedges, **kwargs):
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
         (
-            "{0}: [ni IN collect(DISTINCT `{0}`.id) "
+            "`{0}`: [ni IN collect(DISTINCT `{0}`.id) "
             "WHERE ni IS NOT null "
             "| {{id: ni}}]"
         ).format(
             qnode_id,
         ) if qnode.get("is_set", False) else
         (
-            "{0}: (CASE "
-            "WHEN {0} IS NOT NULL THEN [{{id: {0}.id}}] "
+            "`{0}`: (CASE "
+            "WHEN `{0}` IS NOT NULL THEN [{{id: `{0}`.id}}] "
             "ELSE [] "
             "END)"
         ).format(qnode_id)
@@ -80,14 +80,14 @@ def assemble_results(qnodes, qedges, **kwargs):
     ]
     edge_bindings = [
         (
-            "{0}: [ei IN collect(DISTINCT toString(id(`{0}`))) "
+            "`{0}`: [ei IN collect(DISTINCT toString(id(`{0}`))) "
             "WHERE ei IS NOT null "
             "| {{id: ei}}]"
         ).format(
             qedge_id,
         ) if kwargs.get("relationship_id", "property") == "internal" else
         (
-            "{0}: [ei IN collect(DISTINCT `{0}`.id) "
+            "`{0}`: [ei IN collect(DISTINCT `{0}`.id) "
             "WHERE ei IS NOT null "
             "| {{id: ei}}]"
         ).format(
