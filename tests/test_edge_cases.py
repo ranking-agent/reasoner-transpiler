@@ -116,3 +116,26 @@ def test_predicate_none(database):
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
     assert len(output["results"]) == 5
+
+
+def test_fancy_key(database):
+    """Test qnode/qedge keys with unusual characters."""
+    qgraph = {
+        "nodes": {
+            "type-2 diabetes": {
+                "category": "biolink:Disease",
+            },
+            "n1": {
+                "category": "biolink:Gene",
+            },
+        },
+        "edges": {
+            "interacts with": {
+                "subject": "type-2 diabetes",
+                "object": "n1",
+            }
+        },
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    assert len(output["results"]) == 5
