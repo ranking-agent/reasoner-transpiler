@@ -1,3 +1,4 @@
 {
-    "publications": "EDAM:data_0971"
+    "publications": "EDAM:data_0971",
+    "biolink:original_knowledge_source": "biolink:original_knowledge_source"
 }
