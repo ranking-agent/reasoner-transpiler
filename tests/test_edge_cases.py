@@ -139,3 +139,28 @@ def test_fancy_key(database):
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
     assert len(output["results"]) == 5
+
+
+def test_backwards_predicate(database):
+    """Test an extra backwards predicate."""
+    qgraph = {
+        "nodes": {
+            "type-2 diabetes": {
+                "id": "MONDO:0005148",
+                "categories": "biolink:Disease",
+            },
+            "drug": {
+                "categories": "biolink:ChemicalSubstance",
+            },
+        },
+        "edges": {
+            "related to": {
+                "subject": "type-2 diabetes",
+                "object": "drug",
+                "predicates": ["biolink:related_to", "biolink:treats"]
+            }
+        },
+    }
+    cypher = get_query(qgraph)
+    output = list(database.run(cypher))[0]
+    assert len(output["results"]) == 3
