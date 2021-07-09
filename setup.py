@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="reasoner",
-    version="0.1.0-dev",
+    version="1.7.1",
     author="Patrick Wang",
     author_email="patrick@covar.com",
     url="https://github.com/ranking-agent/reasoner",
