@@ -195,7 +195,7 @@ class EdgeReference():
         if self.inverse_predicates:
             self.directed = False
             self.filters.append(" OR ".join([
-                "(type({0}) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
+                "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
                     self.name,
                     ", ".join([
                         f"\"{predicate}\""
@@ -203,7 +203,7 @@ class EdgeReference():
                     ]),
                     _subject,
                 ),
-                "(type({0}) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
+                "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
                     self.name,
                     ", ".join([
                         f"\"{predicate}\""
