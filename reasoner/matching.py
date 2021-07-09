@@ -195,15 +195,22 @@ class EdgeReference():
         if self.inverse_predicates:
             self.directed = False
             self.filters.append(" OR ".join([
-                "(type({0}) = \"{1}\" AND startNode({0}) = `{2}`)".format(
-                    self.name, predicate, _subject,
-                )
-                for predicate in self.predicates
-            ] + [
-                "(type({0}) = \"{1}\" AND startNode({0}) = `{2}`)".format(
-                    self.name, predicate, _object,
-                )
-                for predicate in self.inverse_predicates
+                "(type({0}) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
+                    self.name,
+                    ", ".join([
+                        f"\"{predicate}\""
+                        for predicate in self.predicates
+                    ]),
+                    _subject,
+                ),
+                "(type({0}) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
+                    self.name,
+                    ", ".join([
+                        f"\"{predicate}\""
+                        for predicate in self.inverse_predicates
+                    ]),
+                    _object,
+                ),
             ]))
 
         props = {}
