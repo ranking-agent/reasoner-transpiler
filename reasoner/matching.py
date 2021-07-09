@@ -165,10 +165,15 @@ class EdgeReference():
 
         self.inverse_predicates = []
         for predicate in self.predicates:
-            inverse = bmt.get_element(space_case(predicate[8:])).inverse
-            if inverse is None:
+            el = bmt.get_element(space_case(predicate[8:]))
+            inverse = el.inverse
+            symmetric = el.symmetric
+            if inverse is not None:
+                self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
+            elif symmetric is not None:
+                self.inverse_predicates.append(predicate)
+            else:
                 continue
-            self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
 
         # get all descendant predicates
         self.predicates = [
