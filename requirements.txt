@@ -1,1 +1,1 @@
-git+git://github.com/biolink/biolink-model-toolkit@0.6.0#egg=bmt
+bmt==0.7.3
