@@ -3,8 +3,8 @@ from typing import List
 
 from bmt import Toolkit
 
-from reasoner.nesting import Query
-from reasoner.util import ensure_list, snake_case, space_case, pascal_case
+from .nesting import Query
+from .util import ensure_list, snake_case, space_case, pascal_case
 
 biolink_version = "1.8.0"
 bmt = Toolkit(schema=(

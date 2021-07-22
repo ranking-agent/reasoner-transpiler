@@ -1,7 +1,7 @@
 """Test casing."""
 import pytest
 
-from reasoner.util import pascal_case, snake_case, space_case
+from reasoner_transpiler.util import pascal_case, snake_case, space_case
 
 
 def test_space():
