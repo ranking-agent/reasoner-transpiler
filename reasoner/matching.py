@@ -170,10 +170,8 @@ class EdgeReference():
             symmetric = el.symmetric
             if inverse is not None:
                 self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
-            elif symmetric is not None:
+            elif symmetric:
                 self.inverse_predicates.append(predicate)
-            else:
-                continue
 
         # get all descendant predicates
         self.predicates = [
