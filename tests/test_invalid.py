@@ -1,7 +1,7 @@
 """Test invalid query graphs."""
 import pytest
 
-from reasoner.cypher import get_query
+from reasoner_transpiler.cypher import get_query
 
 
 def test_too_many_xor():

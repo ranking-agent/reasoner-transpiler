@@ -1,5 +1,5 @@
 """Test Python obj -> cypher expression encoding."""
-from reasoner.cypher_expression import dumps
+from reasoner_transpiler.cypher_expression import dumps
 
 
 def test_types():

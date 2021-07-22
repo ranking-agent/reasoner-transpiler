@@ -1,5 +1,5 @@
 """Test query graph formats."""
-from reasoner.cypher import get_query
+from reasoner_transpiler.cypher import get_query
 from .fixtures import fixture_database
 
 
