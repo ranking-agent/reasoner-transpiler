@@ -157,17 +157,17 @@ class EdgeReference():
         self.filters = []
         self.label = None
 
-        # relationship is directed if any provided predicate is asymmetrical
-        self.directed = any(
-            not bmt.get_element(space_case(predicate[8:])).symmetric
-            for predicate in self.predicates
-        )
-
         self.inverse_predicates = []
+        self.directed = False
         for predicate in self.predicates:
             el = bmt.get_element(space_case(predicate[8:]))
+            if el is None:
+                continue
             inverse = el.inverse
             symmetric = el.symmetric
+            # relationship is directed if any provided predicate is asymmetrical
+            if not symmetric:
+                self.directed = True
             if inverse is not None:
                 self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
             elif symmetric:
