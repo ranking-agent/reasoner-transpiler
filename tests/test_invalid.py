@@ -71,3 +71,25 @@ def test_invalid_node():
     }
     with pytest.raises(ValueError):
         get_query(qgraph)
+
+
+def test_invalid_predicate():
+    """Test that an invalid edge predicate does not cause an error."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "categories": "biolink:BiologicalEntity",
+            },
+            "n1": {
+                "ids": ["MONDO:0005148"],
+            },
+        },
+        "edges": {
+            "e0": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": ["biolink:invalid"],
+            },
+        },
+    }
+    query = get_query(qgraph)
