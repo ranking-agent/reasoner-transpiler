@@ -10,6 +10,9 @@ setup(
     description="TRAPI → Cypher transpiler",
     packages=["reasoner_transpiler"],
     package_data={"reasoner_transpiler": ["attribute_types.json"]},
+    install_requires=[
+        "bmt-lite-1.8.2>=1.0.2,<2.0",
+    ],
     zip_safe=False,
     license="MIT",
     python_requires=">=3.6",
