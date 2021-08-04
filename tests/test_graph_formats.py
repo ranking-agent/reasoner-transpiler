@@ -107,7 +107,7 @@ def test_predicate_list():
         },
         "edges": {
             "e01": {
-                "predicates": ["biolink:increases_expression_of", "biolink:decreases_abundance_of"],
+                "predicates": ["biolink:capable_of", "biolink:affects_expression_in"],
                 "subject": "n0",
                 "object": "n1",
             },
@@ -115,7 +115,7 @@ def test_predicate_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:increases_expression_of`|`biolink:decreases_abundance_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`|`biolink:affects_expression_in`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
 def test_single_edge_type_list():
@@ -131,7 +131,7 @@ def test_single_edge_type_list():
         },
         "edges": {
             "e01": {
-                "predicates": ["biolink:increases_abundance_of"],
+                "predicates": ["biolink:capable_of"],
                 "subject": "n0",
                 "object": "n1",
             },
@@ -139,7 +139,7 @@ def test_single_edge_type_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:increases_abundance_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
 def test_invertible():
