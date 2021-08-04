@@ -11,7 +11,7 @@ setup(
     packages=["reasoner_transpiler"],
     package_data={"reasoner_transpiler": ["attribute_types.json"]},
     install_requires=[
-        "bmt-lite-1.8.2>=1.0.2,<2.0",
+        "bmt-lite-2.1.0>=1.0.2,<2.0",
     ],
     zip_safe=False,
     license="MIT",
