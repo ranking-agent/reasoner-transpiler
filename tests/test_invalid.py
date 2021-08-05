@@ -95,5 +95,6 @@ def test_invalid_predicate(database):
         },
     }
     query = get_query(qgraph)
+    assert ")-[`e0`:`biolink:invalid_predicate`]->(" in query
     output = list(database.run(query))[0]
     assert len(output["results"]) == 1

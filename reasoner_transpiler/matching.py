@@ -157,9 +157,11 @@ class EdgeReference():
         for predicate in self.predicates:
             el = bmt.get_element(space_case(predicate[8:]))
             if el is None:
-                continue
-            inverse = el.inverse
-            symmetric = el.symmetric
+                symmetric = False
+                inverse = None
+            else:
+                inverse = el.inverse
+                symmetric = el.symmetric
             # relationship is directed if any provided predicate is asymmetrical
             if not symmetric:
                 self.directed = True
