@@ -3,6 +3,8 @@ import pytest
 
 from reasoner_transpiler.cypher import get_query
 
+from .fixtures import fixture_database
+
 
 def test_too_many_xor():
     """Test too many XOR operands."""
@@ -73,23 +75,25 @@ def test_invalid_node():
         get_query(qgraph)
 
 
-def test_invalid_predicate():
+def test_invalid_predicate(database):
     """Test that an invalid edge predicate does not cause an error."""
     qgraph = {
         "nodes": {
             "n0": {
-                "categories": "biolink:BiologicalEntity",
+                "ids": ["MONDO:0005148"],
             },
             "n1": {
-                "ids": ["MONDO:0005148"],
+                "categories": ["biolink:PhenotypicFeature"],
             },
         },
         "edges": {
             "e0": {
                 "subject": "n0",
                 "object": "n1",
-                "predicates": ["biolink:invalid"],
+                "predicates": ["biolink:invalid_predicate"],
             },
         },
     }
     query = get_query(qgraph)
+    output = list(database.run(query))[0]
+    assert len(output["results"]) == 1
