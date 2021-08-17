@@ -65,13 +65,13 @@ class NodeReference():
         if isinstance(curie, list) and len(curie) == 1:
             curie = curie[0]
         if isinstance(curie, list):
-            self._filters.append(" OR ".join([
-                "{0}.id = {1}".format(
-                    self.name,
+            self._filters.append("{0}.id in [{1}]".format(
+                self.name,
+                ", ".join([
                     cypher_prop_string(ci)
-                )
-                for ci in curie
-            ]))
+                    for ci in curie
+                ])
+            ))
         elif curie is not None:
             # coerce to a string
             props["id"] = str(curie)
