@@ -75,7 +75,7 @@ def test_max_connectivity(database):
             assert node["name"] == expected_nodes[ind]
 
 
-def test_use_hints():
+def test_use_hints(database):
     """Test unusual curie formats."""
     qgraph = {
         "nodes": {
@@ -101,3 +101,4 @@ def test_use_hints():
     }
     clause = get_query(qgraph, use_hints=True, reasoner=False)
     assert "USING INDEX" in clause
+    database.run(clause)
