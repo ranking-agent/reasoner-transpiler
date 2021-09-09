@@ -306,12 +306,12 @@ def match_query(qgraph, **kwargs):
     """
     superclasses = {
         qnode_id + "_superclass": {
-            "ids": ids,
+            "ids": qnode.pop("ids"),
             "categories": qnode.get("categories", None),
             "_return": False,
         }
         for qnode_id, qnode in qgraph["nodes"].items()
-        if (ids := qnode.pop("ids", None)) is not None
+        if qnode.get("ids", None) is not None
     }
     subclass_edges = {
         qnode_id[:-11] + "_subclass_edge": {
