@@ -1,5 +1,5 @@
 """MATCHing tools."""
-from typing import List
+from typing import Dict, List
 
 from bmt import Toolkit
 
@@ -37,10 +37,10 @@ class NodeReference():
         Un-reserved properties with other types will be coerced to str.
         """
         max_connectivity = kwargs.get("max_connectivity", -1)
-        anonymous = kwargs.get("anonymous", False)
+        self.anonymous = kwargs.get("anonymous", False)
 
         node = dict(node)  # shallow copy
-        self.name = "`" + node_id + "`" if not anonymous else ""
+        self.name = f"`{node_id}`"
 
         props = {}
         self._filters = []
@@ -88,10 +88,10 @@ class NodeReference():
             if key not in ("name", "is_set")
         )
 
-        self.prop_string = " {" + ", ".join([
+        self.prop_string = "{" + ", ".join([
             f"`{key}`: {cypher_prop_string(value)}"
             for key, value in props.items()
-            if value is not None
+            if value is not None and not key.startswith("_")
         ]) + "}" if props else ""
         self._hints = []
         if curie and self.labels:
@@ -103,9 +103,17 @@ class NodeReference():
         self._num += 1
         if self._num > 1:
             return f"({self.name})"
-        return f"({self.name}" \
-            + "".join(f":`{label}`" for label in self.labels) \
-            + f"{self.prop_string})"
+        ref = "("
+        elements = []
+        if not self.anonymous:
+            elements.append(self.name)
+        if self.labels:
+            elements.append("".join(f":`{label}`" for label in self.labels))
+        elements = ["".join(elements)]
+        if self.prop_string:
+            elements.append(self.prop_string)
+        ref = "({})".format(" ".join(elements))
+        return ref
 
     @property
     def filters(self):
@@ -140,7 +148,13 @@ class MissingReference(NodeReference):
 class EdgeReference():
     """Edge reference object."""
 
-    def __init__(self, edge_id, edge, anonymous=False):
+    def __init__(
+        self,
+        edge_id,
+        edge,
+        anonymous=False,
+        invert=True,
+    ):
         """Create an edge reference."""
         edge = dict(edge)  # make shallow copy
         _subject = edge.pop("subject")
@@ -151,6 +165,8 @@ class EdgeReference():
         )
         self.filters = []
         self.label = None
+        self.length = edge.pop("_length", (1, 1))
+        invert = invert and edge.pop("_invert", True)
 
         self.inverse_predicates = []
         self.directed = False
@@ -176,6 +192,8 @@ class EdgeReference():
             for predicate in self.predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
         ]
+        if not invert:
+            self.inverse_predicates = []
         self.inverse_predicates = [
             f"biolink:{snake_case(p)}"
             for predicate in self.inverse_predicates
@@ -212,7 +230,7 @@ class EdgeReference():
         props.update(
             (key, value)
             for key, value in edge.items()
-            if key not in ("name",)
+            if key not in ("name",) and not key.startswith("_")
         )
 
         self.prop_string = " {" + ", ".join([
@@ -223,12 +241,18 @@ class EdgeReference():
 
     def __str__(self):
         """Return the cypher edge reference."""
+        elements = [
+            f":{self.label}" if self.label else "",
+        ]
+        if not self.length == (1, 1):
+            elements.append("*{}..{}".format(
+                self.length[0] if self.length[0] is not None else "",
+                self.length[1] if self.length[1] is not None else "",
+            ))
+        elements.append(f"{self.prop_string}")
         return "-[`{0}`{1}]-".format(
             self.name,
-            (
-                (f":{self.label}" if self.label else "")
-                + f"{self.prop_string}"
-            ),
+            "".join(elements),
         ) + (">" if self.directed else "")
 
 
@@ -251,9 +275,15 @@ def build_match_clause(
     return query
 
 
-def match_edge(qedge_id, qedge, node_references, **kwargs):
+def match_edge(
+    qedge_id,
+    qedge,
+    node_references: Dict[str, NodeReference],
+    invert=True,
+    **kwargs,
+):
     """Get MATCH clause for edge."""
-    eref = EdgeReference(qedge_id, qedge)
+    eref = EdgeReference(qedge_id, qedge, invert=invert)
     source_node = node_references[qedge["subject"]]
     target_node = node_references[qedge["object"]]
     pattern = f"{source_node}{eref}{target_node}"
@@ -274,6 +304,28 @@ def match_query(qgraph, **kwargs):
 
     Returns the query fragment as a string.
     """
+    superclasses = {
+        qnode_id + "_superclass": {
+            "ids": ids,
+            "categories": qnode.get("categories", None),
+            "_return": False,
+        }
+        for qnode_id, qnode in qgraph["nodes"].items()
+        if (ids := qnode.pop("ids", None)) is not None
+    }
+    subclass_edges = {
+        qnode_id[:-11] + "_subclass_edge": {
+            "subject": qnode_id[:-11],
+            "object": qnode_id,
+            "predicates": ["biolink:subclass_of"],
+            "_length": (0, 1),
+            "_invert": False,
+            "_return": False,
+        }
+        for qnode_id in superclasses
+    }
+    qgraph["nodes"].update(superclasses)
+    qgraph["edges"].update(subclass_edges)
     # sets of ids
     defined_nodes = set(qgraph["nodes"])
     defined_edges = set(qgraph["edges"])

@@ -77,6 +77,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             "END)"
         ).format(qnode_id)
         for qnode_id, qnode in qnodes.items()
+        if qnode.get("_return", True)
     ]
     edge_bindings = [
         (
@@ -93,15 +94,18 @@ def assemble_results(qnodes, qedges, **kwargs):
         ).format(
             qedge_id,
         )
-        for qedge_id in qedges
+        for qedge_id, qedge in qedges.items()
+        if qedge.get("_return", True)
     ]
     knodes = [
         "collect(DISTINCT `{0}`)".format(qnode_id)
-        for qnode_id in qnodes
+        for qnode_id, qnode in qnodes.items()
+        if qnode.get("_return", True)
     ]
     kedges = [
         "collect(DISTINCT `{0}`)".format(qedge_id)
-        for qedge_id in qedges
+        for qedge_id, qedge in qedges.items()
+        if qedge.get("_return", True)
     ]
     assemble_clause = (
         "WITH {{node_bindings: {{{0}}}, edge_bindings: {{{1}}}}} AS result, "
@@ -119,9 +123,9 @@ def assemble_results(qnodes, qedges, **kwargs):
 
     # collect results and aggregate kgraphs
     # also fetch extra knode/kedge properties
-    if qnodes:
+    if knodes:
         clauses.append("UNWIND knowledge_graph.nodes AS knode")
-    if qedges:
+    if kedges:
         clauses.append("UNWIND knowledge_graph.edges AS kedge")
     aggregate_clause = "WITH collect(DISTINCT result) AS results, {"
     aggregate_clause += (
@@ -151,7 +155,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
             "[key], \"NA\"), value: e[key]}]}])"
         )
-        if qedges else
+        if kedges else
         "edges: []"
     )
     aggregate_clause += "} AS knowledge_graph"
