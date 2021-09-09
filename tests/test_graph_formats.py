@@ -179,4 +179,4 @@ def test_curie_int():
     }
     clause = get_query(qgraph, reasoner=False)
     # the curie integer should be converted to a string
-    assert clause == "MATCH (`n0`:`biolink:Disease` {`id`: \"12\"}) RETURN n0"
+    assert "{`id`: \"12\"}" in clause
