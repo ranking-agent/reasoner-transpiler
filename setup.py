@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="reasoner-transpiler",
-    version="1.8.1",
+    version="1.9.0",
     author="Patrick Wang",
     author_email="patrick@covar.com",
     url="https://github.com/ranking-agent/reasoner-transpiler",
