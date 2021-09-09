@@ -1,4 +1,6 @@
 id,subject,predicate,object,props
+t2d_isa_disease,MONDO:0005148,biolink:subclass_of,MONDO:0000001,"{}"
+albuminaria_isa_phenotype,HP:0012592,biolink:subclass_of,HP:0000118,"{}"
 anagliptin_treats_t2d,CHEBI:136043,biolink:treats,MONDO:0005148,"{\"fda_approved\": false}"
 bezafibrate_treats_t2d,CHEBI:47612,biolink:treats,MONDO:0005148,"{\"fda_approved\": false}"
 bezafibrate_treats_obesity,CHEBI:47612,biolink:treats,MONDO:0011122,"{\"fda_approved\": false}"
