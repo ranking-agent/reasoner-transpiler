@@ -95,7 +95,7 @@ class NodeReference():
         ]) + "}" if props else ""
         self._hints = []
         if curie and self.labels:
-            self._hints.append(f"USING INDEX {self.name}:{self.labels[0]}(id)")
+            self._hints.append(f"USING INDEX {self.name}:`{self.labels[0]}`(id)")
         self._num = 0
 
     def __str__(self):
