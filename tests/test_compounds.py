@@ -270,7 +270,8 @@ def test_or(database):
             },
         ],
     ]
-    output = database.run(get_query(qgraph))
+    query = get_query(qgraph, subclass=False)
+    output = database.run(query)
     for record in output:
         assert len(record["results"]) == 5
         results = sorted(

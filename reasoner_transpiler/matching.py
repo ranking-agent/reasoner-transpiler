@@ -299,33 +299,35 @@ def match_edge(
     )
 
 
-def match_query(qgraph, **kwargs):
+def match_query(qgraph, subclass=True, **kwargs):
     """Generate a Cypher MATCH clause.
 
     Returns the query fragment as a string.
     """
-    superclasses = {
-        qnode_id + "_superclass": {
-            "ids": qnode.pop("ids"),
-            "categories": qnode.get("categories", None),
-            "_return": False,
+    if subclass:
+        superclasses = {
+            qnode_id + "_superclass": {
+                "ids": qnode.pop("ids"),
+                "categories": qnode.get("categories", None),
+                "_return": False,
+            }
+            for qnode_id, qnode in qgraph["nodes"].items()
+            if qnode.get("ids", None) is not None
         }
-        for qnode_id, qnode in qgraph["nodes"].items()
-        if qnode.get("ids", None) is not None
-    }
-    subclass_edges = {
-        qnode_id[:-11] + "_subclass_edge": {
-            "subject": qnode_id[:-11],
-            "object": qnode_id,
-            "predicates": ["biolink:subclass_of"],
-            "_length": (0, 1),
-            "_invert": False,
-            "_return": False,
+        subclass_edges = {
+            qnode_id[:-11] + "_subclass_edge": {
+                "subject": qnode_id[:-11],
+                "object": qnode_id,
+                "predicates": ["biolink:subclass_of"],
+                "_length": (0, 1),
+                "_invert": False,
+                "_return": False,
+            }
+            for qnode_id in superclasses
         }
-        for qnode_id in superclasses
-    }
-    qgraph["nodes"].update(superclasses)
-    qgraph["edges"].update(subclass_edges)
+        qgraph["nodes"].update(superclasses)
+        qgraph["edges"].update(subclass_edges)
+
     # sets of ids
     defined_nodes = set(qgraph["nodes"])
     defined_edges = set(qgraph["edges"])
