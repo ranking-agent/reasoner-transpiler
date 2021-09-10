@@ -12,6 +12,10 @@ def test_node_subclass(database):
     query = get_query(qgraph)
     output = list(database.run(query))[0]
     assert len(output['results']) == 2
+    assert any(
+        result["node_bindings"]["n0"] == [{"id": "MONDO:0005148"}]
+        for result in output["results"]
+    )
 
 
 def test_onehop_subclass(database):
@@ -69,6 +73,10 @@ def test_pinned_subclass(database):
     query = get_query(qgraph)
     output = list(database.run(query))[0]
     assert len(output['results']) == 1
+    assert output["results"][0]["node_bindings"] == {
+        "n0": [{"id": "MONDO:0005148"}],
+        "n1": [{"id": "HP:0012592"}],
+    }
 
 
 def test_same_pinned_subclass(database):
