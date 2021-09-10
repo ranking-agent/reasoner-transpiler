@@ -120,3 +120,17 @@ def test_multihop_subclass(database):
     query = get_query(qgraph)
     output = list(database.run(query))[0]
     assert output['results']
+
+
+def test_dont_subclass(database):
+    """Test disallowing subclassing."""
+    qgraph = {
+        "nodes": {"n0": {"ids": ["MONDO:0000001"]}},
+        "edges": dict(),
+    }
+    query = get_query(qgraph, subclass=False)
+    output = list(database.run(query))[0]
+    assert len(output['results']) == 1
+    assert output["results"][0]["node_bindings"] == {
+        "n0": [{"id": "MONDO:0000001"}],
+    }
