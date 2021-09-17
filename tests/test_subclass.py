@@ -1,4 +1,5 @@
 """Test entity subclassing."""
+import copy
 from reasoner_transpiler.cypher import get_query
 from .fixtures import fixture_database
 
@@ -9,7 +10,9 @@ def test_node_subclass(database):
         "nodes": {"n0": {"ids": ["MONDO:0000001"]}},
         "edges": dict(),
     }
+    original_qgraph = copy.deepcopy(qgraph)
     query = get_query(qgraph)
+    assert qgraph == original_qgraph
     output = list(database.run(query))[0]
     assert len(output['results']) == 2
     assert any(
