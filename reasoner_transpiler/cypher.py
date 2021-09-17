@@ -1,4 +1,5 @@
 """Tools for compiling QGraph into Cypher query."""
+import copy
 from functools import reduce
 import json
 from operator import and_
@@ -182,6 +183,7 @@ def get_query(qgraph, **kwargs):
 
     Returns the query as a string.
     """
+    qgraph = copy.deepcopy(qgraph)
     clauses = []
     query = transpile_compound(qgraph, **kwargs)
     clauses.extend(query.compile())
