@@ -73,10 +73,13 @@ def assemble_results(qnodes, qedges, **kwargs):
         ) if qnode.get("is_set", False) else
         (
             "`{0}`: (CASE "
-            "WHEN `{0}` IS NOT NULL THEN [{{id: `{0}`.id}}] "
+            "WHEN `{0}` IS NOT NULL THEN [{{id: `{0}`.id{1}}}] "
             "ELSE [] "
             "END)"
-        ).format(qnode_id)
+        ).format(
+            qnode_id,
+            f", qnode_id: `{qnode_id}_superclass`.id" if f"{qnode_id}_superclass" in qnodes else "",
+        )
         for qnode_id, qnode in qnodes.items()
         if qnode.get("_return", True)
     ]
