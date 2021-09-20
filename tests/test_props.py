@@ -116,3 +116,18 @@ def test_publications(database):
         "attribute_type_id": "EDAM:data_0971",
         "value": ["xxx"],
     }
+
+
+def test_constraints(database):
+    """Test querying with 'constraints' property."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "categories": "biolink:Gene",
+                "constraints": [],
+            },
+        },
+        "edges": {},
+    }
+    output = list(database.run(get_query(qgraph)))[0]
+    assert len(output["results"]) == 3
