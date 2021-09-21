@@ -230,7 +230,7 @@ class EdgeReference():
         props.update(
             (key, value)
             for key, value in edge.items()
-            if key not in ("name",) and not key.startswith("_")
+            if key not in ("name", "constraints") and not key.startswith("_")
         )
 
         self.prop_string = " {" + ", ".join([
