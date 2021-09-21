@@ -126,8 +126,17 @@ def test_constraints(database):
                 "categories": "biolink:Gene",
                 "constraints": [],
             },
+            "n1": {
+                "constraints": [],
+            },
         },
-        "edges": {},
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+                "constraints": [],
+            },
+        },
     }
     output = list(database.run(get_query(qgraph)))[0]
-    assert len(output["results"]) == 3
+    assert len(output["results"]) == 9
