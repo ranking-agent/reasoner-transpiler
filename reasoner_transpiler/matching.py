@@ -50,6 +50,7 @@ class NodeReference():
         if isinstance(category, list) and len(category) == 1:
             category = category[0]
         if isinstance(category, list):
+            self.labels = ['biolink:NamedThing']
             self._filters.append(" OR ".join([
                 "{1} in labels({0})".format(
                     self.name,
