@@ -49,7 +49,7 @@ def main(hash: str = None):
         session.run("MATCH (m) DETACH DELETE m")
         session.run(f"LOAD CSV WITH HEADERS FROM \"{node_file}\" "
                     "AS row "
-                    "CALL apoc.create.node([row.category], apoc.map.merge({"
+                    "CALL apoc.create.node([row.category, 'biolink:NamedThing'], apoc.map.merge({"
                     "name: row.name, id: row.id"
                     "}, apoc.convert.fromJsonMap(row.props))) YIELD node "
                     "RETURN count(*)")
