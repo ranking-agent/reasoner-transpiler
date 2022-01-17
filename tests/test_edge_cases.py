@@ -164,3 +164,39 @@ def test_backwards_predicate(database):
     cypher = get_query(qgraph)
     output = list(database.run(cypher))[0]
     assert len(output["results"]) == 3
+
+
+def test_index_usage_single_labels():
+    """
+    Test when using single labels, checks if id index is with the node type is used
+    """
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"],
+                "categories": "biolink:Disease",
+            }
+        },
+        "edges": {}
+    }
+    cypher = get_query(qgraph, **{"use_hints": True})
+    # superclass node_id is suffixed with _superclass
+    assert "USING INDEX `n0_superclass`:`biolink:Disease`(id)" in cypher
+
+
+def test_index_usage_multiple_labels():
+    """
+    When multiple labels are used `biolink:NamedThing` index to be used
+    """
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"],
+                "categories": ["biolink:Disease", "biolink:PhenotypicFeature"],
+            }
+        },
+        "edges": {}
+    }
+    cypher = get_query(qgraph, **{"use_hints": True})
+    # superclass node_id is suffixed with _superclass
+    assert "USING INDEX `n0_superclass`:`biolink:NamedThing`(id)" in cypher
