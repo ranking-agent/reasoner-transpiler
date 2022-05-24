@@ -309,7 +309,7 @@ def match_query(qgraph, subclass=True, **kwargs):
         superclasses = {
             qnode_id + "_superclass": {
                 "ids": qnode.pop("ids"),
-                "categories": qnode.get("categories", None),
+                "categories": qnode.pop("categories", None),
                 "_return": False,
             }
             for qnode_id, qnode in qgraph["nodes"].items()
