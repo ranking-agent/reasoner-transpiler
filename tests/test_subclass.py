@@ -39,6 +39,31 @@ def test_onehop_subclass(database):
     output = list(database.run(query))[0]
     assert len(output['results']) == 9
 
+def test_onehop_subclass_categories():
+    """Test one-hop subclass query."""
+    qgraph = {
+        "nodes": {
+            "n0": {"ids": ["HP:0011015"], "categories": ["biolink:PhenotypicFeature"]},
+            "n1": {},
+        },
+        "edges": {
+            "e01": {
+                "subject": "n1",
+                "object": "n0",
+                "predicates": ["biolink:treats"]
+            },
+        },
+    }
+    query = get_query(qgraph)
+    #make sure that the class (PhenotypicFeature) has been removed from n0
+    clause = query.split('WHERE')[0]
+    elements = clause.split('-')
+    checked = False
+    for element in elements:
+        if 'n0' in element:
+            checked = True
+            assert 'PhenotypicFeature' not in element
+    assert checked
 
 def test_backward_subclass(database):
     """Test pinned-object one-hop subclass query."""
