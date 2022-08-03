@@ -226,12 +226,13 @@ class EdgeReference():
                     _object,
                 ),
             ]))
-
+        constraints = ["attribute_constraints", "qualifier_constraints"]
+        other_non_prop_attributes = ["name", "knowledge_type"]
         props = {}
         props.update(
             (key, value)
             for key, value in edge.items()
-            if key not in ("name", "constraints") and not key.startswith("_")
+            if key not in set(constraints + other_non_prop_attributes) and not key.startswith("_")
         )
 
         self.prop_string = " {" + ", ".join([
