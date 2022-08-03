@@ -134,7 +134,7 @@ def test_constraints(database):
             "e01": {
                 "subject": "n0",
                 "object": "n1",
-                "constraints": [],
+                "attribute_constraints": [],
             },
         },
     }
