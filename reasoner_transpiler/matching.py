@@ -165,6 +165,7 @@ class EdgeReference():
             edge.pop("predicates", []) or []
         )
         self.filters = []
+        self.qualifier_filters = []
         self.label = None
         self.length = edge.pop("_length", (1, 1))
         invert = invert and edge.pop("_invert", True)
@@ -228,6 +229,7 @@ class EdgeReference():
             ]))
         constraints = ["attribute_constraints", "qualifier_constraints"]
         other_non_prop_attributes = ["name", "knowledge_type"]
+        self.qualifier_filters = self.__qualifier_filters(edge, edge_id)
         props = {}
         props.update(
             (key, value)
@@ -240,6 +242,20 @@ class EdgeReference():
             for key, value in props.items()
             if value is not None
         ]) + "}" if props else ""
+
+    def __qualifier_filters(self, edge , edge_id):
+        constraints = edge.get("qualifier_constraints", [])
+        ands = []
+        for constraint in constraints:
+            ors = []
+            for constraint_filter in constraint.get("qualifier_set", []):
+                ors.append(
+                    f"{edge_id}.`{constraint_filter['qualifier_type_id']}` = {cypher_prop_string(constraint_filter['qualifier_value'])}"
+                )
+            ors = ' ( ' + ' OR '.join(ors) + ' ) '
+            ands.append(ors)
+
+        return ' AND '.join(ands)
 
     def __str__(self):
         """Return the cypher edge reference."""
@@ -262,17 +278,35 @@ def build_match_clause(
         *patterns,
         filters=None,
         hints=None,
+        qualifier_filters=[],
         **kwargs,
 ):
     """Build MATCH clause (and subclauses) from components."""
     query = ""
     query += "MATCH " + ", ".join(patterns)
+    reg_filters_cypher = ""
+    qualifier_filters_cypher = ""
+    combine_op = ""
+    has_filters = False
     if kwargs.get("use_hints", False) and hints:
         query += " " + " ".join(hints)
-    if filters:
-        if len(filters) > 1:
-            filters = [f"({f})" for f in filters]
-        query += " WHERE " + " AND ".join(filters)
+    if filters or qualifier_filters:
+        if len(filters):
+            has_filters = True
+            if len(filters) > 1:
+                filters = [f"({f})" for f in filters]
+                reg_filters_cypher += " ( " + " AND ".join(filters) + " ) "
+            else:
+                reg_filters_cypher += " ( " + filters[0] + " ) "
+
+        if len(qualifier_filters):
+            has_filters = True
+            qualifier_filters_cypher += f"({qualifier_filters})"
+
+        if len(filters) and len(qualifier_filters):
+            combine_op = " AND "
+    if has_filters:
+        query += " WHERE " + reg_filters_cypher + combine_op + qualifier_filters_cypher
 
     return query
 
@@ -297,6 +331,7 @@ def match_edge(
         pattern,
         hints=source_node.hints + target_node.hints,
         filters=edge_filters,
+        qualifier_filters=eref.qualifier_filters,
         **kwargs,
     )
 
