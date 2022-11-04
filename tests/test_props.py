@@ -139,4 +139,4 @@ def test_constraints(database):
         },
     }
     output = list(database.run(get_query(qgraph)))[0]
-    assert len(output["results"]) == 9
+    assert len(output["results"]) == 10
