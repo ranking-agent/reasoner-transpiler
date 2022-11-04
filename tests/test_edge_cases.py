@@ -13,7 +13,7 @@ def test_categories(database):
         "edges": dict(),
     }
     output = list(database.run(get_query(qgraph)))[0]
-    assert len(output['results']) == 7
+    assert len(output['results']) == 8
 
 
 def test_empty(database):
