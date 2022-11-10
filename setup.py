@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="reasoner-transpiler",
-    version="1.10.6",
+    version="1.11.6",
     author="Patrick Wang",
     author_email="patrick@covar.com",
     url="https://github.com/ranking-agent/reasoner-transpiler",
@@ -11,7 +11,7 @@ setup(
     packages=["reasoner_transpiler"],
     package_data={"reasoner_transpiler": ["attribute_types.json"]},
     install_requires=[
-        "bmt-lite-v2.3.0>=2.2.1,<3.0",
+        "bmt-lite-v3.1.0>=2.2.2,<3.0",
     ],
     zip_safe=False,
     license="MIT",
