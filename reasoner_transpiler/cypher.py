@@ -149,8 +149,10 @@ def assemble_results(qnodes, qedges, **kwargs):
     )
     aggregate_clause += (
         (
-            "edges: apoc.map.fromLists("
+            "edges: apoc.map.fromLists(" + (
+            "[e IN collect(DISTINCT kedge) | toString(ID(e)) ], " if kwargs.get("relationship_id", "property") == "internal" else
             "[e IN collect(DISTINCT kedge) | e.id], "
+            ) +
             "[e IN collect(DISTINCT kedge) | {"
             "predicate: type(e), subject: startNode(e).id, object: endNode(e).id, "
             "attributes: [key in apoc.coll.subtract(keys(e), "
