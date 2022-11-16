@@ -5,7 +5,7 @@ from .fixtures import fixture_database
 
 
 def test_single_qualifier(database):
-    """Test edges satisfying some constraints are returned """
+    """Test edges satisfying all constraints are returned """
     qgraph = {
         "nodes": {
             "n0": {},
@@ -25,12 +25,9 @@ def test_single_qualifier(database):
                                 "qualifier_type_id": "qualified_predicate",
                                 "qualifier_value": "biolink:causes"
                             }, {
-                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_type_id": "object_aspect",
                                 "qualifier_value": "activity"
-                            }, {
-                                "qualifier_type_id": "object_modifier_qualifier",
-                                "qualifier_value": "increased"
-                            },
+                            }
                         ]
                     }
                 ]
@@ -42,7 +39,7 @@ def test_single_qualifier(database):
     for record in output:
         assert len(record["results"]) == 1
         # make sure any edge s
-        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 2
+        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 1
 
 
 def test_multi_qualifier(database):
@@ -84,7 +81,7 @@ def test_multi_qualifier(database):
     for record in output:
         assert len(record["results"]) == 1
         # make sure any edge s
-        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 1
+        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 2
 
 
 # skipping this test for now will need to make them once qualifier heirarchy is supported
@@ -109,13 +106,6 @@ def test_qualifier_heirarchy(database):
                                 "qualifier_type_id": "object_aspect",
                                 "qualifier_value": "activity_or_abundance"
                             },
-                        ]
-                    },{
-                        "qualifier_set": [
-                            {
-                                "qualifier_type_id": "qualified_predicate",
-                                "qualifier_value": "biolink:causes"
-                            }
                         ]
                     }
                 ]
@@ -158,7 +148,6 @@ def test_phony_qualifier_value(database):
         },
     }
     query = get_query(qgraph)
-    print(query)
     output = database.run(query)
     for record in output:
         assert len(record["results"]) == 0

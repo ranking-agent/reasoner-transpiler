@@ -245,9 +245,9 @@ class EdgeReference():
 
     def __qualifier_filters(self, edge , edge_id):
         constraints = edge.get("qualifier_constraints", [])
-        ands = []
+        ors = []
         for constraint in constraints:
-            ors = []
+            ands = []
             for constraint_filter in constraint.get("qualifier_set", []):
                 all_enums = bmt.get_all_enums()
                 qualifiers_values = []
@@ -255,13 +255,15 @@ class EdgeReference():
                     to_append = bmt.get_enum_value_descendants(enum, constraint_filter['qualifier_value'])
                     if to_append:
                         qualifiers_values += to_append
-                qualifiers_values = set(qualifiers_values)
-                ors += [f"{edge_id}.`{constraint_filter['qualifier_type_id']}` = {cypher_prop_string(qualifiers_value)}"
-                        for qualifiers_value in qualifiers_values]
-            ors = ' ( ' + ' OR '.join(ors) + ' ) '
-            ands.append(ors)
-
-        return ' AND '.join(ands)
+                # Join qualifier value hierarchy with an or
+                qualifier_where_condition =  " ( "+ " OR ".join([f"`{edge_id}`.{constraint_filter['qualifier_type_id']} = {cypher_prop_string(qualifier_value)}"
+                                                 for qualifier_value in set(qualifiers_values)]) + " ) "
+                ands.append(qualifier_where_condition)
+            # join contraints in a single qualifier set with `AND`
+            ands = ' ( ' + ' AND '.join(ands) + ' ) '
+            ors.append(ands)
+        # join multiple qualifier sets with `OR`
+        return ' OR '.join(ors)
 
     def __str__(self):
         """Return the cypher edge reference."""
