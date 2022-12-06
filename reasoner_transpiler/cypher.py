@@ -189,9 +189,6 @@ def get_query(qgraph, **kwargs):
     Returns the query as a string.
     """
     qgraph = copy.deepcopy(qgraph)
-    for qnode_id, qnode in qgraph["nodes"].items():
-        if qnode.get("ids", None) is not None and len(qnode.get("categories",[])) > 0:
-            qnode["categories"] = ["biolink:NamedThing"]
     clauses = []
     query = transpile_compound(qgraph, **kwargs)
     clauses.extend(query.compile())

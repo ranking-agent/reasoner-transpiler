@@ -349,6 +349,11 @@ def match_query(qgraph, subclass=True, **kwargs):
 
     Returns the query fragment as a string.
     """
+    #If there's no label on a query node, neo4j can't use an index.  This makes such queries basically
+    # neo4j killers.   So when there is no category, we add NamedThing which will use an indx.
+    for qnode_id, qnode in qgraph["nodes"].items():
+        if qnode.get("ids", None) is not None and len(qnode.get("categories",[])) > 0:
+            qnode["categories"] = ["biolink:NamedThing"]
     if subclass:
         superclasses = {
             qnode_id + "_superclass": {
