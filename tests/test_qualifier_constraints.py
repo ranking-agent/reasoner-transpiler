@@ -151,3 +151,36 @@ def test_phony_qualifier_value(database):
     output = database.run(query)
     for record in output:
         assert len(record["results"]) == 0
+
+def test_empty_qualifier_set(database):
+    """Empty qualifier set should not generate cypher syntax errors"""
+    qgraph = {
+        "nodes": {
+            "n0": {},
+            "n1": {
+                "ids": "NCBIGene:283871"
+            },
+        },
+        "edges": {
+            "e10a": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": "biolink:affects",
+                "qualifier_constraints": [
+                    {
+                        "qualifier_set": []
+                    },
+                ]
+            },
+        },
+    }
+    query = get_query(qgraph)
+    output = database.run(query)
+    for record in output:
+        assert len(record["results"]) == 1
+    # Also test a list of empty dict
+    qgraph["edges"]["e10a"]["qualifier_constraints"][0]["qualifier_set"] = [{}, {}]
+    query = get_query(qgraph)
+    output = database.run(query)
+    for record in output:
+        assert len(record["results"]) == 1
