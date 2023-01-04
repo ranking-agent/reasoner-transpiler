@@ -249,6 +249,9 @@ class EdgeReference():
         for constraint in constraints:
             ands = []
             for constraint_filter in constraint.get("qualifier_set", []):
+                # also handle "qualifier_set": [{ }]
+                if not constraint_filter:
+                    continue
                 all_enums = bmt.get_all_enums()
                 qualifiers_values = []
                 for enum in all_enums:
@@ -259,6 +262,9 @@ class EdgeReference():
                 qualifier_where_condition =  " ( "+ " OR ".join([f"`{edge_id}`.{constraint_filter['qualifier_type_id']} = {cypher_prop_string(qualifier_value)}"
                                                  for qualifier_value in set(qualifiers_values)]) + " ) "
                 ands.append(qualifier_where_condition)
+            # if qualifier set is empty ; loop to the next
+            if not len(ands):
+                continue
             # join contraints in a single qualifier set with `AND`
             ands = ' ( ' + ' AND '.join(ands) + ' ) '
             ors.append(ands)
