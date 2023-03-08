@@ -115,7 +115,7 @@ def test_predicate_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`|`biolink:biomarker_for`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:biomarker_for`|`biolink:capable_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
 def test_single_edge_type_list():
