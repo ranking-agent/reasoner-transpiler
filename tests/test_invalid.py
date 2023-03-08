@@ -75,8 +75,8 @@ def test_invalid_node():
         get_query(qgraph)
 
 
-def test_invalid_predicate(database):
-    """Test that an invalid edge predicate does not cause an error."""
+def test_invalid_predicate():
+    """Test that an invalid edge predicate throws an error."""
     qgraph = {
         "nodes": {
             "n0": {
@@ -94,7 +94,5 @@ def test_invalid_predicate(database):
             },
         },
     }
-    query = get_query(qgraph)
-    assert ")-[`e0`:`biolink:invalid_predicate`]->(" in query
-    output = list(database.run(query))[0]
-    assert len(output["results"]) == 1
+    with pytest.raises(Exception):
+        query = get_query(qgraph)

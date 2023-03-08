@@ -107,7 +107,7 @@ def test_predicate_list():
         },
         "edges": {
             "e01": {
-                "predicates": ["biolink:capable_of", "biolink:affects_expression_in"],
+                "predicates": ["biolink:capable_of", "biolink:biomarker_for"],
                 "subject": "n0",
                 "object": "n1",
             },
@@ -115,10 +115,7 @@ def test_predicate_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`|`biolink:affects_expression_in`|`biolink:has_capability`]-(`n1`:`biolink:PhenotypicFeature`)" in clause
-    # test direction
-    assert '(type(`e01`) in ["biolink:capable_of", "biolink:affects_expression_in"] AND startNode(`e01`) = `n0`) ' \
-           'OR (type(`e01`) in ["biolink:has_capability"] AND startNode(`e01`) = `n1`))' in clause
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`|`biolink:biomarker_for`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 
 def test_single_edge_type_list():
@@ -142,13 +139,10 @@ def test_single_edge_type_list():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`|`biolink:has_capability`]-(`n1`:`biolink:PhenotypicFeature`)" in clause
-    assert '(type(`e01`) in ["biolink:capable_of"] AND startNode(`e01`) = `n0`) ' \
-           'OR (type(`e01`) in ["biolink:has_capability"] AND startNode(`e01`) = `n1`))' in clause
-
+    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:capable_of`]->(`n1`:`biolink:PhenotypicFeature`)" in clause
 
 def test_invertible():
-    """Test edge predicate inversion ca. biolink model 1.8.0."""
+    """Test edge predicate inversion ca. biolink model 3.2.0."""
     qgraph = {
         "nodes": {
             "n0": {
@@ -160,7 +154,7 @@ def test_invertible():
         },
         "edges": {
             "e01": {
-                "predicates": "biolink:has_phenotype",
+                "predicates": "biolink:phenotype_of",
                 "subject": "n0",
                 "object": "n1",
             },
@@ -168,7 +162,7 @@ def test_invertible():
     }
     clause = get_query(qgraph, reasoner=False)
     # edges with types should be directed
-    assert "(`n0`:`biolink:Disease`)-[`e01`:`biolink:has_phenotype`|`biolink:phenotype_of`]-(`n1`:`biolink:PhenotypicFeature`)" in clause
+    assert "(`n1`:`biolink:PhenotypicFeature`)-[`e01`:`biolink:has_phenotype`]->(`n0`:`biolink:Disease`)" in clause
 
 
 def test_curie_int():
