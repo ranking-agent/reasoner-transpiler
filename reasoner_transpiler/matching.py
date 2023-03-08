@@ -172,20 +172,21 @@ class EdgeReference():
 
         self.inverse_predicates = []
         self.directed = False
+        self.symmetric = True
         for predicate in self.predicates:
             el = bmt.get_element(space_case(predicate[8:]))
             if el is None:
-                symmetric = False
+                self.symmetric = False #TODO: Is this right?  If there's no predicate isn't it symmetric?
                 inverse = None
             else:
                 inverse = el.inverse
-                symmetric = el.symmetric
+                self.symmetric = el.symmetric and self.symmetric
             # relationship is directed if any provided predicate is asymmetrical
-            if not symmetric:
+            if not self.symmetric:
                 self.directed = True
             if inverse is not None:
                 self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
-            elif symmetric:
+            elif self.symmetric:
                 self.inverse_predicates.append(predicate)
 
         # get all descendant predicates
@@ -193,6 +194,7 @@ class EdgeReference():
             f"biolink:{snake_case(p)}"
             for predicate in self.predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
+            if bmt.get_element(p).annotations.get('canonical_predicate',False)
         ]
         if not invert:
             self.inverse_predicates = []
@@ -200,14 +202,16 @@ class EdgeReference():
             f"biolink:{snake_case(p)}"
             for predicate in self.inverse_predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
+            if bmt.get_element(p).annotations.get('canonical_predicate', False)
         ]
+
 
         self.label = "|".join(
             f"`{predicate}`"
-            for predicate in self.predicates + self.inverse_predicates
+            for predicate in set(self.predicates + self.inverse_predicates)
         )
 
-        if self.inverse_predicates:
+        if self.inverse_predicates and not self.symmetric:
             self.directed = False
             self.filters.append(" OR ".join([
                 "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(

@@ -90,3 +90,26 @@ def test_inverse(database):
     output = database.run(get_query(qgraph))
     for record in output:
         assert len(record["results"]) == 1
+
+def test_treats():
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "categories": ["biolink:SmallMolecule"],
+                "ids": ["PUBCHEM.COMPOUND:1"]
+            },
+            "n1": {
+                "categories": ["biolink:Disease"]
+            },
+        },
+        "edges": {
+            "e10": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": "biolink:treats",
+            },
+        },
+    }
+    cypher = get_query(qgraph)
+    print(cypher)
+    assert 0
