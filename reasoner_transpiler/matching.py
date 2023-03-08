@@ -210,7 +210,7 @@ class EdgeReference():
         ]
 
 
-        unique_preds = list(set(self.predicates + self.inverse_predictes))
+        unique_preds = list(set(self.predicates + self.inverse_predicates))
         #Having the predicates sorted doesn't matter to neo4j, but it helps in testing b/c we get a consistent string.
         unique_preds.sort()
         self.label = "|".join(
