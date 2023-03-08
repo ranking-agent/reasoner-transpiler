@@ -164,15 +164,19 @@ class EdgeReference():
         self.predicates: List[str] = ensure_list(
             edge.pop("predicates", []) or []
         )
+        # "related_to" is equivalent to no predicate
+        if self.predicates == ["biolink:related_to"]:
+            self.predicates = []
         self.filters = []
         self.qualifier_filters = []
-        self.label = None
+        self.label = None  #What goes in the [] on the edge in cypher
         self.length = edge.pop("_length", (1, 1))
         invert = invert and edge.pop("_invert", True)
 
         self.inverse_predicates = []
-        self.directed = False
-        self.symmetric = True
+        self.directed = False # Controls whether there is an arrow on the edge in cypher
+        self.symmetric = True # Whether the original top-level predicates are all symmetric
+        self.cypher_invert = False # If true, then the cypher source node will be subject, if false then object
         for predicate in self.predicates:
             el = bmt.get_element(space_case(predicate[8:]))
             if el is None:
@@ -211,26 +215,33 @@ class EdgeReference():
             for predicate in set(self.predicates + self.inverse_predicates)
         )
 
-        if self.inverse_predicates and not self.symmetric:
-            self.directed = False
-            self.filters.append(" OR ".join([
-                "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
-                    self.name,
-                    ", ".join([
-                        f"\"{predicate}\""
-                        for predicate in self.predicates
-                    ]),
-                    _subject,
-                ),
-                "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
-                    self.name,
-                    ", ".join([
-                        f"\"{predicate}\""
-                        for predicate in self.inverse_predicates
-                    ]),
-                    _object,
-                ),
-            ]))
+        # We only need the WHERE clause if: we have canonical edges pointing in opposite directions.  In that
+        # case we need a non-directed edge and a where clause that points the right ones in different directions
+        if not self.symmetric:
+            if self.inverse_predicates and self.predicates:
+                self.directed = False
+                self.filters.append(" OR ".join([
+                    "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
+                        self.name,
+                        ", ".join([
+                            f"\"{predicate}\""
+                            for predicate in self.predicates
+                        ]),
+                        _subject,
+                    ),
+                    "(type(`{0}`) in [{1}] AND startNode(`{0}`) = `{2}`)".format(
+                        self.name,
+                        ", ".join([
+                            f"\"{predicate}\""
+                            for predicate in self.inverse_predicates
+                        ]),
+                        _object,
+                    ),
+                ]))
+            #If we have inverse_predicates and not self.predicates then it means that everything in predicates
+            # was non-canonical and we reversed them all so we need to invert the edge
+            elif self.inverse_predicates:
+                self.cypher_invert=True
         constraints = ["attribute_constraints", "qualifier_constraints"]
         other_non_prop_attributes = ["name", "knowledge_type"]
         self.qualifier_filters = self.__qualifier_filters(edge, edge_id)
@@ -338,8 +349,12 @@ def match_edge(
 ):
     """Get MATCH clause for edge."""
     eref = EdgeReference(qedge_id, qedge, invert=invert)
-    source_node = node_references[qedge["subject"]]
-    target_node = node_references[qedge["object"]]
+    if eref.cypher_invert:
+        source_node = node_references[qedge["object"]]
+        target_node = node_references[qedge["subject"]]
+    else:
+        source_node = node_references[qedge["subject"]]
+        target_node = node_references[qedge["object"]]
     pattern = f"{source_node}{eref}{target_node}"
     edge_filters = [
         f"({c})"
