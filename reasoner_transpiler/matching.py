@@ -214,6 +214,8 @@ class EdgeReference():
             f"`{predicate}`"
             for predicate in set(self.predicates + self.inverse_predicates)
         )
+        #Having the labels sorted doesn't matter to neo4j, but it helps in testing b/c we get a consistent string.
+        self.label.sort()
 
         # We only need the WHERE clause if: we have canonical edges pointing in opposite directions.  In that
         # case we need a non-directed edge and a where clause that points the right ones in different directions
