@@ -5,8 +5,8 @@ import json
 from operator import and_
 from pathlib import Path
 
-from . import cypher_expression
-from .matching import match_query
+from reasoner_transpiler import cypher_expression
+from reasoner_transpiler.matching import match_query
 
 DIR_PATH = Path(__file__).parent
 with open(DIR_PATH / "attribute_types.json", "r") as stream:
@@ -19,6 +19,11 @@ RESERVED_NODE_PROPS = [
 RESERVED_EDGE_PROPS = [
     "id",
     "predicate",
+]
+
+EDGE_SOURCE_PROPS = [
+    "biolink:aggregator_knowledge_source",
+    "biolink:primary_knowledge_source"
 ]
 
 def nest_op(operator, *args):
@@ -112,7 +117,7 @@ def assemble_results(qnodes, qedges, **kwargs):
         if qedge.get("_return", True)
     ]
     assemble_clause = (
-        "WITH {{node_bindings: {{{0}}}, edge_bindings: {{{1}}}}} AS result, "
+        "WITH {{node_bindings: {{{0}}}, analyses: [{{edge_bindings: {{{1}}}}}]}} AS result, "
         "{{nodes: {2}, edges: {3}}} AS knowledge_graph"
     ).format(
         ", ".join(node_bindings) or "",
@@ -156,10 +161,13 @@ def assemble_results(qnodes, qedges, **kwargs):
             "[e IN collect(DISTINCT kedge) | {"
             "predicate: type(e), subject: startNode(e).id, object: endNode(e).id, "
             "attributes: [key in apoc.coll.subtract(keys(e), "
-            + cypher_expression.dumps(RESERVED_EDGE_PROPS) +
+            + cypher_expression.dumps(RESERVED_EDGE_PROPS + EDGE_SOURCE_PROPS) +
             ") | {original_attribute_name: key, attribute_type_id: COALESCE("
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
-            "[key], \"NA\"), value: e[key]}]}])"
+            "[key], \"NA\"), value: e[key]}]," +
+            "sources: [key IN " + cypher_expression.dumps(EDGE_SOURCE_PROPS) +" | "
+            " {resource: e[key] , resource_role: key }]"
+            "}])"
         )
         if kedges else
         "edges: []"
