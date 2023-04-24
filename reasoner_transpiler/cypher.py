@@ -5,8 +5,8 @@ import json
 from operator import and_
 from pathlib import Path
 
-from reasoner_transpiler import cypher_expression
-from reasoner_transpiler.matching import match_query
+from . import cypher_expression
+from .matching import match_query
 
 DIR_PATH = Path(__file__).parent
 with open(DIR_PATH / "attribute_types.json", "r") as stream:
