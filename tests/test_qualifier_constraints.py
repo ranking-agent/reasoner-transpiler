@@ -39,7 +39,7 @@ def test_single_qualifier(database):
     for record in output:
         assert len(record["results"]) == 1
         # make sure any edge s
-        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 1
+        assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
 
 
 def test_multi_qualifier(database):
@@ -81,7 +81,7 @@ def test_multi_qualifier(database):
     for record in output:
         assert len(record["results"]) == 1
         # make sure any edge s
-        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 2
+        assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 2
 
 
 # skipping this test for now will need to make them once qualifier heirarchy is supported
@@ -117,7 +117,7 @@ def test_qualifier_heirarchy(database):
     for record in output:
         assert len(record["results"]) == 1
         # make sure any edge s
-        assert len(record["results"][0]["edge_bindings"]["e10a"]) == 1
+        assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
 
 
 def test_phony_qualifier_value(database):
