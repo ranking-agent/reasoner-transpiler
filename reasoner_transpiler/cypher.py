@@ -166,7 +166,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             + cypher_expression.dumps(ATTRIBUTE_TYPES) +
             "[key], \"NA\"), value: e[key]}]," +
             "sources: [key IN " + cypher_expression.dumps(EDGE_SOURCE_PROPS) +" | "
-            " {resource: e[key] , resource_role: key }]"
+            " {resource_id: e[key] , resource_role: key }]"
             "}])"
         )
         if kedges else
