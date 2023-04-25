@@ -56,7 +56,7 @@ def test_primary_source(database):
     """
     edge_sources = {
         e: {
-            x["resource_role"]: x["resource"]
+            x["resource_role"]: x["resource_id"]
             for x in output["knowledge_graph"]["edges"][e]["sources"]
             } for e in
         output["knowledge_graph"]["edges"]
