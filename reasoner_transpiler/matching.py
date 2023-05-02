@@ -155,6 +155,8 @@ class EdgeReference():
         edge,
         anonymous=False,
         invert=True,
+        primary_ks_required=False,
+        **kwargs
     ):
         """Create an edge reference."""
         edge = dict(edge)  # make shallow copy
@@ -167,7 +169,12 @@ class EdgeReference():
         # "related_to" is equivalent to no predicate
         if self.predicates == ["biolink:related_to"]:
             self.predicates = []
-        self.filters = []
+        if primary_ks_required and not edge.get('_length'):
+            self.filters = [
+                f"`{edge_id}`.`biolink:primary_knowledge_source` IS NOT NULL"
+                ]
+        else:
+            self.filters = []
         self.qualifier_filters = []
         self.label = None  #What goes in the [] on the edge in cypher
         self.length = edge.pop("_length", (1, 1))
@@ -351,7 +358,7 @@ def match_edge(
     **kwargs,
 ):
     """Get MATCH clause for edge."""
-    eref = EdgeReference(qedge_id, qedge, invert=invert)
+    eref = EdgeReference(qedge_id, qedge, invert=invert, **kwargs)
     if eref.cypher_invert:
         source_node = node_references[qedge["object"]]
         target_node = node_references[qedge["subject"]]
