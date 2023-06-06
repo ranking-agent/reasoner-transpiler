@@ -155,7 +155,6 @@ class EdgeReference():
         edge,
         anonymous=False,
         invert=True,
-        primary_ks_required=False,
         **kwargs
     ):
         """Create an edge reference."""
@@ -169,12 +168,8 @@ class EdgeReference():
         # "related_to" is equivalent to no predicate
         if self.predicates == ["biolink:related_to"]:
             self.predicates = []
-        if primary_ks_required and not edge.get('_length'):
-            self.filters = [
-                f"`{edge_id}`.`biolink:primary_knowledge_source` IS NOT NULL"
-                ]
-        else:
-            self.filters = []
+
+        self.filters = []
         self.qualifier_filters = []
         self.label = None  #What goes in the [] on the edge in cypher
         self.length = edge.pop("_length", (1, 1))
