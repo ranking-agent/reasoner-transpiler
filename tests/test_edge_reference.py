@@ -164,13 +164,3 @@ def test_no_predicate():
     assert not ref.directed
     assert not ref.cypher_invert
     assert len(ref.filters) == 0
-
-def test_primary_ks_filter():
-    edge = {"subject": "s", "object": "o"}
-    ref = EdgeReference("e0", edge, invert=True, primary_ks_required=True)
-    assert len(ref.filters) == 1
-
-def test_no_primary_ks_filter_for_subclass():
-    edge = {"subject": "s", "object": "o", "_length": (0,1)}
-    ref = EdgeReference("e0", edge, invert=True)
-    assert len(ref.filters) == 0

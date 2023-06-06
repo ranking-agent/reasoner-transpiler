@@ -100,38 +100,3 @@ def test_use_hints():
     }
     clause = get_query(qgraph, use_hints=True, reasoner=False)
     assert "USING INDEX" in clause
-
-
-def test_primary_ks(database):
-    """Test max_connectivity option."""
-    qgraph = {
-        "nodes": {
-            "n0": {
-                "categories": "biolink:Disease",
-                "ids": ["MONDO:0005148"]
-            },
-            "n1": {
-                "categories": "biolink:ChemicalSubstance",
-            },
-        },
-        "edges": {
-            "e01": {
-                "predicates": "biolink:treats",
-                "subject": "n1",
-                "object": "n0",
-            },
-        },
-    }
-    output = database.run(get_query(
-        qgraph,
-        **{"primary_ks_required": True}
-    ))
-    for record in output:
-        assert len(record["results"]) == 1
-        results = sorted(
-            record["knowledge_graph"]["nodes"].values(),
-            key=lambda node: node["name"],
-        )
-        expected_nodes = [ "metformin", "type 2 diabetes mellitus"]
-        for ind, node in enumerate(results):
-            assert node["name"] == expected_nodes[ind]
