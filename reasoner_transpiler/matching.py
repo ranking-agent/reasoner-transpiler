@@ -170,7 +170,7 @@ class EdgeReference():
             self.predicates = []
 
         self.filters = []
-        self.qualifier_filters = []
+        self.qualifier_filters = ""
         self.label = None  #What goes in the [] on the edge in cypher
         self.length = edge.pop("_length", (1, 1))
         invert = invert and edge.pop("_invert", True)
@@ -312,7 +312,7 @@ def build_match_clause(
         *patterns,
         filters=None,
         hints=None,
-        qualifier_filters=[],
+        qualifier_filters="",
         **kwargs,
 ):
     """Build MATCH clause (and subclauses) from components."""
