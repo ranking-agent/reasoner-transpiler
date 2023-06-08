@@ -2,6 +2,7 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
+from reasoner_transpiler.exceptions import InvalidPredicateError
 from .fixtures import fixture_database
 
 
@@ -40,6 +41,27 @@ def test_any(database):
             "e10a": {
                 "subject": "n1",
                 "object": "n0",
+            },
+        },
+    }
+    output = database.run(get_query(qgraph))
+    for record in output:
+        assert len(record["results"]) == 4
+
+def test_root_predicate(database):
+    """Test root/related_to predicate."""
+    qgraph = {
+        "nodes": {
+            "n0": {},
+            "n1": {
+                "ids": "NCBIGene:836"
+            },
+        },
+        "edges": {
+            "e10a": {
+                "subject": "n1",
+                "object": "n0",
+                "predicates": "biolink:related_to"
             },
         },
     }

@@ -166,8 +166,9 @@ class EdgeReference():
         self.predicates: List[str] = ensure_list(
             edge.pop("predicates", []) or []
         )
-        # "related_to" is equivalent to no predicate
-        if self.predicates == ["biolink:related_to"]:
+
+        # "related_to" has every predicate as a descendent, it's inclusion is equivalent to no/any predicate
+        if 'biolink:related_to' in self.predicates:
             self.predicates = []
 
         self.filters = []
