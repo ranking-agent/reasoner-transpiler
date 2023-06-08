@@ -390,6 +390,15 @@ def match_query(qgraph, subclass=True, **kwargs):
     for qnode_id, qnode in qgraph["nodes"].items():
         if qnode.get("ids", None) is not None and qnode.get("categories",None) is None:
             qnode["categories"] = ["biolink:NamedThing"]
+
+    # find all of the qnode ids that have subclass or superclass edges connected to them
+    qnode_ids_with_hierarchy_edges = set()
+    for qedge_id, qedge in qgraph["edges"].items():
+        predicates = qedge.get("predicates", None)
+        if predicates and ("biolink:subclass_of" in predicates or "biolink:superclass_of" in predicates):
+            qnode_ids_with_hierarchy_edges.add(qedge['subject'])
+            qnode_ids_with_hierarchy_edges.add(qedge['object'])
+
     if subclass:
         superclasses = {
             qnode_id + "_superclass": {
@@ -398,7 +407,7 @@ def match_query(qgraph, subclass=True, **kwargs):
                 "_return": False,
             }
             for qnode_id, qnode in qgraph["nodes"].items()
-            if qnode.get("ids", None) is not None
+            if qnode.get("ids", None) is not None and qnode_id not in qnode_ids_with_hierarchy_edges
         }
         subclass_edges = {
             qnode_id[:-11] + "_subclass_edge": {
