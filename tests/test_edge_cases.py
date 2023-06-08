@@ -13,7 +13,7 @@ def test_categories(database):
         "edges": dict(),
     }
     output = list(database.run(get_query(qgraph)))[0]
-    assert len(output['results']) == 8
+    assert len(output['results']) == 10
 
 
 def test_empty(database):
@@ -35,7 +35,7 @@ def test_category_none(database):
     qgraph = {
         "nodes": {
             "n0": {
-                "ids": "MONDO:0005148",
+                "ids": "MONDO:0014488",
                 "categories": None,
             }
         },
