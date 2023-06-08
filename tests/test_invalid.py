@@ -2,7 +2,7 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-
+from reasoner_transpiler.exceptions import InvalidPredicateError
 from .fixtures import fixture_database
 
 
@@ -94,5 +94,26 @@ def test_invalid_predicate():
             },
         },
     }
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidPredicateError):
+        query = get_query(qgraph)
+
+    """Test that an invalid edge predicate throws an error, along with a valid predicate."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"],
+            },
+            "n1": {
+                "categories": ["biolink:PhenotypicFeature"],
+            },
+        },
+        "edges": {
+            "e0": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": ["biolink:invalid_predicate", "biolink:associated_with"],
+            },
+        },
+    }
+    with pytest.raises(InvalidPredicateError):
         query = get_query(qgraph)

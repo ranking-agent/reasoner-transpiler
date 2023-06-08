@@ -3,6 +3,7 @@ from typing import Dict, List
 
 from bmt import Toolkit
 
+from .exceptions import InvalidPredicateError
 from .nesting import Query
 from .util import ensure_list, snake_case, space_case, pascal_case
 
@@ -181,19 +182,24 @@ class EdgeReference():
         self.cypher_invert = False # If true, then the cypher source node will be subject, if false then object
         for predicate in self.predicates:
             el = bmt.get_element(space_case(predicate[8:]))
-            if el is None:
-                self.symmetric = False #TODO: Is this right?  If there's no predicate isn't it symmetric?
-                inverse = None
+            if el:
+                inverse_predicate = el.inverse
+                if inverse_predicate is not None:
+                    self.inverse_predicates.append(f"biolink:{snake_case(inverse_predicate)}")
+
+                # if symmetric add to inverse list so we query in both directions
+                if el.symmetric:
+                    self.inverse_predicates.append(predicate)
+                else:
+                    self.symmetric = False
             else:
-                inverse = el.inverse
-                self.symmetric = el.symmetric and self.symmetric
-            # relationship is directed if any provided predicate is asymmetrical
-            if not self.symmetric:
-                self.directed = True
-            if inverse is not None:
-                self.inverse_predicates.append(f"biolink:{snake_case(inverse)}")
-            elif self.symmetric:
-                self.inverse_predicates.append(predicate)
+                error_message = f"Invalid predicate error: (predicate: {predicate}) is not " \
+                                f"a valid biolink model predicate."
+                raise InvalidPredicateError(error_message=error_message)
+
+        # relationship is directed if any provided predicate is asymmetrical
+        if not self.symmetric:
+            self.directed = True
 
         # get all descendant predicates
         self.predicates = [
@@ -210,7 +216,6 @@ class EdgeReference():
             for p in bmt.get_descendants(space_case(predicate[8:]))
             if bmt.get_element(p).annotations.get('canonical_predicate', False)
         ]
-
 
         unique_preds = list(set(self.predicates + self.inverse_predicates))
         #Having the predicates sorted doesn't matter to neo4j, but it helps in testing b/c we get a consistent string.
