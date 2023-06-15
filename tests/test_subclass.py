@@ -216,7 +216,10 @@ def test_hierarchy_inference_on_superclass_queries(database):
     assert "MONDO:0000001" in node_binding_ids
     assert "MONDO:0005148" in node_binding_ids
     assert "MONDO:0015967" in node_binding_ids
-    assert "MONDO:0014488" not in node_binding_ids
+    # note that for graphs where redundant subclass edges are added results would show MONDO:0000001 as a superclass
+    # of MONDO:0014488, but because that explicit edge is not included in the test data MONDO:0014488 is excluded from
+    # the results, as it's a subclass of a subclass of MONDO:0000001
+    assert "MONDO:0014488" not in node_binding_ids  
 
 def test_hierarchy_inference_on_subclass_queries(database):
     qgraph = {
