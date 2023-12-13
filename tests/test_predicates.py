@@ -19,7 +19,7 @@ def test_symmetric(database):
             "e10a": {
                 "subject": "n1",
                 "object": "n0",
-                "predicates": "biolink:genetic_association",
+                "predicates": "biolink:genetically_associated_with",
             },
         },
     }
@@ -83,7 +83,7 @@ def test_sub(database):
             "e10": {
                 "subject": "n0",
                 "object": "n1",
-                "predicates": "biolink:genetic_association",
+                "predicates": "biolink:genetically_associated_with",
             },
         },
     }

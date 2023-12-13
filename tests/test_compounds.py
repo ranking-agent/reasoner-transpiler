@@ -20,7 +20,7 @@ def test_multiedge_or_complicated(database):
                 "e10a": {
                     "subject": "n0",
                     "object": "n1a",
-                    "predicates": "biolink:genetic_association",
+                    "predicates": "biolink:genetically_associated_with",
                 },
             },
         },
@@ -38,7 +38,7 @@ def test_multiedge_or_complicated(database):
                 "e10b": {
                     "subject": "n0",
                     "object": "n1b",
-                    "predicates": "biolink:genetic_association",
+                    "predicates": "biolink:genetically_associated_with",
                 },
                 "e20b": {
                     "subject": "n0",
@@ -87,7 +87,7 @@ def test_complex_and(database):
                     "e10a": {
                         "subject": "n0",
                         "object": "n1a",
-                        "predicates": "biolink:genetic_association",
+                        "predicates": "biolink:genetically_associated_with",
                     },
                 },
             },
@@ -102,7 +102,7 @@ def test_complex_and(database):
                     "e10b": {
                         "subject": "n0",
                         "object": "n1b",
-                        "predicates": "biolink:genetic_association",
+                        "predicates": "biolink:genetically_associated_with",
                     },
                 },
             },
@@ -169,7 +169,7 @@ def test_multiedge_or(database):
                     "e10a": {
                         "subject": "n0",
                         "object": "n1a",
-                        "predicates": "biolink:genetic_association",
+                        "predicates": "biolink:genetically_associated_with",
                     },
                 },
             },
@@ -187,7 +187,7 @@ def test_multiedge_or(database):
                     "e10b": {
                         "subject": "n0",
                         "object": "n1b",
-                        "predicates": "biolink:genetic_association",
+                        "predicates": "biolink:genetically_associated_with",
                     },
                     "e20b": {
                         "subject": "n0",
@@ -236,7 +236,7 @@ def test_or(database):
                     "e10a": {
                         "subject": "n0",
                         "object": "n1a",
-                        "predicates": "biolink:genetic_association",
+                        "predicates": "biolink:genetically_associated_with",
                     },
                 },
             },
@@ -250,7 +250,7 @@ def test_or(database):
                     "e10b": {
                         "subject": "n0",
                         "object": "n1b",
-                        "predicates": "biolink:genetic_association",
+                        "predicates": "biolink:genetically_associated_with",
                     },
                 },
             },
@@ -446,7 +446,7 @@ def test_not_or(database):
                         "e30": {
                             "subject": "n0",
                             "object": "n3",
-                            "predicates": "biolink:genetic_association",
+                            "predicates": "biolink:genetically_associated_with",
                         },
                     },
                 },
