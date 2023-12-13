@@ -187,6 +187,8 @@ class EdgeReference():
                 inverse_predicate = el.inverse
                 if inverse_predicate is not None:
                     self.inverse_predicates.append(f"biolink:{snake_case(inverse_predicate)}")
+                elif predicate == 'biolink:superclass_of':
+                    self.inverse_predicates.append(f"biolink:subclass_of")
 
                 # if symmetric add to inverse list so we query in both directions
                 if el.symmetric:
@@ -207,7 +209,7 @@ class EdgeReference():
             f"biolink:{snake_case(p)}"
             for predicate in self.predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
-            if bmt.get_element(p).annotations.get('canonical_predicate',False)
+            if bmt.get_element(p) and bmt.get_element(p).annotations.get('canonical_predicate', False)
         ]
         if not invert:
             self.inverse_predicates = []
@@ -215,7 +217,7 @@ class EdgeReference():
             f"biolink:{snake_case(p)}"
             for predicate in self.inverse_predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
-            if bmt.get_element(p).annotations.get('canonical_predicate', False)
+            if bmt.get_element(p) and bmt.get_element(p).annotations.get('canonical_predicate', False)
         ]
 
         unique_preds = list(set(self.predicates + self.inverse_predicates))
