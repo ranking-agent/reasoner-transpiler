@@ -187,6 +187,9 @@ class EdgeReference():
                 inverse_predicate = el.inverse
                 if inverse_predicate is not None:
                     self.inverse_predicates.append(f"biolink:{snake_case(inverse_predicate)}")
+                # TODO remove the following elif -
+                # this is only here because this version of the biolink model doesn't have subclass as the inverse of
+                # superclass, but that will be fixed in future versions
                 elif predicate == 'biolink:superclass_of':
                     self.inverse_predicates.append(f"biolink:subclass_of")
 
@@ -204,7 +207,10 @@ class EdgeReference():
         if not self.symmetric:
             self.directed = True
 
-        # get all descendant predicates
+        # get all the descendants of the predicates and add them to the query as well
+        # NOTE - the "if bmt.get_element(p)" check is here because some predicates in the biolink model
+        # were failing to return an element even when they exist (because they had underscores in them)
+        # this should be fixed in future versions, we could remove it, but it's safer to leave
         self.predicates = [
             f"biolink:{snake_case(p)}"
             for predicate in self.predicates
