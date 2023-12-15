@@ -83,7 +83,7 @@ def assemble_results(qnodes, qedges, **kwargs):
             "END)"
         ).format(
             qnode_id,
-            f", qnode_id: `{qnode_id}_superclass`.id" if f"{qnode_id}_superclass" in qnodes else "",
+            f", query_id: `{qnode_id}_superclass`.id" if f"{qnode_id}_superclass" in qnodes else "",
         )
         for qnode_id, qnode in qnodes.items()
         if qnode.get("_return", True)
