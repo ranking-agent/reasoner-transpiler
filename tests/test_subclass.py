@@ -129,7 +129,6 @@ def test_same_pinned_subclass(database):
     }
     query = get_query(qgraph)
     output = list(database.run(query))[0]
-    print(output['results'])
     assert len(output['results']) == 4
 
 

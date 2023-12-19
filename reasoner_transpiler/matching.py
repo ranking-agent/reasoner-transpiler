@@ -213,7 +213,6 @@ class EdgeReference():
         # this should be fixed in future versions, we could remove it, but it's safer to leave
         predicates = []
         for predicate in self.predicates:
-            print(bmt.get_descendants(space_case(predicate[8:])))
             for predicate_descendant in bmt.get_descendants(space_case(predicate[8:])):
                 element = bmt.get_element(predicate_descendant)
                 if element and (element.annotations.get('canonical_predicate', False) or

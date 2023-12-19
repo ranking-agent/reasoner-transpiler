@@ -176,6 +176,6 @@ def test_empty_qualifier_set():
         },
     }
     query = get_query(qgraph)
-    print(query)
-    #for record in output:
+    # print(query)
+    # for record in output:
     #    assert len(record["results"]) == 0
