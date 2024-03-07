@@ -24,7 +24,7 @@ def test_directed_canonical():
     edge= {"subject": "s", "object": "o", "predicates": "biolink:affects"}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
-    assert len(preds) == 11
+    assert len(preds) == 10
     assert ref.directed
     assert len(ref.filters) == 0
     assert not ref.cypher_invert
@@ -32,12 +32,12 @@ def test_directed_canonical():
 def test_noncanonical():
     """If we send in a non-canonical (and by definition directed) query, we expect that we'll have a directed
     query with the reversed edge, the canonical predicate (and sub-predicates), no where clause."""
-    edge= {"subject": "s", "object": "o", "predicates": "biolink:is_ameliorated_by"}
+    edge= {"subject": "s", "object": "o", "predicates": "biolink:affected_by"}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
-    assert len(preds) == 2
-    assert "`biolink:treats`" in preds
-    assert "`biolink:ameliorates`" in preds
+    assert len(preds) == 10
+    assert "`biolink:has_adverse_event`" in preds
+    assert "`biolink:has_side_effect`" in preds
     assert ref.directed
     assert len(ref.filters) == 0
     #assert that the edge was reversed
@@ -45,21 +45,25 @@ def test_noncanonical():
 
 def test_multiple_canonical():
     """Make sure that the canonical logic is applied when there are multiple (canonical) predicates"""
-    edge= {"subject": "s", "object": "o", "predicates": ["biolink:ameliorates","biolink:affects_risk_for"]}
+    edge= {"subject": "s", "object": "o", "predicates": ["biolink:ameliorates_condition", "biolink:affects"]}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
-    assert len(preds) == 5 # ameliorates, treats, affects_risk for, predisposes, prevents
+    #  affects, affects_response_to, ameliorates_condition, decreases_response_to, disrupts, exacerbates_condition,
+    #  has_adverse_event, has_side_effect, increases_response_to, regulates
+    assert len(preds) == 10
     assert ref.directed
     assert len(ref.filters) == 0
     assert not ref.cypher_invert
 
 def test_multiple_noncanonical():
     """Make sure that the canonical logic is applied when there are multiple (noncanonical) predicates"""
-    edge = {"subject": "s", "object": "o", "predicates": ["biolink:is_ameliorated_by", "biolink:risk_affected_by"]}
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:condition_ameliorated_by",
+                                                          "biolink:likelihood_affected_by"]}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
-    expected_preds = [ f"`biolink:{x}`" for x in ["ameliorates", "treats", "affects_risk_for", "predisposes", "prevents"]]
-    assert set(preds) == set(expected_preds) #order doesn't matter
+    expected_preds = [ f"`biolink:{x}`" for x in ["ameliorates_condition", "predisposes_to_condition",
+                                                  "preventative_for_condition", "affects_likelihood_of"]]
+    assert set(preds) == set(expected_preds)  # order doesn't matter
     assert ref.directed
     assert len(ref.filters) == 0
     assert ref.cypher_invert
@@ -84,20 +88,24 @@ def parse_filter(filter):
     return parsed_filter
 
 def test_multiple_conflicting():
-    """Suppose that there are two predicates, one canonical, one not.  e.g. ameliorates(canonical) and risk_affected_by
-    (non canonical).   In this case, we expect a non-directed cypher edge with all canonical predicates, and
-    a where clause separating out the ones going left to right from the ones going right to left."""
-    edge = {"subject": "s", "object": "o", "predicates": ["biolink:ameliorates", "biolink:risk_affected_by"]}
+    """Suppose that there are two predicates, one canonical, one not.  e.g. ameliorates_condition(canonical) and
+    condition_predisposed_by(non canonical).   In this case, we expect a non-directed cypher edge with all canonical
+    predicates, and a where clause separating out the ones going left to right from the ones going right to left."""
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:ameliorates_condition",
+                                                          "biolink:likelihood_affected_by"]}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
     #Make sure that the label contains only canonical predicates
-    expected_preds = [ f"`biolink:{x}`" for x in ["ameliorates", "treats", "affects_risk_for", "predisposes", "prevents"]]
+    expected_preds = [ f"`biolink:{x}`" for x in ["ameliorates_condition", "predisposes_to_condition",
+                                                  "preventative_for_condition", "affects_likelihood_of"]]
     assert set(preds) == set(expected_preds) #order doesn't matter
     assert not ref.directed
     #filters should look like:
     #['(type(`e0`) in ["biolink:treats", "biolink:ameliorates"] AND startNode(`e0`) = `s`) OR (type(`e0`) in ["biolink:predisposes", "biolink:prevents", "biolink:affects_risk_for"] AND startNode(`e0`) = `o`)']
-    expected_filter = { "s": set(["biolink:treats", "biolink:ameliorates"]),
-                        "o": set(["biolink:affects_risk_for", "biolink:predisposes", "biolink:prevents"])}
+    expected_filter = {"s": set(["biolink:ameliorates_condition"]),
+                       "o": set(["biolink:predisposes_to_condition",
+                                 "biolink:preventative_for_condition",
+                                 "biolink:affects_likelihood_of"])}
     assert len(ref.filters) == 1
     parsed_filter = parse_filter(ref.filters[0])
     assert parsed_filter == expected_filter
@@ -107,18 +115,18 @@ def test_symmetric_canonical():
     """Two predicates.  One symmetric, one canonical/directed.   We would expect a non-directed, non-inverted cypher
     And a where clause.   the canonical should be in one of the subclauses, and all subclasses of the symmetric
     (including any canonical/directed subclasses) should be in both."""
-    edge = {"subject": "s", "object": "o", "predicates": ["biolink:correlated_with", "biolink:ameliorates"]}
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:correlated_with", "biolink:affects_likelihood_of"]}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
     # Make sure that the label contains only canonical predicates
     correlated_sub_preds = ["correlated_with", "biomarker_for", "coexpressed_with", "negatively_correlated_with",
                             "positively_correlated_with", "occurs_together_in_literature_with"]
-    ameliorates_sub_preds = ["ameliorates", "treats"]
-    expected_preds = [f"`biolink:{x}`" for x in correlated_sub_preds + ameliorates_sub_preds ]
+    likelihood_of_sub_preds = ["predisposes_to_condition", "preventative_for_condition", "affects_likelihood_of"]
+    expected_preds = [f"`biolink:{x}`" for x in correlated_sub_preds + likelihood_of_sub_preds]
     assert set(preds) == set(expected_preds)  # order doesn't matter
     assert not ref.directed
-    expected_filter = {"s": set([f"biolink:{x}" for x in correlated_sub_preds + ameliorates_sub_preds]),
-                       "o": set([f"biolink:{x}" for x in correlated_sub_preds ])}
+    expected_filter = {"s": set([f"biolink:{x}" for x in correlated_sub_preds + likelihood_of_sub_preds]),
+                       "o": set([f"biolink:{x}" for x in correlated_sub_preds])}
     assert len(ref.filters) == 1
     parsed_filter = parse_filter(ref.filters[0])
     assert parsed_filter == expected_filter
@@ -129,18 +137,18 @@ def test_symmetric_noncanonical():
     And a where clause.   the canonical should be in one of the subclauses, and all subclasses of the symmetric
     (including any canonical/directed subclasses) should be in both. Note that the ameliorates subpredicates
     have the object as the starting node in this case, unlike the canonical case above"""
-    edge = {"subject": "s", "object": "o", "predicates": ["biolink:correlated_with", "biolink:is_ameliorated_by"]}
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:correlated_with", "biolink:likelihood_affected_by"]}
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
     # Make sure that the label contains only canonical predicates
     correlated_sub_preds = ["correlated_with", "biomarker_for", "coexpressed_with", "negatively_correlated_with",
                             "positively_correlated_with", "occurs_together_in_literature_with"]
-    ameliorates_sub_preds = ["ameliorates", "treats"]
-    expected_preds = [f"`biolink:{x}`" for x in correlated_sub_preds + ameliorates_sub_preds ]
+    ameliorates_sub_preds = ["predisposes_to_condition", "preventative_for_condition", "affects_likelihood_of"]
+    expected_preds = [f"`biolink:{x}`" for x in correlated_sub_preds + ameliorates_sub_preds]
     assert set(preds) == set(expected_preds)  # order doesn't matter
     assert not ref.directed
     expected_filter = {"o": set([f"biolink:{x}" for x in correlated_sub_preds + ameliorates_sub_preds]),
-                       "s": set([f"biolink:{x}" for x in correlated_sub_preds ])}
+                       "s": set([f"biolink:{x}" for x in correlated_sub_preds])}
     assert len(ref.filters) == 1
     parsed_filter = parse_filter(ref.filters[0])
     assert parsed_filter == expected_filter

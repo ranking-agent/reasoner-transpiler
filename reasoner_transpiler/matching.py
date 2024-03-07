@@ -3,12 +3,12 @@ from typing import Dict, List
 
 from bmt import Toolkit
 
-from .exceptions import InvalidPredicateError
+from .exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError
 from .nesting import Query
 from .util import ensure_list, snake_case, space_case, pascal_case
 
 bmt = Toolkit()
-
+ALL_BIOLINK_ENUMS = bmt.view.all_enums().keys()
 
 def cypher_prop_string(value):
     """Convert property value to cypher string representation."""
@@ -291,15 +291,30 @@ class EdgeReference():
                 # also handle "qualifier_set": [{ }]
                 if not constraint_filter:
                     continue
-                all_enums = bmt.get_all_enums()
-                qualifiers_values = []
-                for enum in all_enums:
-                    to_append = bmt.get_enum_value_descendants(enum, constraint_filter['qualifier_value'])
-                    if to_append:
-                        qualifiers_values += to_append
+
+                qualifier_type = constraint_filter['qualifier_type_id']
+                queried_qualifier_value = constraint_filter['qualifier_value']
+
+                if not bmt.is_qualifier(qualifier_type):
+                    raise InvalidQualifierError(f'Invalid qualifier in query: {qualifier_type}')
+
+                # we should do something like this but it does not work without knowing the association type of the edge
+                # if not bmt.validate_qualifier(qualifier_type_id=qualifier_type, qualifier_value=queried_qualifier_value):
+                #    raise InvalidQualifierError(f'Invalid qualifier requested, {qualifier_type}:{queried_qualifier_value}')
+
+                qualifier_value_plus_descendants = [queried_qualifier_value]
+                if qualifier_type != 'qualified_predicate': # qualified_predicate doesn't have an enum as values so the following does not apply
+                    permissible_value = False
+                    for enum_for_qualifier_values in ALL_BIOLINK_ENUMS:
+                        if bmt.is_permissible_value_of_enum(enum_name=enum_for_qualifier_values, value=queried_qualifier_value):
+                            permissible_value = True
+                            qualifier_value_plus_descendants += bmt.get_permissible_value_descendants(permissible_value=queried_qualifier_value,
+                                                                                                      enum_name=enum_for_qualifier_values)
+                    if not permissible_value:
+                        raise InvalidQualifierValueError(f'Invalid value for qualifier {qualifier_type} in query: {queried_qualifier_value}')
+
                 # Join qualifier value hierarchy with an or
-                qualifier_where_condition =  " ( "+ " OR ".join([f"`{edge_id}`.{constraint_filter['qualifier_type_id']} = {cypher_prop_string(qualifier_value)}"
-                                                 for qualifier_value in set(qualifiers_values)]) + " ) "
+                qualifier_where_condition = " ( " + " OR ".join([f"`{edge_id}`.{qualifier_type} = {cypher_prop_string(qualifier_value)}" for qualifier_value in set(qualifier_value_plus_descendants)]) + " ) "
                 ands.append(qualifier_where_condition)
             # if qualifier set is empty ; loop to the next
             if not len(ands):

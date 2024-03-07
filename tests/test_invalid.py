@@ -2,7 +2,7 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from reasoner_transpiler.exceptions import InvalidPredicateError
+from reasoner_transpiler.exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError
 from .fixtures import fixture_database
 
 
@@ -116,4 +116,65 @@ def test_invalid_predicate():
         },
     }
     with pytest.raises(InvalidPredicateError):
+        query = get_query(qgraph)
+
+def test_invalid_qualifier():
+    """Test that an invalid edge qualifier throws an error."""
+    qgraph = {
+        "nodes": {
+            "n0": {},
+            "n1": {
+                "ids": "NCBIGene:283871"
+            },
+        },
+        "edges": {
+            "e0": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": ["biolink:affects"],
+                "qualifier_constraints": [
+                    {
+                        "qualifier_set": [
+                            {
+                                "qualifier_type_id": "bogus_qualifier_1",
+                                "qualifier_value": "abundance"
+                            },
+                        ]
+                    },
+                ]
+            },
+        },
+    }
+    with pytest.raises(InvalidQualifierError):
+        query = get_query(qgraph)
+
+
+def test_invalid_qualifier_value():
+    """Test that an invalid edge qualifier value throws an error."""
+    qgraph = {
+        "nodes": {
+            "n0": {},
+            "n1": {
+                "ids": "NCBIGene:283871"
+            },
+        },
+        "edges": {
+            "e0": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": ["biolink:affects"],
+                "qualifier_constraints": [
+                    {
+                        "qualifier_set": [
+                            {
+                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_value": "bogus_value"
+                            },
+                        ]
+                    },
+                ]
+            },
+        },
+    }
+    with pytest.raises(InvalidQualifierValueError):
         query = get_query(qgraph)

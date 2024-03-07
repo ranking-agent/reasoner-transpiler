@@ -25,7 +25,7 @@ def test_single_qualifier(database):
                                 "qualifier_type_id": "qualified_predicate",
                                 "qualifier_value": "biolink:causes"
                             }, {
-                                "qualifier_type_id": "object_aspect",
+                                "qualifier_type_id": "object_aspect_qualifier",
                                 "qualifier_value": "activity"
                             }
                         ]
@@ -60,7 +60,7 @@ def test_multi_qualifier(database):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "object_aspect",
+                                "qualifier_type_id": "object_aspect_qualifier",
                                 "qualifier_value": "activity"
                             },
                         ]
@@ -84,8 +84,7 @@ def test_multi_qualifier(database):
         assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 2
 
 
-# skipping this test for now will need to make them once qualifier heirarchy is supported
-def test_qualifier_heirarchy(database):
+def test_qualifier_hierarchy(database):
     """Test if edges satifying all constraints are returned"""
     qgraph = {
         "nodes": {
@@ -103,7 +102,7 @@ def test_qualifier_heirarchy(database):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "object_aspect",
+                                "qualifier_type_id": "object_aspect_qualifier",
                                 "qualifier_value": "activity_or_abundance"
                             },
                         ]
@@ -120,8 +119,8 @@ def test_qualifier_heirarchy(database):
         assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
 
 
-def test_phony_qualifier_value(database):
-    """Test if edges satifying all constraints are returned"""
+def test_incorrect_qualifier_value(database):
+    """Test if an incorrect qualifier returns no result"""
     qgraph = {
         "nodes": {
             "n0": {},
@@ -138,8 +137,8 @@ def test_phony_qualifier_value(database):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "object_aspect",
-                                "qualifier_value": "some_non_existent"
+                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_value": "abundance"
                             },
                         ]
                     },
