@@ -34,3 +34,9 @@ qgraph = {
 
 cypher = get_query(qgraph)
 ```
+
+## Biolink Model
+This package uses the Biolink Model Toolkit to access the Biolink Model. Optionally, choose a specific version of the Biolink Model with the environment variable BL_VERSION. Otherwise, the latest version used by the Biolink Model Toolkit will be used.
+```commandline
+export BL_VERSION=4.1.6
+```
