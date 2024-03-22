@@ -22,8 +22,8 @@ RESERVED_EDGE_PROPS = [
 ]
 
 EDGE_SOURCE_PROPS = [
-    "biolink:aggregator_knowledge_source",
-    "biolink:primary_knowledge_source"
+    "aggregator_knowledge_source",
+    "primary_knowledge_source"
 ]
 
 def nest_op(operator, *args):
