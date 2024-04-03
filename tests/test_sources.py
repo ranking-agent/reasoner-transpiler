@@ -63,14 +63,20 @@ def test_primary_source(database):
     }
     assert edge_sources["metformin_treats_t2d"] == {
         "aggregator_knowledge_source": ["ctd"],
-        "primary_knowledge_source": "infores:test"
+        "primary_knowledge_source": "infores:test",
+        "biolink:aggregator_knowledge_source": None,
+        "biolink:primary_knowledge_source": None
     }
     # if the attributes are not set return none. Further filtering would need to be applied.
     assert edge_sources["bezafibrate_treats_t2d"] == {
         "aggregator_knowledge_source": None,
-        "primary_knowledge_source": None
+        "primary_knowledge_source": None,
+        "biolink:aggregator_knowledge_source": None,
+        "biolink:primary_knowledge_source": None
     }
     assert edge_sources["anagliptin_treats_t2d"] == {
         "aggregator_knowledge_source": None,
-        "primary_knowledge_source": None
+        "primary_knowledge_source": None,
+        "biolink:aggregator_knowledge_source": None,
+        "biolink:primary_knowledge_source": None
     }

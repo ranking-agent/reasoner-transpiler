@@ -21,9 +21,13 @@ RESERVED_EDGE_PROPS = [
     "predicate",
 ]
 
+# this should really be one representation or the other, or be configurable,
+# but we have graphs with each now so temporarily (I hope, hope, hope) looking for both
 EDGE_SOURCE_PROPS = [
     "aggregator_knowledge_source",
-    "primary_knowledge_source"
+    "primary_knowledge_source",
+    "biolink:aggregator_knowledge_source",
+    "biolink:primary_knowledge_source"
 ]
 
 def nest_op(operator, *args):
