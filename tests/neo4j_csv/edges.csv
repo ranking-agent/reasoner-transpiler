@@ -1,5 +1,6 @@
 id,subject,predicate,object,props
 t2d_isa_disease,MONDO:0005148,biolink:subclass_of,MONDO:0000001,"{}"
+disease_superclass_edge,MONDO:0000001,biolink:subclass_of,MONDO:0000000,"{}"
 t2dsubtype_is_a_t2d,MONDO:0014488,biolink:subclass_of,MONDO:0005148,"{}"
 monogenic_diabetes_is_a_diabetes,MONDO:0015967,biolink:subclass_of,MONDO:0000001,"{}"
 albuminaria_isa_phenotype,HP:0012592,biolink:subclass_of,HP:0000118,"{}"

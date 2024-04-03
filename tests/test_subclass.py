@@ -43,7 +43,7 @@ def test_onehop_subclass(database):
     }
     query = get_query(qgraph)
     output = list(database.run(query))[0]
-    assert len(output['results']) == 12
+    assert len(output['results']) == 13
 
 def test_onehop_subclass_categories():
     """Test one-hop subclass query."""
@@ -87,7 +87,7 @@ def test_backward_subclass(database):
     }
     query = get_query(qgraph)
     output = list(database.run(query))[0]
-    assert len(output['results']) == 12
+    assert len(output['results']) == 13
 
 
 def test_pinned_subclass(database):
@@ -189,7 +189,7 @@ def test_batch_subclass(database):
     }
     query = get_query(qgraph)
     output = list(database.run(query))[0]
-    assert len(output['results']) == 15
+    assert len(output['results']) == 16
     for result in output["results"]:
         for binding in result["node_bindings"]["n0"]:
             assert "query_id" in binding
@@ -240,3 +240,24 @@ def test_hierarchy_inference_on_subclass_queries(database):
     assert "MONDO:0000001" in node_binding_ids
     assert "MONDO:0005148" in node_binding_ids
     assert "MONDO:0014488" not in node_binding_ids
+
+def test_subclass_depth(database):
+    """Test one-hop subclass query."""
+    qgraph = {
+        "nodes": {"n0": {"ids": ["CHEBI:136043"]},
+                  "n1": {"ids": ["MONDO:0000000"]}},
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": ['biolink:treats']
+            },
+        }
+    }
+    query = get_query(qgraph)
+    output = list(database.run(query))[0]
+    assert len(output['results']) == 0
+
+    query = get_query(qgraph, subclass_depth=2)
+    output = list(database.run(query))[0]
+    assert len(output['results']) == 1

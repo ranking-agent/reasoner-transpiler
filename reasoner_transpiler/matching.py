@@ -443,12 +443,13 @@ def match_query(qgraph, subclass=True, **kwargs):
             for qnode_id, qnode in qgraph["nodes"].items()
             if qnode.get("ids", None) is not None and qnode_id not in qnode_ids_with_hierarchy_edges
         }
+        subclass_depth = kwargs['subclass_depth'] if 'subclass_depth' in kwargs else 1
         subclass_edges = {
             qnode_id[:-11] + "_subclass_edge": {
                 "subject": qnode_id[:-11],
                 "object": qnode_id,
                 "predicates": ["biolink:subclass_of"],
-                "_length": (0, 1),
+                "_length": (0, subclass_depth),
                 "_invert": False,
                 "_return": False,
             }
