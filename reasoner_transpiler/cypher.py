@@ -71,15 +71,18 @@ def assemble_results(qnodes, qedges, **kwargs):
     """Assemble results into Reasoner format."""
     clauses = []
 
+    # TODO implement multicurie query when set_interpretation is MANY
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
+        # when set_interpretation is ALL
         (
             "`{0}`: [ni IN collect(DISTINCT `{0}`.id) "
             "WHERE ni IS NOT null "
             "| {{id: ni}}]"
         ).format(
             qnode_id,
-        ) if qnode.get("is_set", False) else
+        ) if qnode.get("set_interpretation", "BATCH") == "ALL" else
+        # when set_interpretation is BATCH, MANY  or missing
         (
             "`{0}`: (CASE "
             "WHEN `{0}` IS NOT NULL THEN [{{id: `{0}`.id{1}}}] "

@@ -40,7 +40,7 @@ class NodeReference():
         * categories
         * ids
         * name
-        * is_set
+        * set_interpretation
         Un-reserved properties with other types will be coerced to str.
         """
         max_connectivity = kwargs.get("max_connectivity", -1)
@@ -93,7 +93,7 @@ class NodeReference():
         props.update(
             (key, value)
             for key, value in node.items()
-            if key not in ("name", "is_set", "constraints")
+            if key not in ("name", "set_interpretation", "constraints")
         )
 
         self.prop_string = "{" + ", ".join([
