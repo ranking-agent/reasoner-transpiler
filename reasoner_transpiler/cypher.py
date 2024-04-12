@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import cypher_expression
 from .matching import match_query
+from .exceptions import UnsupportedError
 
 DIR_PATH = Path(__file__).parent
 with open(DIR_PATH / "attribute_types.json", "r") as stream:
@@ -72,6 +73,10 @@ def assemble_results(qnodes, qedges, **kwargs):
     clauses = []
 
     # TODO implement multicurie query when set_interpretation is MANY
+    for qnode in qnodes.values():
+        if qnode.get("set_interpretation", "BATCH") == "MANY":
+            raise UnsupportedError(f'This feature is currently not supported: set_interpretation=MANY')
+
     # assemble result (bindings) and associated (result) kgraph
     node_bindings = [
         # when set_interpretation is ALL
