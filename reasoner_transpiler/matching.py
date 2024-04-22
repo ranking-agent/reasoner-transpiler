@@ -16,6 +16,7 @@ PREDICATE_MAP_URL = f"https://raw.githubusercontent.com/biolink/biolink-model/v{
 bmt = Toolkit(schema=BIOLINK_MODEL_SCHEMA_URL, predicate_map=PREDICATE_MAP_URL)
 ALL_BIOLINK_ENUMS = bmt.view.all_enums().keys()
 
+
 def cypher_prop_string(value):
     """Convert property value to cypher string representation."""
     if isinstance(value, bool):
@@ -443,7 +444,16 @@ def match_query(qgraph, subclass=True, **kwargs):
             for qnode_id, qnode in qgraph["nodes"].items()
             if qnode.get("ids", None) is not None and qnode_id not in qnode_ids_with_hierarchy_edges
         }
-        subclass_depth = kwargs['subclass_depth'] if 'subclass_depth' in kwargs else 1
+
+        if 'subclass_depth' in kwargs:
+            if not isinstance(kwargs['subclass_depth'], int):
+                raise TypeError(f"Unsupported subclass_depth type: {type(kwargs['subclass_depth']).__name__}.")
+            elif kwargs['subclass_depth'] < 0:
+                raise ValueError(f"Parameter subclass_depth must be a positive integer.")
+            else:
+                subclass_depth = kwargs['subclass_depth']
+        else:
+            subclass_depth = 1
         subclass_edges = {
             qnode_id[:-11] + "_subclass_edge": {
                 "subject": qnode_id[:-11],

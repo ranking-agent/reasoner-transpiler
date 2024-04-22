@@ -1,5 +1,6 @@
 """Test entity subclassing."""
 import copy
+import pytest
 from reasoner_transpiler.cypher import get_query
 from .fixtures import fixture_database
 
@@ -241,6 +242,7 @@ def test_hierarchy_inference_on_subclass_queries(database):
     assert "MONDO:0005148" in node_binding_ids
     assert "MONDO:0014488" not in node_binding_ids
 
+
 def test_subclass_depth(database):
     """Test one-hop subclass query."""
     qgraph = {
@@ -261,3 +263,21 @@ def test_subclass_depth(database):
     query = get_query(qgraph, subclass_depth=2)
     output = list(database.run(query))[0]
     assert len(output['results']) == 1
+
+
+def test_invalid_subclass_depth(database):
+    qgraph = {
+        "nodes": {"n0": {"ids": ["CHEBI:136043"]},
+                  "n1": {"ids": ["MONDO:0000000"]}},
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+                "predicates": ['biolink:treats']
+            },
+        }
+    }
+    with pytest.raises(TypeError):
+        query = get_query(qgraph, subclass_depth="bad_value_type")
+    with pytest.raises(ValueError):
+        query = get_query(qgraph, subclass_depth=-1)
