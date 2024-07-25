@@ -2,11 +2,10 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from reasoner_transpiler.exceptions import InvalidPredicateError
-from .fixtures import fixture_database
+from .fixtures import fixture_neo4j_driver
 
 
-def test_symmetric(database):
+def test_symmetric(neo4j_driver):
     """Test symmetric predicate."""
     qgraph = {
         "nodes": {
@@ -23,12 +22,11 @@ def test_symmetric(database):
             },
         },
     }
-    output = database.run(get_query(qgraph))
-    for record in output:
-        assert len(record["results"]) == 2
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 2
 
 
-def test_any(database):
+def test_any(neo4j_driver):
     """Test any predicate."""
     qgraph = {
         "nodes": {
@@ -44,11 +42,11 @@ def test_any(database):
             },
         },
     }
-    output = database.run(get_query(qgraph))
-    for record in output:
-        assert len(record["results"]) == 4
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 4
 
-def test_root_predicate(database):
+
+def test_root_predicate(neo4j_driver):
     """Test root/related_to predicate."""
     qgraph = {
         "nodes": {
@@ -65,12 +63,11 @@ def test_root_predicate(database):
             },
         },
     }
-    output = database.run(get_query(qgraph))
-    for record in output:
-        assert len(record["results"]) == 4
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 4
 
 
-def test_sub(database):
+def test_sub(neo4j_driver):
     """Test sub predicate."""
     qgraph = {
         "nodes": {
@@ -87,12 +84,11 @@ def test_sub(database):
             },
         },
     }
-    output = database.run(get_query(qgraph))
-    for record in output:
-        assert len(record["results"]) == 2
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 2
 
 
-def test_inverse(database):
+def test_inverse(neo4j_driver):
     """Test inverse predicate."""
     qgraph = {
         "nodes": {
@@ -109,6 +105,5 @@ def test_inverse(database):
             },
         },
     }
-    output = database.run(get_query(qgraph))
-    for record in output:
-        assert len(record["results"]) == 1
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 1

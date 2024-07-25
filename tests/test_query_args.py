@@ -1,9 +1,10 @@
 """Test query arguments."""
+import pytest
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_database
+from .fixtures import fixture_neo4j_driver
 
 
-def test_skip_limit(database):
+def test_skip_limit(neo4j_driver):
     """Test SKIP and LIMIT."""
     qgraph = {
         "nodes": {
@@ -24,14 +25,12 @@ def test_skip_limit(database):
         },
     }
     all_results = []
-    output = database.run(get_query(qgraph, limit=2))
-    for record in output:
-        all_results.extend(record["results"])
-        assert len(record["results"]) == 2
-    output = database.run(get_query(qgraph, skip=2, limit=2))
-    for record in output:
-        all_results.extend(record["results"])
-        assert len(record["results"]) == 1
+    output = neo4j_driver.run(get_query(qgraph, limit=2), convert_to_trapi=True, qgraph=qgraph)
+    all_results.extend(output["results"])
+    assert len(output["results"]) == 2
+    output = neo4j_driver.run(get_query(qgraph, skip=2, limit=2), convert_to_trapi=True, qgraph=qgraph)
+    all_results.extend(output["results"])
+    assert len(output["results"]) == 1
     assert {
         "CHEBI:6801", "CHEBI:47612", "CHEBI:136043",
     } == set(
@@ -40,7 +39,7 @@ def test_skip_limit(database):
     )
 
 
-def test_max_connectivity(database):
+def test_max_connectivity(neo4j_driver):
     """Test max_connectivity option."""
     qgraph = {
         "nodes": {
@@ -60,19 +59,18 @@ def test_max_connectivity(database):
             },
         },
     }
-    output = database.run(get_query(
+    output = neo4j_driver.run(get_query(
         qgraph,
         max_connectivity=5,
-    ))
-    for record in output:
-        assert len(record["results"]) == 2
-        results = sorted(
-            record["knowledge_graph"]["nodes"].values(),
-            key=lambda node: node["name"],
-        )
-        expected_nodes = ["carcinoma", "metformin", "obesity disorder"]
-        for ind, node in enumerate(results):
-            assert node["name"] == expected_nodes[ind]
+    ), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 2
+    results = sorted(
+        output["knowledge_graph"]["nodes"].values(),
+        key=lambda node: node["name"],
+    )
+    expected_nodes = ["carcinoma", "metformin", "obesity disorder"]
+    for ind, node in enumerate(results):
+        assert node["name"] == expected_nodes[ind]
 
 
 def test_use_hints():
@@ -100,3 +98,6 @@ def test_use_hints():
     }
     clause = get_query(qgraph, use_hints=True, reasoner=False)
     assert "USING INDEX" in clause
+
+    clause = get_query(qgraph, use_hints=False, reasoner=False)
+    assert "USING INDEX" not in clause

@@ -1,9 +1,10 @@
 """Test transpiler edge cases."""
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_database
+from .fixtures import fixture_neo4j_driver
+import pytest
 
 
-def test_categories(database):
+def test_categories(neo4j_driver):
     """Test multiple categories."""
     qgraph = {
         "nodes": {"n0": {"categories": [
@@ -12,25 +13,23 @@ def test_categories(database):
         ]}},
         "edges": dict(),
     }
-    output = list(database.run(get_query(qgraph)))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 11
 
 
-def test_empty(database):
+def test_empty(neo4j_driver):
     """Test empty qgraph."""
     qgraph = {
         "nodes": dict(),
         "edges": dict(),
     }
-    output = list(database.run(get_query(qgraph)))[0]
-    assert len(output["results"]) == 1
-    assert output["results"][0]["node_bindings"] == dict()
-    assert output["results"][0]["analyses"] == list([{"edge_bindings": {}}])
-    assert output["knowledge_graph"]["nodes"] == []
-    assert output["knowledge_graph"]["edges"] == []
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 0
+    assert output["knowledge_graph"]["nodes"] == {}
+    assert output["knowledge_graph"]["edges"] == {}
 
 
-def test_category_none(database):
+def test_category_none(neo4j_driver):
     """Test node with type None."""
     qgraph = {
         "nodes": {
@@ -41,12 +40,11 @@ def test_category_none(database):
         },
         "edges": dict(),
     }
-    cypher = get_query(qgraph)
-    output = list(database.run(cypher))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
 
 
-def test_relation_none(database):
+def test_relation_none(neo4j_driver):
     """Test edge with relation None."""
     qgraph = {
         "nodes": {
@@ -65,12 +63,11 @@ def test_relation_none(database):
             }
         },
     }
-    cypher = get_query(qgraph)
-    output = list(database.run(cypher))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 5
 
 
-def test_qnode_addl_null(database):
+def test_qnode_addl_null(neo4j_driver):
     """Test qnode with null-valued additional property."""
     qgraph = {
         "nodes": {
@@ -89,12 +86,11 @@ def test_qnode_addl_null(database):
             }
         },
     }
-    cypher = get_query(qgraph)
-    output = list(database.run(cypher))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 5
 
 
-def test_predicate_none(database):
+def test_predicate_none(neo4j_driver):
     """Test edge with predicate None."""
     qgraph = {
         "nodes": {
@@ -113,12 +109,11 @@ def test_predicate_none(database):
             }
         },
     }
-    cypher = get_query(qgraph)
-    output = list(database.run(cypher))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 5
 
 
-def test_fancy_key(database):
+def test_fancy_key(neo4j_driver):
     """Test qnode/qedge keys with unusual characters."""
     qgraph = {
         "nodes": {
@@ -136,17 +131,16 @@ def test_fancy_key(database):
             }
         },
     }
-    cypher = get_query(qgraph)
-    output = list(database.run(cypher))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 5
 
 
-def test_backwards_predicate(database):
+def test_backwards_predicate(neo4j_driver):
     """Test an extra backwards predicate."""
     qgraph = {
         "nodes": {
             "type-2 diabetes": {
-                "id": "MONDO:0005148",
+                "ids": ["MONDO:0005148"],
                 "categories": "biolink:Disease",
             },
             "drug": {
@@ -161,8 +155,8 @@ def test_backwards_predicate(database):
             }
         },
     }
-    cypher = get_query(qgraph)
-    output = list(database.run(cypher))[0]
+    print(get_query(qgraph))
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 3
 
 

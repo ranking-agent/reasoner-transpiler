@@ -1,9 +1,10 @@
 """Test query graph formats."""
+import pytest
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_database
+from .fixtures import fixture_neo4j_driver
 
 
-def test_curie_formats(database):
+def test_curie_formats(neo4j_driver):
     """Test unusual curie formats."""
     qgraph = {
         "nodes": {
@@ -28,70 +29,21 @@ def test_curie_formats(database):
             },
         },
     }
-    output = database.run(get_query(qgraph))
-    for record in output:
-        assert len(record["results"]) == 5
-        results = sorted(
-            record["knowledge_graph"]["nodes"].values(),
-            key=lambda node: node["name"],
-        )
-        expected_nodes = [
-            "anagliptin",
-            "bezafibrate",
-            "metformin",
-            "obesity disorder",
-            "type 2 diabetes mellitus",
-        ]
-        for ind, result in enumerate(results):
-            assert result["name"] == expected_nodes[ind]
-
-
-# def test_complex_query(database):
-#     """Test that db get"s initialized successfully."""
-#     qgraph = {
-#         "nodes": {
-#             "n1": {
-#                 "categories": "biolink:PhenotypicFeature",
-#             },
-#             "n0": {
-#                 "categories": "biolink:Disease",
-#                 "ids": "MONDO:0005148",
-#             },
-#             "n2": {
-#                 "categories": "biolink:ChemicalSubstance",
-#                 "ids": [
-#                     "CHEBI:6801",
-#                 ],
-#             },
-#         },
-#         "edges": {
-#             "e02": {
-#                 "subject": "n2",
-#                 "object": "n0",
-#             },
-#             "e01": {
-#                 "subject": "n0",
-#                 "object": "n1",
-#                 "predicates": "INHERITS",
-#             },
-#             "e21": {
-#                 "subject": "n2",
-#                 "object": "n1",
-#                 "predicates": [
-#                     "WIELDS",
-#                     "FINDS",
-#                 ],
-#             }
-#         },
-#     }
-#     output = database.run(get_query(qgraph))
-#     for record in output:
-#         assert len(record["results"]) == 1
-#         assert record["results"][0]["node_bindings"] == [
-#             {"kg_id": "TGATE:Sting", "qg_id": "n1"},
-#             {"kg_id": "TGATE:Frodo", "qg_id": "n0"},
-#             {"kg_id": "TGATE:Bilbo", "qg_id": "n2"},
-#         ]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 5
+    results = sorted(
+        output["knowledge_graph"]["nodes"].values(),
+        key=lambda node: node["name"],
+    )
+    expected_nodes = [
+        "anagliptin",
+        "bezafibrate",
+        "metformin",
+        "obesity disorder",
+        "type 2 diabetes mellitus",
+    ]
+    for ind, result in enumerate(results):
+        assert result["name"] == expected_nodes[ind]
 
 
 def test_predicate_list():

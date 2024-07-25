@@ -1,11 +1,11 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_database
+from .fixtures import fixture_neo4j_driver
 
 
-def test_single_qualifier(database):
-    """Test edges satisfying all constraints are returned """
+def test_single_qualifier(neo4j_driver):
+    """Test edge satisfying one set of qualifier constraints is returned """
     qgraph = {
         "nodes": {
             "n0": {},
@@ -34,16 +34,14 @@ def test_single_qualifier(database):
             },
         },
     }
-    query = get_query(qgraph)
-    output = database.run(query)
-    for record in output:
-        assert len(record["results"]) == 1
-        # make sure any edge s
-        assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 1
+    # make sure any edge s
+    assert len(output["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
 
 
-def test_multi_qualifier(database):
-    """Test if edges satifying all constraints are returned"""
+def test_multi_qualifier(neo4j_driver):
+    """Test if edges satisfying constraints are returned with multiple qualifier sets"""
     qgraph = {
         "nodes": {
             "n0": {},
@@ -76,16 +74,14 @@ def test_multi_qualifier(database):
             },
         },
     }
-    query = get_query(qgraph)
-    output = database.run(query)
-    for record in output:
-        assert len(record["results"]) == 1
-        # make sure any edge s
-        assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 2
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 1
+    assert len(output["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 2
 
 
-def test_qualifier_hierarchy(database):
-    """Test if edges satifying all constraints are returned"""
+def test_qualifier_heirarchy(neo4j_driver):
+    """Test if edges satisfying constraints are returned when a qualifier has a value
+    that is an ancestor of the value expected in the test data edge"""
     qgraph = {
         "nodes": {
             "n0": {},
@@ -111,16 +107,13 @@ def test_qualifier_hierarchy(database):
             },
         },
     }
-    query = get_query(qgraph)
-    output = database.run(query)
-    for record in output:
-        assert len(record["results"]) == 1
-        # make sure any edge s
-        assert len(record["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 1
+    assert len(output["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
 
 
-def test_incorrect_qualifier_value(database):
-    """Test if an incorrect qualifier returns no result"""
+def test_phony_qualifier_value(neo4j_driver):
+    """ test that no edges are returned with a qualifier value that isn't valid"""
     qgraph = {
         "nodes": {
             "n0": {},
@@ -146,12 +139,11 @@ def test_incorrect_qualifier_value(database):
             },
         },
     }
-    query = get_query(qgraph)
-    output = database.run(query)
-    for record in output:
-        assert len(record["results"]) == 0
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 0
 
-def test_empty_qualifier_set():
+
+def test_empty_qualifier_set(neo4j_driver):
     """Test if edges satifying all constraints are returned"""
     qgraph = {
         "nodes": {
@@ -174,7 +166,5 @@ def test_empty_qualifier_set():
             },
         },
     }
-    query = get_query(qgraph)
-    # print(query)
-    # for record in output:
-    #    assert len(record["results"]) == 0
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 1

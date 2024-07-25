@@ -2,62 +2,8 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from reasoner_transpiler.exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError
-from .fixtures import fixture_database
-
-
-def test_too_many_xor():
-    """Test too many XOR operands."""
-    qgraph = [
-        "XOR",
-        {
-            "nodes": dict(),
-            "edges": dict(),
-        },
-        {
-            "nodes": dict(),
-            "edges": dict(),
-        },
-        {
-            "nodes": dict(),
-            "edges": dict(),
-        },
-    ]
-    with pytest.raises(ValueError) as excinfo:
-        get_query(qgraph)
-    assert "XOR must have exactly two operands" in str(excinfo.value)
-
-
-def test_too_many_not():
-    """Test too many NOT operands."""
-    qgraph = [
-        "NOT",
-        {
-            "nodes": dict(),
-            "edges": dict(),
-        },
-        {
-            "nodes": dict(),
-            "edges": dict(),
-        },
-    ]
-    with pytest.raises(ValueError) as excinfo:
-        get_query(qgraph)
-    assert "NOT must have exactly one operand" in str(excinfo.value)
-
-
-def test_unknown_operator():
-    """Test unknown operator."""
-    qgraph = [
-        "DNE",
-        {
-            "nodes": dict(),
-            "edges": dict(),
-        },
-    ]
-    with pytest.raises(ValueError) as excinfo:
-        get_query(qgraph)
-    assert "Unrecognized operator" in str(excinfo.value)
+from reasoner_transpiler.exceptions import InvalidPredicateError, InvalidQualifierError, \
+    InvalidQualifierValueError, UnsupportedError
 
 
 def test_invalid_node():
@@ -66,12 +12,15 @@ def test_invalid_node():
         "nodes": {
             "n0": {
                 "categories": "biolink:BiologicalEntity",
-                "dict": {"a": 1},
+                "constraints": [
+                    {"id": "test:invalid_constraint",
+                     "value": {"a": 1}}
+                ]
             },
         },
         "edges": dict(),
     }
-    with pytest.raises(ValueError):
+    with pytest.raises(UnsupportedError):
         get_query(qgraph)
 
 
@@ -117,6 +66,7 @@ def test_invalid_predicate():
     }
     with pytest.raises(InvalidPredicateError):
         query = get_query(qgraph)
+
 
 def test_invalid_qualifier():
     """Test that an invalid edge qualifier throws an error."""

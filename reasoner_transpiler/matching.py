@@ -4,12 +4,11 @@ from typing import Dict, List
 
 from bmt import Toolkit
 
-from .exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError
+from .exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError, UnsupportedError
 from .nesting import Query
 from .util import ensure_list, snake_case, space_case, pascal_case
 
-
-BIOLINK_MODEL_VERSION = os.environ.get('BL_VERSION', '4.1.6')
+BIOLINK_MODEL_VERSION = os.environ.get('BL_VERSION', '4.2.1')
 BIOLINK_MODEL_SCHEMA_URL = f"https://raw.githubusercontent.com/biolink/biolink-model/v{BIOLINK_MODEL_VERSION}/biolink-model.yaml"
 PREDICATE_MAP_URL = f"https://raw.githubusercontent.com/biolink/biolink-model/v{BIOLINK_MODEL_VERSION}/predicate_mapping.yaml"
 
@@ -27,7 +26,26 @@ def cypher_prop_string(value):
         )
     if isinstance(value, (float, int)):
         return str(value)
-    raise ValueError(f"Unsupported property type: {type(value).__name__}.")
+    raise UnsupportedError(f"Unsupported property type: {type(value).__name__}.")
+
+
+def convert_constraints(constraints):
+    props = {}
+    for constraint in constraints:
+        try:
+            operator = constraint.get("operator", "===")
+            if operator == "===":
+                props[constraint["id"]] = constraint["value"]
+            elif operator == "==":
+                if isinstance(constraint["value"], list):
+                    # TODO we should be able to support this but it might need to go in the where clause
+                    # operator is == and value is a list [1,2,3] means return results where value = 1, 2, OR 3
+                    raise UnsupportedError(f'Unsupported attribute constraint: {constraint}')
+                else:
+                    props[constraint["id"]] = constraint["value"]
+        except KeyError:
+            raise UnsupportedError(f'Invalid attribute constraint: {constraint}')
+    return props
 
 
 class NodeReference():
@@ -86,16 +104,21 @@ class NodeReference():
             props["id"] = str(curie)
 
         if max_connectivity > -1:
-            self._filters.append("size( ({0})-[]-() ) < {1} + 1".format(
+            self._filters.append("COUNT {{ ({0})-[]-() }} < {1} + 1".format(
                 self.name,
                 max_connectivity,
             ))
 
-        props.update(
-            (key, value)
-            for key, value in node.items()
-            if key not in ("name", "set_interpretation", "constraints")
-        )
+        # the transpiler used to do the following,
+        # but now TRAPI QNodes should only have attributes constraints in the "constraints" field
+        # other properties should be not considered attributes to query on anymore
+        # props.update(
+        #     (key, value)
+        #     for key, value in node.items()
+        #     if key not in ("name", "set_interpretation", "constraints")
+        # )
+
+        props.update(convert_constraints(node.pop("constraints", [])))
 
         self.prop_string = "{" + ", ".join([
             f"`{key}`: {cypher_prop_string(value)}"
@@ -194,11 +217,6 @@ class EdgeReference():
                 inverse_predicate = el.inverse
                 if inverse_predicate is not None:
                     self.inverse_predicates.append(f"biolink:{snake_case(inverse_predicate)}")
-                # TODO remove the following elif -
-                # this is only here because this version of the biolink model doesn't have subclass as the inverse of
-                # superclass, but that will be fixed in future versions
-                elif predicate == 'biolink:superclass_of':
-                    self.inverse_predicates.append(f"biolink:subclass_of")
 
                 # if symmetric add to inverse list so we query in both directions
                 if el.symmetric:
@@ -214,29 +232,21 @@ class EdgeReference():
         if not self.symmetric:
             self.directed = True
 
-        # get all the descendants of the predicates and add them to the query as well
-        # NOTE - the "if bmt.get_element(p)" check is here because some predicates in the biolink model
-        # were failing to return an element even when they exist (because they had underscores in them)
-        # this should be fixed in future versions, we could remove it, but it's safer to leave
-        predicates = []
-        for predicate in self.predicates:
-            for predicate_descendant in bmt.get_descendants(space_case(predicate[8:])):
-                element = bmt.get_element(predicate_descendant)
-                if element and (element.annotations.get('canonical_predicate', False) or
-                                'symmetric' in element and element['symmetric']):
-                    predicates.append(f"biolink:{snake_case(predicate_descendant)}")
-        self.predicates = predicates
-
-        if not invert:
-            self.inverse_predicates = []
-        inverse_predicates = []
-        for predicate in self.inverse_predicates:
-            for predicate_descendant in bmt.get_descendants(space_case(predicate[8:])):
-                element = bmt.get_element(predicate_descendant)
-                if element and (element.annotations.get('canonical_predicate', False) or
-                                'symmetric' in element and element['symmetric']):
-                    inverse_predicates.append(f"biolink:{snake_case(predicate_descendant)}")
-        self.inverse_predicates = inverse_predicates
+        # get all canonical and/or symmetric descendant predicates
+        self.predicates = [
+            f"biolink:{snake_case(p)}"
+            for predicate in self.predicates
+            for p in bmt.get_descendants(space_case(predicate[8:]))
+            if bmt.get_element(p).annotations.get('canonical_predicate', False) or 'symmetric' in bmt.get_element(p) and bmt.get_element(p).symmetric
+        ]
+        # get all canonical and/or symmetric descendant predicates of inverse predicates if invert flag is true
+        # otherwise get rid of all inverse predicates
+        self.inverse_predicates = [
+            f"biolink:{snake_case(p)}"
+            for predicate in self.inverse_predicates
+            for p in bmt.get_descendants(space_case(predicate[8:]))
+            if bmt.get_element(p).annotations.get('canonical_predicate', False) or 'symmetric' in bmt.get_element(p) and bmt.get_element(p).symmetric
+        ] if invert else []
 
         unique_preds = list(set(self.predicates + self.inverse_predicates))
         #Having the predicates sorted doesn't matter to neo4j, but it helps in testing b/c we get a consistent string.
@@ -272,24 +282,18 @@ class EdgeReference():
             #If we have inverse_predicates and not self.predicates then it means that everything in predicates
             # was non-canonical and we reversed them all so we need to invert the edge
             elif self.inverse_predicates:
-                self.cypher_invert=True
-        constraints = ["attribute_constraints", "qualifier_constraints"]
-        other_non_prop_attributes = ["name", "knowledge_type"]
-        self.qualifier_filters = self.__qualifier_filters(edge, edge_id)
-        props = {}
-        props.update(
-            (key, value)
-            for key, value in edge.items()
-            if key not in set(constraints + other_non_prop_attributes) and not key.startswith("_")
-        )
+                self.cypher_invert = True
 
+        self.qualifier_filters = self.__qualifier_filters(edge, edge_id)
+
+        props = convert_constraints(edge.pop("attribute_constraints", []))
         self.prop_string = " {" + ", ".join([
             f"`{key}`: {cypher_prop_string(value)}"
             for key, value in props.items()
             if value is not None
         ]) + "}" if props else ""
 
-    def __qualifier_filters(self, edge , edge_id):
+    def __qualifier_filters(self, edge, edge_id):
         constraints = edge.get("qualifier_constraints", [])
         ors = []
         for constraint in constraints:
@@ -305,23 +309,32 @@ class EdgeReference():
                 if not bmt.is_qualifier(qualifier_type):
                     raise InvalidQualifierError(f'Invalid qualifier in query: {qualifier_type}')
 
-                # we should do something like this but it does not work without knowing the association type of the edge
-                # if not bmt.validate_qualifier(qualifier_type_id=qualifier_type, qualifier_value=queried_qualifier_value):
-                #    raise InvalidQualifierError(f'Invalid qualifier requested, {qualifier_type}:{queried_qualifier_value}')
+                # we should do something like this, it does not work without knowing the association type of the edge
+                # if not bmt.validate_qualifier(qualifier_type_id=qualifier_type,
+                #                               qualifier_value=queried_qualifier_value,
+                #                               associations=[???]):
+                #     raise InvalidQualifierError(f'Invalid qualifier requested,
+                #     {qualifier_type}:{queried_qualifier_value}')
 
                 qualifier_value_plus_descendants = [queried_qualifier_value]
-                if qualifier_type != 'qualified_predicate': # qualified_predicate doesn't have an enum as values so the following does not apply
+                # qualified_predicate doesn't have an enum as values so the following does not apply
+                if qualifier_type != 'qualified_predicate':
                     permissible_value = False
                     for enum_for_qualifier_values in ALL_BIOLINK_ENUMS:
-                        if bmt.is_permissible_value_of_enum(enum_name=enum_for_qualifier_values, value=queried_qualifier_value):
+                        if bmt.is_permissible_value_of_enum(enum_name=enum_for_qualifier_values,
+                                                            value=queried_qualifier_value):
                             permissible_value = True
-                            qualifier_value_plus_descendants += bmt.get_permissible_value_descendants(permissible_value=queried_qualifier_value,
-                                                                                                      enum_name=enum_for_qualifier_values)
+                            qualifier_value_plus_descendants += bmt.get_permissible_value_descendants(
+                                permissible_value=queried_qualifier_value,
+                                enum_name=enum_for_qualifier_values)
                     if not permissible_value:
-                        raise InvalidQualifierValueError(f'Invalid value for qualifier {qualifier_type} in query: {queried_qualifier_value}')
+                        raise InvalidQualifierValueError(
+                            f'Invalid value for qualifier {qualifier_type} in query: {queried_qualifier_value}')
 
                 # Join qualifier value hierarchy with an or
-                qualifier_where_condition = " ( " + " OR ".join([f"`{edge_id}`.{qualifier_type} = {cypher_prop_string(qualifier_value)}" for qualifier_value in set(qualifier_value_plus_descendants)]) + " ) "
+                qualifier_where_condition = " ( " + " OR ".join(
+                    [f"`{edge_id}`.{qualifier_type} = {cypher_prop_string(qualifier_value)}" for qualifier_value in
+                     set(qualifier_value_plus_descendants)]) + " ) "
                 ands.append(qualifier_where_condition)
             # if qualifier set is empty ; loop to the next
             if not len(ands):
@@ -420,13 +433,13 @@ def match_query(qgraph, subclass=True, **kwargs):
 
     Returns the query fragment as a string.
     """
-    #If there's no label on a query node, neo4j can't use an index.  This makes such queries basically
-    # neo4j killers.   So when there is no category, we add NamedThing which will use an indx.
+
+    # If there's no label on a query node, neo4j can't use an index. Add the root entity type as a category.
     for qnode_id, qnode in qgraph["nodes"].items():
         if qnode.get("ids", None) is not None and qnode.get("categories",None) is None:
             qnode["categories"] = ["biolink:NamedThing"]
 
-    # find all of the qnode ids that have subclass or superclass edges connected to them
+    # Find all of the qnode ids that have subclass or superclass edges connected to them
     qnode_ids_with_hierarchy_edges = set()
     for qedge_id, qedge in qgraph["edges"].items():
         predicates = qedge.get("predicates", None)
@@ -444,7 +457,6 @@ def match_query(qgraph, subclass=True, **kwargs):
             for qnode_id, qnode in qgraph["nodes"].items()
             if qnode.get("ids", None) is not None and qnode_id not in qnode_ids_with_hierarchy_edges
         }
-
         if 'subclass_depth' in kwargs:
             if not isinstance(kwargs['subclass_depth'], int):
                 raise TypeError(f"Unsupported subclass_depth type: {type(kwargs['subclass_depth']).__name__}.")

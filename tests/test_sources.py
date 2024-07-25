@@ -1,12 +1,11 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_database
+from .fixtures import fixture_neo4j_driver
 
 
-
-def test_primary_source(database):
-    q_graph = {
+def test_primary_source(neo4j_driver):
+    qgraph = {
             "nodes": {
                 "n0": {
                     "categories": ["biolink:ChemicalSubstance"]
@@ -25,8 +24,7 @@ def test_primary_source(database):
                 }
             }
         }
-    cypher = get_query(q_graph)
-    output = list(database.run(cypher))[0]
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 3
     assert len(output["knowledge_graph"]["edges"]) == 3
     # sample edge
@@ -35,11 +33,11 @@ def test_primary_source(database):
       "predicate": "biolink:treats",
       "sources": [
         {
-          "resource": null,
+          "resource_id": null,
           "resource_role": "aggregator_knowledge_source"
         },
         {
-          "resource": null,
+          "resource_id": null,
           "resource_role": "primary_knowledge_source"
         }
       ],
