@@ -3,17 +3,17 @@ from setuptools import setup
 
 setup(
     name="reasoner-transpiler",
-    version="2.0.12",
+    version="2.1.0",
     author="Patrick Wang",
     author_email="patrick@covar.com",
-    maintainer="Yaphet Kebede",
-    maintainer_email="kebedey@renci.org",
+    maintainer="Evan Morris",
+    maintainer_email="emorris@renci.org",
     url="https://github.com/ranking-agent/reasoner-transpiler",
     description="TRAPI → Cypher transpiler",
     packages=["reasoner_transpiler"],
     package_data={"reasoner_transpiler": ["attribute_types.json"]},
     install_requires=[
-        "bmt==1.4.0",
+        "bmt==1.4.3",
     ],
     zip_safe=False,
     license="MIT",
