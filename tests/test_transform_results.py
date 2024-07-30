@@ -18,13 +18,12 @@ def test_bolt_driver_transform_results(neo4j_driver):
             },
         },
     }
-    print(get_query(qgraph))
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 16
     for result in output["results"]:
-        for binding in result["node_bindings"]["n0"]:
-            assert "query_id" in binding
-            assert (binding["query_id"] == "HP:0000118") if binding["id"].startswith("HP") else (binding["query_id"] == "MONDO:0000001")
+        assert len(result["node_bindings"]) == 2
+        assert len(result["analyses"]) == 1
+    assert len(output['knowledge_graph']['nodes']) == 13
 
 
 def test_http_driver_transform_results(neo4j_http_driver):
@@ -43,10 +42,9 @@ def test_http_driver_transform_results(neo4j_http_driver):
             },
         },
     }
-    print(get_query(qgraph))
     output = neo4j_http_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 16
     for result in output["results"]:
-        for binding in result["node_bindings"]["n0"]:
-            assert "query_id" in binding
-            assert (binding["query_id"] == "HP:0000118") if binding["id"].startswith("HP") else (binding["query_id"] == "MONDO:0000001")
+        assert len(result["node_bindings"]) == 2
+        assert len(result["analyses"]) == 1
+    assert len(output['knowledge_graph']['nodes']) == 13

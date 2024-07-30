@@ -31,7 +31,7 @@ class TranspilerNeo4jBoltDriver:
 
         neo4j_result = tx.run(cypher, parameters=query_parameters)
         if convert_to_trapi:
-            return transform_result(neo4j_result, qgraph)
+            return transform_result(neo4j_result, qgraph, protocol='bolt')
         return neo4j_result
 
     def run(self,
@@ -89,5 +89,5 @@ class TranspilerNeo4jHTTPDriver:
         }
         response = self.post_request_json(payload)
         if convert_to_trapi:
-            response = transform_result(response, qgraph=qgraph)
+            response = transform_result(response, qgraph=qgraph, protocol='http')
         return response

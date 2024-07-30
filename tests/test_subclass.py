@@ -25,7 +25,7 @@ def test_node_subclass(neo4j_driver):
     node_binding_ids = get_node_binding_ids_from_neo4j_driver_output(output)
     assert 'MONDO:0015967' in node_binding_ids
     assert any(
-        result["node_bindings"]["n0"] == [{"id": "MONDO:0005148", "query_id": "MONDO:0000001"}]
+        result["node_bindings"]["n0"] == [{"id": "MONDO:0005148", "query_id": "MONDO:0000001", "attributes": []}]
         for result in output["results"]
     )
 
@@ -110,8 +110,8 @@ def test_pinned_subclass(neo4j_driver):
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     # assert len(output['results']) == 1
     assert output["results"][0]["node_bindings"] == {
-        "n0": [{"id": "MONDO:0005148", "query_id": "MONDO:0000001"}],
-        "n1": [{"id": "HP:0012592", "query_id": "HP:0000118"}],
+        "n0": [{"id": "MONDO:0005148", "query_id": "MONDO:0000001", "attributes": []}],
+        "n1": [{"id": "HP:0012592", "query_id": "HP:0000118", "attributes": []}],
     }
 
 
@@ -165,7 +165,7 @@ def test_dont_subclass(neo4j_driver):
     output = neo4j_driver.run(get_query(qgraph, subclass=False), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
     assert output["results"][0]["node_bindings"] == {
-        "n0": [{"id": "MONDO:0000001"}],
+        "n0": [{"id": "MONDO:0000001", "attributes": []}],
     }
 
 
@@ -190,8 +190,11 @@ def test_batch_subclass(neo4j_driver):
     assert len(output['results']) == 16
     for result in output["results"]:
         for binding in result["node_bindings"]["n0"]:
-            assert "query_id" in binding
-            assert (binding["query_id"] == "HP:0000118") if binding["id"].startswith("HP") else (binding["query_id"] == "MONDO:0000001")
+            if "query_id" in binding:
+                assert binding["query_id"] in ["MONDO:0000001", "HP:0000118"]
+                assert binding["id"] != binding["query_id"]
+            else:
+                assert binding["id"] in ["MONDO:0000001", "HP:0000118"]
 
 
 def test_hierarchy_inference_on_superclass_queries(neo4j_driver):

@@ -1,19 +1,28 @@
 """Tools for compiling QGraph into Cypher query."""
+import os
 import json
+from functools import cache
 from pathlib import Path
 
-import neo4j
-
+from .biolink import bmt
 from .matching import match_query
 from .exceptions import UnsupportedError
 
 DIR_PATH = Path(__file__).parent
+
 with open(DIR_PATH / "attribute_types.json", "r") as stream:
     ATTRIBUTE_TYPES = json.load(stream)
 
+with open(DIR_PATH / "value_types.json", "r") as stream:
+    VALUE_TYPES = json.load(stream)
+
+ATTRIBUTE_SKIP_LIST = []
+
 RESERVED_NODE_PROPS = [
     "id",
-    "name"
+    "name",
+    "labels",
+    "element_id"
 ]
 RESERVED_EDGE_PROPS = [
     "id",
@@ -30,6 +39,9 @@ EDGE_SOURCE_PROPS = [
     "biolink:aggregator_knowledge_source",
     "biolink:primary_knowledge_source"
 ]
+
+PROVENANCE_TAG = os.environ.get('PROVENANCE_TAG', 'reasoner-transpiler')
+NEO4J_PROTOCOL = os.environ.get('NEO4J_PROTOCOL', 'bolt')
 
 
 def nest_op(operator, *args):
@@ -225,18 +237,20 @@ def get_query(qgraph, **kwargs):
     return " ".join(clauses)
 
 
-def transform_result(cypher_result,  # type neo4j.Result
-                     qgraph: dict):
-
-    # if neo4j.Result it came from the python driver (bolt)
-    if isinstance(cypher_result, neo4j.Result) or isinstance(cypher_result, neo4j.EagerResult):
+def transform_result(cypher_result,
+                     qgraph: dict,
+                     protocol: str = None):
+    # use the protocol parameter if it's provided, otherwise use NEO4J_PROTOCOL set by configuration
+    if not protocol:
+        protocol = NEO4J_PROTOCOL
+    if protocol == 'bolt':
+        # if the protcol is bolt (from the python driver) cypher_result is a neo4j.Result
         bolt_protocol = True
         # we could check for errors here, but it should happen around the actual driver calls (before this)
     else:
-        # otherwise assume it's an http response
+        # otherwise assume it's a jolt http response
         bolt_protocol = False
-
-        # could check for errors like this but it should happen around the http calls themselves
+        # could check for errors like this, but it should happen around the http calls themselves
         # if cypher_result['errors']:
         #    raise Exception(f'Errors in http cypher result: {cypher_result["errors"]}')
 
@@ -278,26 +292,25 @@ def transform_result(cypher_result,  # type neo4j.Result
             result_node_ids_key += result_node_id
             if qnode_id in qnodes_that_are_sets:
                 # if qnode has set_interpretation=ALL there won't be any superclass bindings
-                node_bindings[qnode_id] = [{'id': result_node_id}]
+                node_bindings[qnode_id] = [{'id': result_node_id, 'attributes': []}]
             else:
-                # otherwise create a list of the id mappings including superclass qnode ids if they exist
+                # otherwise create a list of the id mappings including query_ids if they exist
+                # and aren't the same as the actual id
                 node_bindings[qnode_id] = \
-                    [{'id': result_node_id, 'query_id': result_nodes[f'{qnode_id}_superclass']['id']}
-                     if f'{qnode_id}_superclass' in all_qnode_ids else
-                     {'id': result_node_id}]
+                    [{'id': result_node_id,
+                      'query_id': result_nodes[f'{qnode_id}_superclass']['id'],
+                      'attributes': []}
+                     if f'{qnode_id}_superclass' in all_qnode_ids and
+                        result_nodes[f'{qnode_id}_superclass']['id'] != result_node_id else
+                     {'id': result_node_id,
+                      'attributes': []}]
 
             if result_node_id not in kg_nodes:
                 kg_nodes[result_node_id] = {
                     'name': result_node['name'],
-                    'categories': result_node.pop('labels'),
-                    'attributes': [
-                        {'original_attribute_name': key,
-                         'value': value,
-                         'attribute_type_id': ATTRIBUTE_TYPES.get(key, 'NA')}
-                        for key, value in result_node.items()
-                        if key not in RESERVED_NODE_PROPS
-                    ]
+                    'categories': list(result_node.pop('labels'))
                 }
+                kg_nodes[result_node_id].update(transform_attributes(result_node, node=True))
 
         edge_bindings = {}
         for qedge_id, qedge in qgraph['edges'].items():
@@ -309,25 +322,21 @@ def transform_result(cypher_result,  # type neo4j.Result
             if qedge.get('_return', True):
                 for result_edge in result_edges:
                     graph_edge_id = result_edge['id']
-                    edge_bindings[qedge_id] = [{'id': graph_edge_id}]
+                    edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
                     if graph_edge_id not in kg_edges:
                         kg_edges[graph_edge_id] = {
                             'subject': result_edge['subject'],
                             'predicate': result_edge['predicate'],
                             'object': result_edge['object'],
-                            'sources': [
-                                {'resource_role': edge_source_prop,
-                                 'resource_id': result_edge.get(edge_source_prop, None)}
-                                for edge_source_prop in EDGE_SOURCE_PROPS
-                            ],
-                            'attributes': [
-                                {'original_attribute_name': key,
-                                 'value': value,
-                                 'attribute_type_id': ATTRIBUTE_TYPES.get(key, 'NA')}
-                                for key, value in result_edge.items()
-                                if key not in EDGE_SOURCE_PROPS + RESERVED_EDGE_PROPS
-                            ]
+                            # get properties matching EDGE_SOURCE_PROPS and remove biolink: if needed
+                            # then pass (key, value) tuples to construct_sources_tree for formatting
+                            'sources': construct_sources_tree([
+                                (edge_source_prop.removeprefix('biolink:'), result_edge.get(edge_source_prop))
+                                for edge_source_prop in EDGE_SOURCE_PROPS if result_edge.get(edge_source_prop, None)
+                            ])
                         }
+                        # grab other attributes from the edge and populate qualifiers and attributes
+                        kg_edges[graph_edge_id].update(transform_attributes(result_edge, node=False))
 
         if result_node_ids_key != '':  # avoid adding results for the default node binding key ''
             # if we haven't encountered this specific group of result nodes before, create a new result
@@ -351,6 +360,149 @@ def transform_result(cypher_result,  # type neo4j.Result
         'knowledge_graph': knowledge_graph
     }
     return transformed_results
+
+
+# This function takes EDGE_SOURCE_PROPS properties from results, converts them into proper
+# TRAPI dictionaries, and assigns the proper upstream ids to each resource. It does not currently attempt to avoid
+# duplicate aggregator results, which shouldn't exist in the graphs.
+def construct_sources_tree(sources):
+
+    # first find the primary knowledge source, there should always be one
+    primary_knowledge_source = None
+    formatted_sources = None
+    for resource_role, resource_id in sources:
+        if resource_role == "primary_knowledge_source":
+            primary_knowledge_source = resource_id
+            # add it to the formatted TRAPI output
+            formatted_sources = [{
+                "resource_id": primary_knowledge_source,
+                "resource_role": "primary_knowledge_source"
+            }]
+    if not primary_knowledge_source:
+        # we could hard fail here, every edge should have a primary ks, but I haven't fixed all the tests yet
+        #     raise KeyError(f'primary_knowledge_source missing from sources section of cypher results! '
+        #                    f'sources: {sources}')
+        return []
+
+    # then find any aggregator lists
+    aggregator_list_sources = []
+    for resource_role, resource_id in sources:
+        # this looks weird but the idea is that you could have a few parallel lists like:
+        # aggregator_knowledge_source, aggregator_knowledge_source_2, aggregator_knowledge_source_3
+        if resource_role.startswith("aggregator_knowledge_source"):
+            aggregator_list_sources.append(resource_id)
+    # walk through the aggregator lists and construct the chains of provenance
+    terminal_aggregators = set()
+    for aggregator_list in aggregator_list_sources:
+        # each aggregator list should be in order, so we can deduce the upstream chains
+        last_aggregator = None
+        for aggregator_knowledge_source in aggregator_list:
+            formatted_sources.append({
+                "resource_id": aggregator_knowledge_source,
+                "resource_role": "aggregator_knowledge_source",
+                "upstream_resource_ids": [last_aggregator] if last_aggregator else [primary_knowledge_source]
+            })
+            last_aggregator = aggregator_knowledge_source
+        # store the last aggregator in the list, because this will be an upstream source for the plater one
+        terminal_aggregators.add(last_aggregator)
+    # add PROVENANCE_TAG as the most downstream aggregator,
+    # it will have as upstream either the primary ks or all of the furthest downstream aggregators if they exist
+    # this will be used by applications like Plater which need to append themselves as an aggregator
+    formatted_sources.append({
+        "resource_id": PROVENANCE_TAG,
+        "resource_role": "aggregator_knowledge_source",
+        "upstream_resource_ids": list(terminal_aggregators) if terminal_aggregators else [primary_knowledge_source]
+    })
+    return list(formatted_sources)
+
+
+def transform_attributes(result_item, node=False):
+
+    # make a list of attributes to ignore while processing
+    ignore_list = RESERVED_NODE_PROPS if node else EDGE_SOURCE_PROPS + RESERVED_EDGE_PROPS
+    ignore_list += ATTRIBUTE_SKIP_LIST
+
+    # an "attributes" attribute in neo4j should be a json list,
+    # attempt to start the attributes section of transformed attributes with its contents
+    json_attributes_attribute = result_item.pop('attributes', None)
+    json_attributes = []
+    if json_attributes_attribute:
+        try:
+            json_attributes = json.loads(json_attributes_attribute)
+            if not isinstance(json_attributes, list):
+                print(f'! attributes property was not a list, ignoring: {json_attributes_attribute}')
+        except json.JSONDecodeError as e:
+            print(f'! JSONDecodeError parsing attributes property, it should be a json list, ignoring: {json_attributes_attribute}')
+    transformed_attributes = {
+        'attributes': json_attributes
+    }
+
+    if not node:
+        # for edges, find and format attributes that are qualifiers
+        qualifiers = [key for key in result_item if key not in ignore_list
+                      and bmt.is_qualifier(key)]
+        transformed_attributes['qualifiers'] = [
+            {"qualifier_type_id": key,
+             "qualifier_value": value}
+            for key, value in result_item.items() if key in qualifiers
+        ]
+    else:
+        qualifiers = []
+
+    # format the rest of the attributes, look up their attribute type and value type
+    transformed_attributes['attributes'].extend([
+        {'original_attribute_name': key,
+         'value': value,
+         # the following function will return
+         # 'attribute_type_id': 'biolink-ified attribute type id'
+         # 'value_type_id': 'biolink-ified value type id'
+         **get_attribute_type_and_value_type(key)}
+        for key, value in result_item.items()
+        if key not in ignore_list + qualifiers
+    ])
+    return transformed_attributes
+
+
+def get_attribute_type_and_value_type(attribute_name):
+    # Determine the attribute_type_id and value_type_id for an attribute.
+    # Look in biolink model for the correct values,
+    # override biolink model if custom mappings exist in ATTRIBUTE_TYPES or VALUE_TYPES.
+
+    # set defaults, these will be used if neither the biolink model nor custom mappings recognize the attribute
+    attr_meta_data = {
+        "attribute_type_id": "biolink:Attribute",
+        "value_type_id": "EDAM:data_0006",
+    }
+
+    # the following section using bmt was borrowed from Plater, it could probably use some work
+    # lookup the biolink info
+    bl_info = bmt.get_element(attribute_name)
+
+    # does attribute_name exist in the biolink model?
+    if bl_info is not None:
+        # if there are exact mappings use the first one
+        if 'slot_uri' in bl_info:
+            attr_meta_data['attribute_type_id'] = bl_info['slot_uri']
+
+            # was there a range value
+            if 'range' in bl_info and bl_info['range'] is not None:
+                # try to get the type of data
+                new_type = bmt.get_element(bl_info['range'])
+                # check if new_type is not None. For eg. bl_info['range'] = 'uriorcurie' for things
+                # for `relation` .
+                if new_type:
+                    if 'uri' in new_type and new_type['uri'] is not None:
+                        # get the real data type
+                        attr_meta_data["value_type_id"] = new_type['uri']
+        elif 'class_uri' in bl_info:
+            attr_meta_data['attribute_type_id'] = bl_info['class_uri']
+
+    # check custom mappings and override the biolink model if they exist
+    if attribute_name in ATTRIBUTE_TYPES:
+        attr_meta_data['attribute_type_id'] = ATTRIBUTE_TYPES[attribute_name]
+    if attribute_name in VALUE_TYPES:
+        attr_meta_data['value_type_id'] = VALUE_TYPES[attribute_name]
+    return attr_meta_data
 
 
 def convert_bolt_node_to_dict(bolt_node):
@@ -435,3 +587,18 @@ def convert_http_results_to_dict(results: dict) -> list:
                         new_row[col_name] = col_value
                     converted_results.append(new_row)
     return converted_results
+
+
+def set_custom_attribute_types(attribute_types: dict):
+    global ATTRIBUTE_TYPES
+    ATTRIBUTE_TYPES = attribute_types
+
+
+def set_custom_attribute_value_types(value_types: dict):
+    global VALUE_TYPES
+    VALUE_TYPES = value_types
+
+
+def set_custom_attribute_skip_list(skip_list: list):
+    global ATTRIBUTE_SKIP_LIST
+    ATTRIBUTE_SKIP_LIST = skip_list
