@@ -1,19 +1,10 @@
 """MATCHing tools."""
-import os
 from typing import Dict, List
 
-from bmt import Toolkit
-
+from .biolink import bmt, ALL_BIOLINK_ENUMS
 from .exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError, UnsupportedError
 from .nesting import Query
 from .util import ensure_list, snake_case, space_case, pascal_case
-
-BIOLINK_MODEL_VERSION = os.environ.get('BL_VERSION', '4.2.1')
-BIOLINK_MODEL_SCHEMA_URL = f"https://raw.githubusercontent.com/biolink/biolink-model/v{BIOLINK_MODEL_VERSION}/biolink-model.yaml"
-PREDICATE_MAP_URL = f"https://raw.githubusercontent.com/biolink/biolink-model/v{BIOLINK_MODEL_VERSION}/predicate_mapping.yaml"
-
-bmt = Toolkit(schema=BIOLINK_MODEL_SCHEMA_URL, predicate_map=PREDICATE_MAP_URL)
-ALL_BIOLINK_ENUMS = bmt.view.all_enums().keys()
 
 
 def cypher_prop_string(value):
