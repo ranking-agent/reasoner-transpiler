@@ -47,13 +47,14 @@ def main(hash: str = None):
         edge_file = f"file:///edges.csv"
     with driver.session() as session:
         session.run("MATCH (m) DETACH DELETE m")
-        session.run(f"LOAD CSV WITH HEADERS FROM \"{node_file}\" "
+        result = session.run(f"LOAD CSV WITH HEADERS FROM \"{node_file}\" "
                     "AS row "
                     "CALL apoc.create.node([row.category, 'biolink:NamedThing'], apoc.map.merge({"
                     "name: row.name, id: row.id"
                     "}, apoc.convert.fromJsonMap(row.props))) YIELD node "
                     "RETURN count(*)")
-        session.run(f"LOAD CSV WITH HEADERS FROM \"{edge_file}\" "
+        result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
+        result = session.run(f"LOAD CSV WITH HEADERS FROM \"{edge_file}\" "
                     "AS edge "
                     "MATCH (subject), (object) "
                     "WHERE subject.id = edge.subject AND object.id = edge.object "
@@ -61,6 +62,8 @@ def main(hash: str = None):
                     "apoc.map.merge({predicate: edge.predicate, id: edge.id}, "
                     "apoc.convert.fromJsonMap(edge.props)), object) YIELD rel "
                     "RETURN count(*)")
+        result.consume() # this looks like it doesn't do anything, but it's needed to throw errors if they occur
+
     LOGGER.info("Done. Neo4j is ready for testing.")
 
 
