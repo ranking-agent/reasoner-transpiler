@@ -340,7 +340,8 @@ def transform_result(cypher_result,
         if result_node_ids_key != '':  # avoid adding results for the default node binding key ''
             # if we haven't encountered this specific group of result nodes before, create a new result
             if result_node_ids_key not in results:
-                results[result_node_ids_key] = {'analyses': [{'edge_bindings': edge_bindings}],
+                results[result_node_ids_key] = {'analyses': [{'edge_bindings': edge_bindings,
+                                                              'resource_id': PROVENANCE_TAG}],
                                                 'node_bindings': node_bindings}
             else:
                 # otherwise append new edge bindings to the existing result
@@ -462,6 +463,7 @@ def transform_attributes(result_item, node=False):
     return transformed_attributes
 
 
+@cache
 def get_attribute_type_and_value_type(attribute_name):
     # Determine the attribute_type_id and value_type_id for an attribute.
     # Look in biolink model for the correct values,
