@@ -318,7 +318,6 @@ def transform_result(cypher_result,
                 continue
             result_edges = convert_bolt_edge_to_dict(cypher_record[qedge_id]) if bolt_protocol \
                 else convert_jolt_edge_to_dict(cypher_record[qedge_id], jolt_element_id_lookup)
-            # print(result_edge)
             if qedge.get('_return', True):
                 for result_edge in result_edges:
                     graph_edge_id = result_edge['id']
@@ -536,7 +535,7 @@ def convert_bolt_edge_to_dict(bolt_edge):
             'predicate': bolt_edge.type,
             'object': bolt_edge.end_node.get('id')})  # add the SPO from the other properties of the bolt response list
         if 'id' not in edge:
-            edge['element_id'] = bolt_edge.element_id  # if the edge didn't have an "id" use the neo4j element id
+            edge['id'] = bolt_edge.element_id  # if the edge didn't have an "id" use the neo4j element id
         converted_edges.append(edge)
     return converted_edges
 
