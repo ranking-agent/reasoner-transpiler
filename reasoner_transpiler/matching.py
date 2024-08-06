@@ -24,6 +24,7 @@ def convert_constraints(constraints):
     props = {}
     for constraint in constraints:
         try:
+            constraint["id"] = constraint["id"].removeprefix("biolink:")
             operator = constraint.get("operator", "===")
             if operator == "===":
                 props[constraint["id"]] = constraint["value"]
