@@ -22,10 +22,10 @@ def test_single_qualifier(neo4j_driver):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "qualified_predicate",
+                                "qualifier_type_id": "biolink:qualified_predicate",
                                 "qualifier_value": "biolink:causes"
                             }, {
-                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_type_id": "biolink:object_aspect_qualifier",
                                 "qualifier_value": "activity"
                             }
                         ]
@@ -58,14 +58,14 @@ def test_multi_qualifier(neo4j_driver):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_type_id": "biolink:object_aspect_qualifier",
                                 "qualifier_value": "activity"
                             },
                         ]
                     },{
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "qualified_predicate",
+                                "qualifier_type_id": "biolink:qualified_predicate",
                                 "qualifier_value": "biolink:causes"
                             }
                         ]
@@ -98,7 +98,7 @@ def test_qualifier_heirarchy(neo4j_driver):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_type_id": "biolink:object_aspect_qualifier",
                                 "qualifier_value": "activity_or_abundance"
                             },
                         ]
@@ -130,7 +130,7 @@ def test_phony_qualifier_value(neo4j_driver):
                     {
                         "qualifier_set": [
                             {
-                                "qualifier_type_id": "object_aspect_qualifier",
+                                "qualifier_type_id": "biolink:object_aspect_qualifier",
                                 "qualifier_value": "abundance"
                             },
                         ]

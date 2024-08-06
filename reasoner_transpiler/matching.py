@@ -294,7 +294,8 @@ class EdgeReference():
                 if not constraint_filter:
                     continue
 
-                qualifier_type = constraint_filter['qualifier_type_id']
+                # remove the biolink prefix if there - expect graphs to not have curie prefixes on any edge properties
+                qualifier_type = constraint_filter['qualifier_type_id'].removeprefix('biolink:')
                 queried_qualifier_value = constraint_filter['qualifier_value']
 
                 if not bmt.is_qualifier(qualifier_type):
