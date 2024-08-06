@@ -1,7 +1,7 @@
 """Test querying with properties."""
 import pytest
 from reasoner_transpiler.cypher import get_query, set_custom_attribute_types, set_custom_attribute_value_types, \
-    set_custom_attribute_skip_list
+    set_custom_attribute_skip_list, get_attribute_type_and_value_type
 from .fixtures import fixture_neo4j_driver
 
 
@@ -219,6 +219,8 @@ def test_props_customization(neo4j_driver):
     assert len(edges) == 1
     attributes = list(edges.values())[0]["attributes"]
     assert len(attributes) == 0
+
+    get_attribute_type_and_value_type.cache_clear()
 
     # reset the skip list
     set_custom_attribute_skip_list([])
