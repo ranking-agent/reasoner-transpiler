@@ -422,17 +422,19 @@ def transform_attributes(result_item, node=False):
     ignore_list = RESERVED_NODE_PROPS if node else EDGE_SOURCE_PROPS + RESERVED_EDGE_PROPS
     ignore_list += ATTRIBUTE_SKIP_LIST
 
-    # an "attributes" attribute in neo4j should be a json list,
+    # an "attributes" attribute in neo4j should be a list of json strings,
     # attempt to start the attributes section of transformed attributes with its contents
-    json_attributes_attribute = result_item.pop('attributes', None)
     json_attributes = []
+    json_attributes_attribute = result_item.pop('attributes', None)
     if json_attributes_attribute:
-        try:
-            json_attributes = json.loads(json_attributes_attribute)
-            if not isinstance(json_attributes, list):
-                print(f'! attributes property was not a list, ignoring: {json_attributes_attribute}')
-        except json.JSONDecodeError as e:
-            print(f'! JSONDecodeError parsing attributes property, it should be a json list, ignoring: {json_attributes_attribute}')
+        if isinstance(json_attributes_attribute, list):
+            try:
+                json_attributes = [json.loads(json_attribute_string)
+                                   for json_attribute_string in json_attributes_attribute]
+            except json.JSONDecodeError:
+                print(f'!!! JSONDecodeError while parsing attributes property, ignoring: {json_attributes_attribute}')
+        else:
+            print(f'!!! the attributes edge property should be a list, ignoring: {json_attributes_attribute}')
     transformed_attributes = {
         'attributes': json_attributes
     }
