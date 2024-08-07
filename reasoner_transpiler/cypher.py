@@ -442,7 +442,7 @@ def transform_attributes(result_item, node=False):
         qualifiers = [key for key in result_item if key not in ignore_list
                       and bmt.is_qualifier(key)]
         transformed_attributes['qualifiers'] = [
-            {"qualifier_type_id": key,
+            {"qualifier_type_id": f"biolink:{key}",
              "qualifier_value": value}
             for key, value in result_item.items() if key in qualifiers
         ]

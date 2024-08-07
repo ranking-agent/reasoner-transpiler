@@ -36,8 +36,10 @@ def test_single_qualifier(neo4j_driver):
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
-    # make sure any edge s
     assert len(output["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
+    qualified_predicate_output = {'qualifier_type_id': 'biolink:qualified_predicate', 'qualifier_value': 'biolink:causes'}
+    qualifier_output = output["knowledge_graph"]["edges"]["qualified_edge_multiple_qualifier"]["qualifiers"]
+    assert qualified_predicate_output in qualifier_output
 
 
 def test_multi_qualifier(neo4j_driver):
@@ -77,6 +79,13 @@ def test_multi_qualifier(neo4j_driver):
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
     assert len(output["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 2
+    direction_qualifier_output = {'qualifier_type_id': 'biolink:object_direction_qualifier', 'qualifier_value': 'decreased'}
+    qualified_predicate_output = {'qualifier_type_id': 'biolink:qualified_predicate', 'qualifier_value': 'biolink:causes'}
+    aspect_qualifier_output = {'qualifier_type_id': 'biolink:object_aspect_qualifier', 'qualifier_value': 'activity'}
+    qualifier_output = output["knowledge_graph"]["edges"]["qualified_edge_multiple_qualifier"]["qualifiers"]
+    assert direction_qualifier_output in qualifier_output
+    assert aspect_qualifier_output in qualifier_output
+    assert qualified_predicate_output in qualifier_output
 
 
 def test_qualifier_heirarchy(neo4j_driver):
@@ -112,8 +121,8 @@ def test_qualifier_heirarchy(neo4j_driver):
     assert len(output["results"][0]["analyses"][0]["edge_bindings"]["e10a"]) == 1
 
 
-def test_phony_qualifier_value(neo4j_driver):
-    """ test that no edges are returned with a qualifier value that isn't valid"""
+def test_mismatch_qualifier_value(neo4j_driver):
+    """ test that no edges are returned with a qualifier value that doesn't match any edges"""
     qgraph = {
         "nodes": {
             "n0": {},
@@ -144,7 +153,7 @@ def test_phony_qualifier_value(neo4j_driver):
 
 
 def test_empty_qualifier_set(neo4j_driver):
-    """Test if edges satifying all constraints are returned"""
+    """Test if edges satisfying all constraints are returned"""
     qgraph = {
         "nodes": {
             "n0": {},
