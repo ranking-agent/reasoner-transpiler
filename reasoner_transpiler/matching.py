@@ -2,9 +2,21 @@
 from typing import Dict, List
 
 from .biolink import bmt, ALL_BIOLINK_ENUMS
-from .exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError, UnsupportedError
+from .exceptions import InvalidPredicateError, InvalidQualifierError, InvalidQualifierValueError, UnsupportedError, NoPossibleResultsException
 from .nesting import Query
 from .util import ensure_list, snake_case, space_case, pascal_case
+
+
+# A placeholder for an optional list of predicates to be used as a filter when constructing cypher queries.
+# If set, only the predicates in this list will be included in cypher queries.
+PREDICATES_IN_GRAPH = None
+
+
+# see PREDICATES_IN_GRAPH
+def set_predicates_in_graph(predicates: list):
+    global PREDICATES_IN_GRAPH
+    if predicates:
+        PREDICATES_IN_GRAPH = [space_case(p.removeprefix('biolink:')) for p in predicates]
 
 
 def cypher_prop_string(value):
@@ -40,7 +52,7 @@ def convert_constraints(constraints):
     return props
 
 
-class NodeReference():
+class NodeReference:
     """Node reference object."""
 
     def __init__(self, node_id, node, **kwargs):
@@ -169,7 +181,7 @@ class MissingReference(NodeReference):
         self._num = 2
 
 
-class EdgeReference():
+class EdgeReference:
     """Edge reference object."""
 
     def __init__(
@@ -192,6 +204,7 @@ class EdgeReference():
         # "related_to" has every predicate as a descendent, it's inclusion is equivalent to no/any predicate
         if 'biolink:related_to' in self.predicates:
             self.predicates = []
+        queried_predicates = self.predicates.copy()
 
         self.filters = []
         self.qualifier_filters = ""
@@ -229,7 +242,9 @@ class EdgeReference():
             f"biolink:{snake_case(p)}"
             for predicate in self.predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
-            if bmt.get_element(p).annotations.get('canonical_predicate', False) or 'symmetric' in bmt.get_element(p) and bmt.get_element(p).symmetric
+            if ((not PREDICATES_IN_GRAPH) or p in PREDICATES_IN_GRAPH) and
+            (bmt.get_element(p).annotations.get('canonical_predicate', False)
+             or ('symmetric' in bmt.get_element(p) and bmt.get_element(p).symmetric))
         ]
         # get all canonical and/or symmetric descendant predicates of inverse predicates if invert flag is true
         # otherwise get rid of all inverse predicates
@@ -237,10 +252,16 @@ class EdgeReference():
             f"biolink:{snake_case(p)}"
             for predicate in self.inverse_predicates
             for p in bmt.get_descendants(space_case(predicate[8:]))
-            if bmt.get_element(p).annotations.get('canonical_predicate', False) or 'symmetric' in bmt.get_element(p) and bmt.get_element(p).symmetric
+            if ((not PREDICATES_IN_GRAPH) or p in PREDICATES_IN_GRAPH) and
+            (bmt.get_element(p).annotations.get('canonical_predicate', False)
+             or ('symmetric' in bmt.get_element(p) and bmt.get_element(p).symmetric))
         ] if invert else []
 
         unique_preds = list(set(self.predicates + self.inverse_predicates))
+        if queried_predicates and not unique_preds:
+            raise NoPossibleResultsException(f'A query was made with the following predicates, '
+                                             f'but none of them or their descendants are in the graph queried: '
+                                             f'{queried_predicates}')
         #Having the predicates sorted doesn't matter to neo4j, but it helps in testing b/c we get a consistent string.
         unique_preds.sort()
         self.label = "|".join(

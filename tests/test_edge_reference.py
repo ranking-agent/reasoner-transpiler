@@ -1,6 +1,7 @@
 import pytest
 from ast import literal_eval
-from reasoner_transpiler.matching import EdgeReference
+from reasoner_transpiler.matching import EdgeReference, set_predicates_in_graph
+from reasoner_transpiler.exceptions import NoPossibleResultsException
 
 def test_symmetric():
     """When a parent is symmetric, it can have both symmetric and directed children.   All of the symmetric and only the canonical directed children
@@ -172,3 +173,46 @@ def test_no_predicate():
     assert not ref.directed
     assert not ref.cypher_invert
     assert len(ref.filters) == 0
+
+
+def test_predicates_in_graph_setting():
+    """Make sure that predicates aren't included if they aren't in the graph"""
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:treats_or_applied_or_studied_to_treat"]}
+    ref = EdgeReference("e0", edge, invert=True)
+    preds = ref.label.split('|')
+    expected_preds = [f"`biolink:{x}`" for x in ["ameliorates_condition", "applied_to_treat",
+                                                 "beneficial_in_models_for", "in_clinical_trials_for",
+                                                 "in_preclinical_trials_for",
+                                                 "preventative_for_condition", "studied_to_treat",
+                                                 "treats", "treats_or_applied_or_studied_to_treat"]]
+    assert set(preds) == set(expected_preds)
+
+    set_predicates_in_graph(["biolink:ameliorates_condition", "biolink:applied_to_treat",
+                             "biolink:beneficial_in_models_for", "biolink:in_clinical_trials_for",
+                             "biolink:in_preclinical_trials_for"])
+
+    """Make sure that predicates aren't included if they aren't in the graph"""
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:treats_or_applied_or_studied_to_treat"]}
+    ref = EdgeReference("e0", edge, invert=True)
+    preds = ref.label.split('|')
+    expected_preds = [f"`biolink:{x}`" for x in ["ameliorates_condition", "applied_to_treat",
+                                                 "beneficial_in_models_for", "in_clinical_trials_for",
+                                                 "in_preclinical_trials_for"]]
+    assert set(preds) == set(expected_preds)
+
+
+def test_predicates_in_graph_setting_no_results():
+
+    set_predicates_in_graph(["biolink:affects", "biolink:is_nonsense_variant_of"])
+
+    # related_to should get turned into no predicates but shouldn't throw the NoPossibleResultsException
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:related_to"]}
+    ref = EdgeReference("e0", edge, invert=True)
+    preds = ref.label.split('|')
+    expected_preds = ['']
+    assert preds == expected_preds
+
+    # treats_or_applied_or_studied_to_treat nor it's descendants are in the graph, throw NoPossibleResultsException
+    edge = {"subject": "s", "object": "o", "predicates": ["biolink:treats_or_applied_or_studied_to_treat"]}
+    with pytest.raises(NoPossibleResultsException):
+        ref = EdgeReference("e0", edge, invert=True)

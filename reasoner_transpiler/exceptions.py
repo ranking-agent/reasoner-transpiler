@@ -17,3 +17,8 @@ class InvalidQualifierValueError(Exception):
 class UnsupportedError(Exception):
     def __init__(self, error_message: str):
         super().__init__(error_message)
+
+
+class NoPossibleResultsException(Exception):
+    def __init__(self, error_message: str):
+        super().__init__(error_message)
