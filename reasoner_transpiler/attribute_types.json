@@ -1,3 +1,6 @@
 {
-    "publications": "biolink:publications"
+    "publications": {
+        "attribute_type_id": "biolink:publications",
+        "value_type_id": "linkml:Uriorcurie"
+    }
 }

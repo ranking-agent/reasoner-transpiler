@@ -1,7 +1,6 @@
 """Test querying with properties."""
 import pytest
-from reasoner_transpiler.cypher import get_query, set_custom_attribute_types, set_custom_attribute_value_types, \
-    set_custom_attribute_skip_list, get_attribute_type_and_value_type
+from reasoner_transpiler.cypher import get_query, set_custom_attribute_types, set_custom_attribute_skip_list
 from .fixtures import fixture_neo4j_driver
 
 
@@ -220,17 +219,15 @@ def test_props_customization(neo4j_driver):
     attributes = list(edges.values())[0]["attributes"]
     assert len(attributes) == 0
 
-    get_attribute_type_and_value_type.cache_clear()
-
     # reset the skip list
     set_custom_attribute_skip_list([])
 
     # set custom attribute and value types for publications and make sure they get used instead of biolink or defaults
     set_custom_attribute_types({
-        "publications": "transpiler:custom_attribute_type"
-    })
-    set_custom_attribute_value_types({
-        "publications": "transpiler:custom_value_type"
+        "publications": {
+            "attribute_type_id": "transpiler:custom_attribute_type",
+            "value_type_id": "transpiler:custom_value_type"
+        }
     })
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]

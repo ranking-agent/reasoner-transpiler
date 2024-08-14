@@ -13,8 +13,10 @@ DIR_PATH = Path(__file__).parent
 with open(DIR_PATH / "attribute_types.json", "r") as stream:
     ATTRIBUTE_TYPES = json.load(stream)
 
-with open(DIR_PATH / "value_types.json", "r") as stream:
-    VALUE_TYPES = json.load(stream)
+DEFAULT_ATTRIBUTE_TYPE = {
+    "attribute_type_id": "biolink:Attribute",
+    "value_type_id": "EDAM:data_0006",
+}
 
 ATTRIBUTE_SKIP_LIST = []
 
@@ -458,54 +460,11 @@ def transform_attributes(result_item, node=False):
          # the following function will return
          # 'attribute_type_id': 'biolink-ified attribute type id'
          # 'value_type_id': 'biolink-ified value type id'
-         **get_attribute_type_and_value_type(key)}
+         **ATTRIBUTE_TYPES.get(key, DEFAULT_ATTRIBUTE_TYPE)}
         for key, value in result_item.items()
         if key not in ignore_list + qualifiers
     ])
     return transformed_attributes
-
-
-@cache
-def get_attribute_type_and_value_type(attribute_name):
-    # Determine the attribute_type_id and value_type_id for an attribute.
-    # Look in biolink model for the correct values,
-    # override biolink model if custom mappings exist in ATTRIBUTE_TYPES or VALUE_TYPES.
-
-    # set defaults, these will be used if neither the biolink model nor custom mappings recognize the attribute
-    attr_meta_data = {
-        "attribute_type_id": "biolink:Attribute",
-        "value_type_id": "EDAM:data_0006",
-    }
-
-    # the following section using bmt was borrowed from Plater, it could probably use some work
-    # lookup the biolink info
-    bl_info = bmt.get_element(attribute_name)
-
-    # does attribute_name exist in the biolink model?
-    if bl_info is not None:
-        # if there are exact mappings use the first one
-        if 'slot_uri' in bl_info:
-            attr_meta_data['attribute_type_id'] = bl_info['slot_uri']
-
-            # was there a range value
-            if 'range' in bl_info and bl_info['range'] is not None:
-                # try to get the type of data
-                new_type = bmt.get_element(bl_info['range'])
-                # check if new_type is not None. For eg. bl_info['range'] = 'uriorcurie' for things
-                # for `relation` .
-                if new_type:
-                    if 'uri' in new_type and new_type['uri'] is not None:
-                        # get the real data type
-                        attr_meta_data["value_type_id"] = new_type['uri']
-        elif 'class_uri' in bl_info:
-            attr_meta_data['attribute_type_id'] = bl_info['class_uri']
-
-    # check custom mappings and override the biolink model if they exist
-    if attribute_name in ATTRIBUTE_TYPES:
-        attr_meta_data['attribute_type_id'] = ATTRIBUTE_TYPES[attribute_name]
-    if attribute_name in VALUE_TYPES:
-        attr_meta_data['value_type_id'] = VALUE_TYPES[attribute_name]
-    return attr_meta_data
 
 
 def convert_bolt_node_to_dict(bolt_node):
@@ -595,11 +554,6 @@ def convert_http_results_to_dict(results: dict) -> list:
 def set_custom_attribute_types(attribute_types: dict):
     global ATTRIBUTE_TYPES
     ATTRIBUTE_TYPES = attribute_types
-
-
-def set_custom_attribute_value_types(value_types: dict):
-    global VALUE_TYPES
-    VALUE_TYPES = value_types
 
 
 def set_custom_attribute_skip_list(skip_list: list):
