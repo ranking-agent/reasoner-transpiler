@@ -19,6 +19,11 @@ def set_predicates_in_graph(predicates: list):
         PREDICATES_IN_GRAPH = [space_case(p.removeprefix('biolink:')) for p in predicates]
 
 
+def reset_predicates_in_graph():
+    global PREDICATES_IN_GRAPH
+    PREDICATES_IN_GRAPH = None
+
+
 def cypher_prop_string(value):
     """Convert property value to cypher string representation."""
     if isinstance(value, bool):

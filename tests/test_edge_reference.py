@@ -1,6 +1,6 @@
 import pytest
 from ast import literal_eval
-from reasoner_transpiler.matching import EdgeReference, set_predicates_in_graph
+from reasoner_transpiler.matching import EdgeReference, set_predicates_in_graph, reset_predicates_in_graph
 from reasoner_transpiler.exceptions import NoPossibleResultsException
 
 def test_symmetric():
@@ -199,6 +199,7 @@ def test_predicates_in_graph_setting():
                                                  "beneficial_in_models_for", "in_clinical_trials_for",
                                                  "in_preclinical_trials_for"]]
     assert set(preds) == set(expected_preds)
+    reset_predicates_in_graph()
 
 
 def test_predicates_in_graph_setting_no_results():
@@ -216,3 +217,4 @@ def test_predicates_in_graph_setting_no_results():
     edge = {"subject": "s", "object": "o", "predicates": ["biolink:treats_or_applied_or_studied_to_treat"]}
     with pytest.raises(NoPossibleResultsException):
         ref = EdgeReference("e0", edge, invert=True)
+    reset_predicates_in_graph()
