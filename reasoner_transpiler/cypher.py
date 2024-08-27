@@ -30,7 +30,8 @@ RESERVED_EDGE_PROPS = [
     "id",
     "predicate",
     "object",
-    "subject"
+    "subject",
+    "sources"
 ]
 
 # this should really be one representation or the other, or be configurable,
@@ -181,20 +182,44 @@ def assemble_results(qnodes, qedges, **kwargs):
     return_clause = "RETURN results, knowledge_graph"
     """
 
-    nodes = [f"`{qnode_id}`" for qnode_id in qnodes]
-    edges = [f"`{qedge_id}`" for qedge_id in qedges]
-    return_clause = 'RETURN '
-    if nodes:
-        return_clause += ', '.join(nodes)
+    nodes = [f"`{qnode_id}`.id" for qnode_id, qnode in qnodes.items()]
+    edges = [f"elementId(`{qedge_id}`)" if not qedge.get('_subclass', False) else f"[x in `{qedge_id}` | elementId(x)]"
+             for qedge_id, qedge in qedges.items()]
+    if nodes or edges:
+        nodes_assemble = " + ".join([
+            f"collect(`{qnode_id}`)"
+            for qnode_id, qnode in qnodes.items()
+        ])
+        if not nodes_assemble:
+            nodes_assemble = '[]'
+        edges_assemble = " + ".join([
+            f"collect([elementId(`{qedge_id}`), startNode(`{qedge_id}`).id, "
+            f"type(`{qedge_id}`), endNode(`{qedge_id}`).id, properties(`{qedge_id}`)])"
+            if not qedge.get('_subclass', False) else
+            f"collect([x in `{qedge_id}` | [elementId(x), startNode(x).id, "
+            f"type(x), endNode(x).id, properties(x)]])"
+            for qedge_id, qedge in qedges.items()
+        ])
+        if not edges_assemble:
+            edges_assemble = '[]'
+        assemble_clause = f"WITH apoc.coll.toSet({nodes_assemble}) AS nodes, apoc.coll.toSet({edges_assemble}) AS edges, collect(DISTINCT ["
+
+        if nodes:
+            assemble_clause += ', '.join(nodes)
+            if edges:
+                assemble_clause += ', '
         if edges:
-            return_clause += ', '
-    if edges:
-        return_clause += ', '.join(edges)
-    if not (nodes or edges):
-        return_clause += '1'
+            assemble_clause += ', '.join(edges)
+        assemble_clause += "]) AS paths "
+        clauses.append(assemble_clause)
+        return_clause = "RETURN nodes, edges, paths"
+    else:
+        return_clause = 'RETURN [] as nodes, [] as edges, [] as paths'
+
     clauses.append(return_clause)
+    # TODO
     # add SKIP and LIMIT sub-clauses
-    clauses.extend(pagination(**kwargs))
+    # clauses.extend(pagination(**kwargs))
     return clauses
 
 
@@ -245,6 +270,7 @@ def transform_result(cypher_result,
     # use the protocol parameter if it's provided, otherwise use NEO4J_PROTOCOL set by configuration
     if not protocol:
         protocol = NEO4J_PROTOCOL
+
     if protocol == 'bolt':
         # if the protcol is bolt (from the python driver) cypher_result is a neo4j.Result
         bolt_protocol = True
@@ -256,88 +282,103 @@ def transform_result(cypher_result,
         # if cypher_result['errors']:
         #    raise Exception(f'Errors in http cypher result: {cypher_result["errors"]}')
 
+    nodes, edges, paths = unpack_bolt_result(cypher_result) if bolt_protocol else unpack_jolt_result(cypher_result)
+    print(paths)
+
+    # convert the list of unique result nodes from cypher results to dictionaries
+    # then convert them to TRAPI format, constructing the knowledge_graph["nodes"] section of the TRAPI response
     kg_nodes = {}
-    kg_edges = {}
-    all_qnode_ids = []
-    qnode_ids_to_return = []
-    qnodes_that_are_sets = set()
-    for qnode_id, qnode in qgraph["nodes"].items():
-        all_qnode_ids.append(qnode_id)
-        if qnode.get('_return', True):
-            qnode_ids_to_return.append(qnode_id)
-            if qnode.get('set_interpretation', 'BATCH') == 'ALL':
-                qnodes_that_are_sets.add(qnode_id)
+    for cypher_node in nodes:
+        node = convert_bolt_node_to_dict(cypher_node) if bolt_protocol else convert_jolt_node_to_dict(cypher_node)
+        kg_nodes[node['id']] = {
+            'name': node['name'],
+            'categories': list(node.pop('labels')),
+            **transform_attributes(node, node=True)}
+    # print(kg_nodes)
 
-    jolt_element_id_lookup = {}  # used by jolt implementation to look up nodes by their element ids
-    results = {}  # results are grouped by unique sets of result node ids
-    record_iterator = cypher_result if bolt_protocol else iterate_through_jolt_response(cypher_result)
-    for cypher_record in record_iterator:
-        result_nodes = {}
-        if bolt_protocol:
-            for qnode_id in all_qnode_ids:
-                result_nodes[qnode_id] = convert_bolt_node_to_dict(cypher_record[qnode_id])
+    # convert the list of unique edges from cypher results to dictionaries
+    # then convert them to TRAPI format, constructing the knowledge_graph["edges"] section of the TRAPI response
+    # also make a mapping of the neo4j element_id to the edge id to be used in the TRAPI response edge bindings
+    # the edge id used in TRAPI is the 'id' property on the edge if there is one, otherwise assigned integers 0,1,2..
+    kg_edges = {}   # the
+    element_id_to_edge_id = {}
+    for edge_index, cypher_edge_result in enumerate(edges):
+        # skip an empty list
+        if len(cypher_edge_result) == 0:
+            cypher_edges = []
+        # check to see if it's a list of lists (multiple edges)
+        elif isinstance(cypher_edge_result[0], list):
+            cypher_edges = cypher_edge_result
         else:
-            for qnode_id in all_qnode_ids:
-                jolt_node = convert_jolt_node_to_dict(cypher_record[qnode_id])
-                jolt_element_id_lookup[jolt_node.pop('element_id')] = jolt_node['id']
-                result_nodes[qnode_id] = jolt_node
+            # otherwise it's just one list (one edge)
+            cypher_edges = list()  # this looks weird, but it's necessary to make a list of one list (I think?)
+            cypher_edges.append(cypher_edge_result)
+        for cypher_edge in cypher_edges:
+            edge_element_id, edge_dict = convert_bolt_edge_to_dict(cypher_edge)
+            edge_id = edge_dict.get('id', edge_index)
+            element_id_to_edge_id[edge_element_id] = edge_id
+            # get properties matching EDGE_SOURCE_PROPS keys, remove biolink: if needed,
+            # then pass (key, value) tuples to construct_sources_tree for formatting, constructing the 'sources' section
+            edge_dict['sources'] = construct_sources_tree([
+                    (edge_source_prop.removeprefix('biolink:'), edge_dict.get(edge_source_prop))
+                    for edge_source_prop in EDGE_SOURCE_PROPS if edge_dict.get(edge_source_prop, None)])
+            # process other attributes from the edge, populate qualifiers and attributes,
+            # convert all attributes to TRAPI format
+            edge_dict.update(transform_attributes(edge_dict, node=False))
+            kg_edges[edge_id] = edge_dict
 
-        node_bindings = {}
+    results = {}  # results are grouped by unique sets of result node ids
+
+    # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
+    # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
+    # We know how many to expect of each with the qgraph and can iterate through nodes, then edges,
+    # mapping the path values from query results to their corresponding qnode and qedge items from the qgraph.
+    for path in paths:
         result_node_ids_key = ''
-        for qnode_id in qnode_ids_to_return:
-            result_node = result_nodes[qnode_id]
-            if result_node is None:
+        node_bindings = {}
+        nodes_from_path = path[:len(qgraph["nodes"])]
+        qnode_id_to_node_id = {qnode_id: result_node_id for (qnode_id, result_node_id) in
+                               zip(qgraph["nodes"], nodes_from_path)}
+        for (qnode_id, qnode), result_node_id in zip(qgraph["nodes"].items(), nodes_from_path):
+            if qnode.get('_superclass', False):
+                continue
+            if not result_node_id:
                 node_bindings[qnode_id] = []
                 continue
 
-            result_node_id = result_node['id']
             result_node_ids_key += result_node_id
-            if qnode_id in qnodes_that_are_sets:
+            if qnode.get('set_interpretation', 'BATCH') == 'ALL':
                 # if qnode has set_interpretation=ALL there won't be any superclass bindings
                 node_bindings[qnode_id] = [{'id': result_node_id, 'attributes': []}]
             else:
-                # otherwise create a list of the id mappings including query_ids if they exist
-                # and aren't the same as the actual id
+                # otherwise create the normal node bindings
+                # include query_id if a superclass node was included in the query for this qnode
+                # and the result node id is not the same as the superclass node id
+                qnode_superclass = f'{qnode_id}_superclass'
                 node_bindings[qnode_id] = \
                     [{'id': result_node_id,
-                      'query_id': result_nodes[f'{qnode_id}_superclass']['id'],
+                      'query_id': qnode_id_to_node_id[qnode_superclass],
                       'attributes': []}
-                     if f'{qnode_id}_superclass' in all_qnode_ids and
-                        result_nodes[f'{qnode_id}_superclass']['id'] != result_node_id else
+                     if qnode_superclass in qnode_id_to_node_id and
+                        qnode_id_to_node_id[qnode_superclass] != result_node_id else
                      {'id': result_node_id,
                       'attributes': []}]
 
-            if result_node_id not in kg_nodes:
-                kg_nodes[result_node_id] = {
-                    'name': result_node['name'],
-                    'categories': list(result_node.pop('labels'))
-                }
-                kg_nodes[result_node_id].update(transform_attributes(result_node, node=True))
-
         edge_bindings = {}
-        for qedge_id, qedge in qgraph['edges'].items():
-            if not cypher_record[qedge_id]:
+        for (qedge_id, qedge), path_edge in zip(qgraph['edges'].items(), path[-len(qgraph['edges']):]):
+            if not path_edge:
                 continue
-            result_edges = convert_bolt_edge_to_dict(cypher_record[qedge_id]) if bolt_protocol \
-                else convert_jolt_edge_to_dict(cypher_record[qedge_id], jolt_element_id_lookup)
-            if qedge.get('_return', True):
-                for result_edge in result_edges:
-                    graph_edge_id = result_edge['id']
-                    edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
-                    if graph_edge_id not in kg_edges:
-                        kg_edges[graph_edge_id] = {
-                            'subject': result_edge['subject'],
-                            'predicate': result_edge['predicate'],
-                            'object': result_edge['object'],
-                            # get properties matching EDGE_SOURCE_PROPS and remove biolink: if needed
-                            # then pass (key, value) tuples to construct_sources_tree for formatting
-                            'sources': construct_sources_tree([
-                                (edge_source_prop.removeprefix('biolink:'), result_edge.get(edge_source_prop))
-                                for edge_source_prop in EDGE_SOURCE_PROPS if result_edge.get(edge_source_prop, None)
-                            ])
-                        }
-                        # grab other attributes from the edge and populate qualifiers and attributes
-                        kg_edges[graph_edge_id].update(transform_attributes(result_edge, node=False))
+            if qedge.get('_subclass', False):
+                # handle multiple edges
+                # if isinstance(path_edge, str):
+                #     path_edges = [path_edge]
+                # else:
+                #    path_edges = path_edge
+                pass
+            else:
+                edge_element_id = path_edge
+                graph_edge_id = element_id_to_edge_id[edge_element_id]
+                edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
 
         if result_node_ids_key != '':  # avoid adding results for the default node binding key ''
             # if we haven't encountered this specific group of result nodes before, create a new result
@@ -354,9 +395,9 @@ def transform_result(cypher_result,
                           results[result_node_ids_key]['analyses'][0]['edge_bindings'][qedge_id]]])
 
     knowledge_graph = {
-            'nodes': kg_nodes,
-            'edges': kg_edges
-        }
+        'nodes': kg_nodes,
+        'edges': kg_edges
+    }
     transformed_results = {
         'results': list(results.values()),  # convert the results dictionary to a flattened list
         'knowledge_graph': knowledge_graph
@@ -471,6 +512,7 @@ def convert_bolt_node_to_dict(bolt_node):
     if not bolt_node:
         return None
     node = {key: value for key, value in bolt_node.items()}
+    # node['element_id'] = bolt_node.element_id
     node['labels'] = bolt_node.labels
     return node
 
@@ -486,21 +528,21 @@ def convert_jolt_node_to_dict(jolt_node):
 
 def convert_bolt_edge_to_dict(bolt_edge):
     if not bolt_edge:
-        return None
-    # print(bolt_edge)
-    bolt_edges = [bolt_edge] if not isinstance(bolt_edge, list) else bolt_edge
+        print(f'Tried to convert a missing edge: {bolt_edge}')
+        return None, None
 
-    converted_edges = []
-    for bolt_edge in bolt_edges:
-        edge = {key: value for key, value in bolt_edge.items()}  # start with the properties
-        edge.update({  #
-            'subject': bolt_edge.start_node.get('id'),
-            'predicate': bolt_edge.type,
-            'object': bolt_edge.end_node.get('id')})  # add the SPO from the other properties of the bolt response list
-        if 'id' not in edge:
-            edge['id'] = bolt_edge.element_id  # if the edge didn't have an "id" use the neo4j element id
-        converted_edges.append(edge)
-    return converted_edges
+    # Convert a list representing an edge from cypher results into a dictionary.
+    # This is not a standard Edge object from the bolt driver, it's a list product of a specific cypher return format.
+    # This is done to prevent including redundant node information on every edge.
+    # See the cypher generated in the edges_assemble clause in assemble_results() for more details.
+    element_id = bolt_edge[0]
+    converted_edge = {
+        'subject': bolt_edge[1],
+        'predicate': bolt_edge[2],
+        'object': bolt_edge[3],
+        **bolt_edge[4]
+    }
+    return element_id, converted_edge
 
 
 def convert_jolt_edge_to_dict(jolt_edges, jolt_element_id_lookup):
@@ -512,17 +554,23 @@ def convert_jolt_edge_to_dict(jolt_edges, jolt_element_id_lookup):
     for jolt_edge in jolt_edges:
         jolt_edge = next(iter(jolt_edge.values()))
         edge = jolt_edge[4]  # start with the properties
+        # add the SPO from the other items of the jolt edge list
         edge.update({
             'subject': jolt_element_id_lookup[jolt_edge[1]],
             'predicate': jolt_edge[2],
-            'object': jolt_element_id_lookup[jolt_edge[3]]})  # add the SPO from the other items of the jolt response list
+            'object': jolt_element_id_lookup[jolt_edge[3]]})
         if 'id' not in edge:
             edge['id'] = jolt_edge[0]  # if the edge didn't have an "id" use the neo4j element id
         convert_edges.append(edge)
     return convert_edges
 
 
-def iterate_through_jolt_response(jolt_response):
+def unpack_bolt_result(bolt_response):
+    record = bolt_response.single()
+    return record['nodes'], record['edges'], record['paths']
+
+
+def unpack_jolt_result(jolt_response):
     headers = []
     for line in jolt_response.split("\n"):
         line = json.loads(line)
@@ -530,9 +578,7 @@ def iterate_through_jolt_response(jolt_response):
             headers = line['header']['fields']
         elif 'data' in line:
             data = {header: data_item for (header, data_item) in zip(headers, line['data'])}
-            yield data
-        elif 'info' in line:
-            break
+            return data['nodes'], data['edges'], data['paths']
 
 
 def convert_http_results_to_dict(results: dict) -> list:
