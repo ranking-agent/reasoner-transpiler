@@ -283,7 +283,6 @@ def transform_result(cypher_result,
         #    raise Exception(f'Errors in http cypher result: {cypher_result["errors"]}')
 
     nodes, edges, paths = unpack_bolt_result(cypher_result) if bolt_protocol else unpack_jolt_result(cypher_result)
-    print(paths)
 
     # convert the list of unique result nodes from cypher results to dictionaries
     # then convert them to TRAPI format, constructing the knowledge_graph["nodes"] section of the TRAPI response
@@ -294,7 +293,6 @@ def transform_result(cypher_result,
             'name': node['name'],
             'categories': list(node.pop('labels')),
             **transform_attributes(node, node=True)}
-    # print(kg_nodes)
 
     # convert the list of unique edges from cypher results to dictionaries
     # then convert them to TRAPI format, constructing the knowledge_graph["edges"] section of the TRAPI response
@@ -548,7 +546,6 @@ def convert_bolt_edge_to_dict(bolt_edge):
 def convert_jolt_edge_to_dict(jolt_edges, jolt_element_id_lookup):
     if not jolt_edges:
         return None
-    # print(jolt_edge)
     convert_edges = []
     jolt_edges = [jolt_edges] if not isinstance(jolt_edges, list) else jolt_edges
     for jolt_edge in jolt_edges:
