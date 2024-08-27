@@ -65,7 +65,7 @@ def test_onehop_subclass_categories():
     }
     query = get_query(qgraph)
     #make sure that the class (PhenotypicFeature) has been removed from n0
-    clause = query.split('RETURN')[0]
+    clause = query.split('WITH')[0]
     elements = clause.split('-')
     checked = False
     for element in elements:
