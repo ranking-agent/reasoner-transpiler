@@ -453,38 +453,42 @@ def match_query(qgraph, subclass=True, **kwargs):
     Returns the query fragment as a string.
     """
 
-    # If there's no label on a query node, neo4j can't use an index. Add the root entity type as a category.
+    # If there's no label on a query node, neo4j can't use an index for id lookups.
+    # So, if there's an ID but no specific cateogries, add the root entity type NamedThing.
     for qnode_id, qnode in qgraph["nodes"].items():
-        if qnode.get("ids", None) is not None and qnode.get("categories",None) is None:
+        if qnode.get("ids", None) is not None and qnode.get("categories", None) is None:
             qnode["categories"] = ["biolink:NamedThing"]
 
-    # Find all of the qnode ids that have subclass or superclass edges connected to them
-    qnode_ids_with_hierarchy_edges = set()
-    for qedge_id, qedge in qgraph["edges"].items():
-        predicates = qedge.get("predicates", None)
-        if predicates and ("biolink:subclass_of" in predicates or "biolink:superclass_of" in predicates):
-            qnode_ids_with_hierarchy_edges.add(qedge['subject'])
-            qnode_ids_with_hierarchy_edges.add(qedge['object'])
-
     if subclass:
+        # We don't want to include subclass nodes in queries that explicitly ask for subclass relationships.
+        # Find all the qnode ids that have subclass or superclass edges connected to them, so we can handle excluding them.
+        qnode_ids_with_hierarchy_edges = set()
+        for qedge_id, qedge in qgraph["edges"].items():
+            predicates = qedge.get("predicates", None)
+            if predicates and ("biolink:subclass_of" in predicates or "biolink:superclass_of" in predicates):
+                qnode_ids_with_hierarchy_edges.add(qedge['subject'])
+                qnode_ids_with_hierarchy_edges.add(qedge['object'])
         superclasses = {
+            # make superclass nodes for the pinned nodes (except ones with explicit subclass edges attached)
             qnode_id + "_superclass": {
                 "ids": qnode.pop("ids"),
                 "categories": qnode.pop("categories", None),
-                "_return": False,
+                "_superclass": True
             }
             for qnode_id, qnode in qgraph["nodes"].items()
             if qnode.get("ids", None) is not None and qnode_id not in qnode_ids_with_hierarchy_edges
         }
         if 'subclass_depth' in kwargs:
-            if not isinstance(kwargs['subclass_depth'], int):
-                raise TypeError(f"Unsupported subclass_depth type: {type(kwargs['subclass_depth']).__name__}.")
-            elif kwargs['subclass_depth'] < 0:
+            subclass_depth = kwargs['subclass_depth']
+            if not isinstance(subclass_depth, int):
+                raise TypeError(f"Unsupported subclass_depth type: {type(subclass_depth).__name__}.")
+            elif subclass_depth < 0:
                 raise ValueError(f"Parameter subclass_depth must be a positive integer.")
             else:
                 subclass_depth = kwargs['subclass_depth']
         else:
             subclass_depth = 1
+        # make variable length subclass edges to all the superclass nodes
         subclass_edges = {
             qnode_id[:-11] + "_subclass_edge": {
                 "subject": qnode_id[:-11],
@@ -492,10 +496,11 @@ def match_query(qgraph, subclass=True, **kwargs):
                 "predicates": ["biolink:subclass_of"],
                 "_length": (0, subclass_depth),
                 "_invert": False,
-                "_return": False,
+                "_subclass": True
             }
             for qnode_id in superclasses
         }
+        # add the sub/super class nodes and edges to the qgraph
         qgraph["nodes"].update(superclasses)
         qgraph["edges"].update(subclass_edges)
 
