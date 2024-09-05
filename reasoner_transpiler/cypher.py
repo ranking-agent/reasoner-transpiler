@@ -6,7 +6,6 @@ from pathlib import Path
 
 from .biolink import bmt
 from .matching import match_query
-from .exceptions import UnsupportedError
 
 DIR_PATH = Path(__file__).parent
 
@@ -61,7 +60,11 @@ def assemble_results(qnodes, qedges, **kwargs):
 
     for qnode in qnodes.values():
         if qnode.get("set_interpretation", "") == "MANY":
-            raise UnsupportedError(f'This feature is currently not supported: set_interpretation=MANY')
+            raise NotImplementedError(f'This feature is currently not implemented: set_interpretation=MANY')
+
+    # TODO - implement pagination (SKIP and LIMIT)
+    #  right now SKIP and LIMIT are unsupported and this will throw NotImplementedError if they are requested
+    pagination(**kwargs)
 
     """
     The following is the old way of assembling results within the cypher query, it doesn't work in neo4j 5 because
@@ -217,9 +220,6 @@ def assemble_results(qnodes, qedges, **kwargs):
         return_clause = 'RETURN [] as nodes, [] as edges, [] as paths'
 
     clauses.append(return_clause)
-    # TODO
-    # add SKIP and LIMIT sub-clauses
-    # clauses.extend(pagination(**kwargs))
     return clauses
 
 
@@ -227,9 +227,11 @@ def pagination(skip=None, limit=None, **kwargs):
     """Get pagination clauses."""
     clauses = []
     if skip is not None:
-        clauses.append(f"SKIP {skip}")
+        raise NotImplementedError(f'SKIP is not currently implemented.')
+        # clauses.append(f"SKIP {skip}")
     if limit is not None:
-        clauses.append(f"LIMIT {limit}")
+        raise NotImplementedError(f'LIMIT is not currently implemented.')
+        # clauses.append(f"LIMIT {limit}")
     return clauses
 
 

@@ -25,6 +25,13 @@ def test_skip_limit(neo4j_driver):
         },
     }
     all_results = []
+    with pytest.raises(NotImplementedError):
+        output = neo4j_driver.run(get_query(qgraph, limit=2), convert_to_trapi=True, qgraph=qgraph)
+    with pytest.raises(NotImplementedError):
+        output = neo4j_driver.run(get_query(qgraph, skip=2), convert_to_trapi=True, qgraph=qgraph)
+
+    """
+    the following should pass if skip and limit are implemented
     output = neo4j_driver.run(get_query(qgraph, limit=2), convert_to_trapi=True, qgraph=qgraph)
     all_results.extend(output["results"])
     assert len(output["results"]) == 2
@@ -37,6 +44,7 @@ def test_skip_limit(neo4j_driver):
         result["node_bindings"]["n1"][0]["id"]
         for result in all_results
     )
+    """
 
 
 def test_max_connectivity(neo4j_driver):
