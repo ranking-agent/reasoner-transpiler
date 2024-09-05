@@ -1,7 +1,6 @@
 """Tools for compiling QGraph into Cypher query."""
 import os
 import json
-from functools import cache
 from pathlib import Path
 
 from .biolink import bmt
@@ -286,21 +285,231 @@ def transform_result(cypher_result,
 
     nodes, edges, paths = unpack_bolt_result(cypher_result) if bolt_protocol else unpack_jolt_result(cypher_result)
 
-    # convert the list of unique result nodes from cypher results to dictionaries
+    # Convert the list of unique result nodes from cypher results to dictionaries
     # then convert them to TRAPI format, constructing the knowledge_graph["nodes"] section of the TRAPI response
+    kg_nodes = transform_nodes_list(nodes)
+
+    # Convert the list of unique edges from cypher results to dictionaries
+    # then convert them to TRAPI format, constructing the knowledge_graph["edges"] section of the TRAPI response.
+    # Also make a mapping of the neo4j element_id to the edge id to be used in the TRAPI edge bindings
+    # the edge id used in TRAPI is the 'id' property on the edge if there is one, otherwise assigned integers 0,1,2..
+    kg_edges, element_id_to_edge_id = transform_edges_list(edges)
+
+    results = {}  # results are grouped by unique sets of result node ids
+    aux_graphs = {}  # auxiliary_graphs
+
+    qgraph_nodes = qgraph["nodes"]
+    qnodes_with_set_interpretation_all = {qnode_id for qnode_id, qnode in qgraph_nodes.items()
+                                          if qnode.get('set_interpretation', 'BATCH') == 'ALL'}
+    qnodes_with_superclass_nodes = {qnode_id for qnode_id, qnode in qgraph_nodes.items()
+                                    if f'{qnode_id}_superclass' in qgraph_nodes}
+
+    qgraph_edges = qgraph["edges"]
+    qedges_with_attached_subclass_edges = {}
+    for qedge_id, qedge in qgraph_edges.items():
+        if not qedge.get('_subclass', False):
+            if qedge["subject"] in qnodes_with_superclass_nodes:
+                qedges_with_attached_subclass_edges[qedge_id] = \
+                    f'{qedge["subject"]}_subclass_edge', 'subject', f'{qedge["subject"]}_superclass'
+            if qedge["object"] in qnodes_with_superclass_nodes:
+                qedges_with_attached_subclass_edges[qedge_id] = \
+                    f'{qedge["object"]}_subclass_edge', 'object', f'{qedge["object"]}_superclass'
+
+    # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
+    # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
+    for path in paths:
+        skip_this_path = False
+
+        # Map results/paths to their corresponding qnodes and qedges
+        qnode_id_to_results = {qnode_id: (qnode, result_node_id) for (qnode_id, qnode), result_node_id in
+                               zip(qgraph_nodes.items(), path[:len(qgraph_nodes)])}
+        qedge_id_to_results = {qedge_id: (qedge, result_edge_id) for (qedge_id, qedge), result_edge_id in
+                               zip(qgraph_edges.items(), path[-len(qgraph_edges):])}
+
+        # results are grouped by unique sets of nodes, concatenating node ids to this string generates the key
+        result_key = ""
+
+        # create TRAPI node bindings
+        edge_bindings = {}
+        node_bindings = {}
+        support_graphs = set()
+        for qnode_id, (qnode, result_node_id) in qnode_id_to_results.items():
+
+            # don't return superclass qnodes in the node bindings
+            if qnode.get('_superclass', False):
+                continue
+            # if there isn't a result for this node set an empty node binding
+            if not result_node_id:
+                node_bindings[qnode_id] = []
+                continue
+
+            # create a node binding
+            if qnode_id in qnodes_with_set_interpretation_all:
+                # if qnode has set_interpretation=ALL there won't be any superclass bindings
+                node_bindings[qnode_id] = [{'id': result_node_id, 'attributes': []}]
+
+            elif qnode_id in qnodes_with_superclass_nodes:
+                # If the qnode has a superclass node, and it has a different result node id,
+                # use the superclass result node id instead, because it's the actual query id.
+                # We used to include the query_id property here to show that, but now we're making a support graph
+                # that can represent the underlying subclass edge(s).
+                superclass_qnode, superclass_result_id = qnode_id_to_results[f'{qnode_id}_superclass']
+                if superclass_result_id == result_node_id:
+                    node_bindings[qnode_id] = \
+                        [{'id': result_node_id,
+                          'attributes': []}]
+                else:
+                    node_bindings[qnode_id] = \
+                        [{'id': superclass_result_id,
+                          'attributes': []}]
+                    # for cases where we have a node with a superclass node, but no qedges_with_attached_subclass_edges,
+                    # it means the query had unconnected nodes we need to make support graphs for
+                    if not qedges_with_attached_subclass_edges:
+                        # find the results for the subclass edge
+                        subclass_qedge = f'{qnode_id}_subclass_edge'
+                        qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge]
+                        # make a list of ids for the subclass edges
+                        composite_edges = [element_id_to_edge_id[ele_id] for ele_id in subclass_edge_element_ids]
+                        # make a composite id with all of their kg edge ids
+                        composite_edge_id = "_".join(composite_edges)
+                        aux_graph_id = f"aux_{composite_edge_id}"
+                        support_graphs.add(aux_graph_id)
+                        if composite_edge_id not in aux_graphs:
+                            aux_graphs[f"aux_{composite_edge_id}"] = {
+                                "edges": composite_edges,
+                                "attributes": []
+                            }
+            else:
+                # Otherwise, create a normal node binding.
+                node_bindings[qnode_id] = \
+                    [{'id': result_node_id,
+                      'attributes': []}]
+
+            # add the result node id to the result key
+            result_key += node_bindings[qnode_id][0]['id']
+
+        # Create TRAPI edge bindings
+        for qedge_id, (qedge, path_edge) in qedge_id_to_results.items():
+
+            # skip empty results
+            if not path_edge or skip_this_path:
+                continue
+            # don't return subclass qedges in the edge bindings
+            if qedge.get("_subclass", False):
+                continue
+
+            # find the knowledge graph edge id for the element id from the path edge
+            edge_element_id = path_edge
+            graph_edge_id = element_id_to_edge_id[edge_element_id]
+
+            # Check to see if the edge has subclass edges that are connected to it
+            subclass_edge, subclass_subject_or_object, superclass_qnode_id = \
+                qedges_with_attached_subclass_edges.get(qedge_id, (None, None, None))
+            if subclass_edge:
+                # If so, check to see if there are results for it
+                qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_edge]
+                # This handles cases where a subclass edge is part of the actual result but is also getting included
+                # in the subclass inference edge which creates a useless and weird result using the same edge twice.
+                # Just ignore them instead, because the result with one subclass edge should still be accounted for
+                # separately with the direct path.
+                if edge_element_id in subclass_edge_element_ids:
+                    skip_this_path = True
+                    continue
+                if subclass_edge_element_ids:
+                    # If path_edge is Truthy, it means the subclass was used in the result.
+                    # For subclass edges, path result is a list of element ids, due to being a variable length edge.
+                    # make a list of the subclass edges plus the result edge from the query.
+                    composite_edges = [graph_edge_id] + [element_id_to_edge_id[ele_id] for ele_id in subclass_edge_element_ids]
+                    # make a composite id with all of their kg edge ids
+                    composite_edge_id = "_".join(composite_edges)
+                    aux_graph_id = f"aux_{composite_edge_id}"
+                    support_graphs.add(aux_graph_id)
+                    if composite_edge_id not in kg_edges:
+                        aux_graphs[f"aux_{composite_edge_id}"] = {
+                            "edges": composite_edges,
+                            "attributes": []
+                        }
+                        real_edge = kg_edges[graph_edge_id]
+                        qnode, superclass_result_node_id = qnode_id_to_results[superclass_qnode_id]
+                        inferred_result_edge = {"predicate": real_edge["predicate"],
+                                                "subject": real_edge["subject"],
+                                                "object": real_edge["object"],
+                                                "attributes": [
+                                                    {
+                                                        "value": "logical_entailment",
+                                                        "attribute_type_id": "biolink:knowledge_level"
+                                                    },
+                                                    {
+                                                        "value": "automated_agent",
+                                                        "attribute_type_id": "biolink:agent_type"
+                                                    }
+                                                ],
+                                                "sources": [
+                                                    {
+                                                        "resource_id": PROVENANCE_TAG,
+                                                        "resource_role": "primary_knowledge_source"
+                                                    }
+                                                ],
+                                                # this actually just overwrites either subject or object
+                                                subclass_subject_or_object: superclass_result_node_id}
+                        kg_edges[composite_edge_id] = inferred_result_edge
+                    # make an edge binding with the inferred subclass edge
+                    edge_bindings[qedge_id] = [{'id': composite_edge_id, 'attributes': []}]
+                else:
+                    # make a normal edge binding
+                    edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
+            else:
+                # make a normal edge binding
+                edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
+
+        if result_key != '' and not skip_this_path:  # avoid adding results for the default node binding key ''
+            # if we haven't encountered this specific group of result nodes before, create a new result
+            if result_key not in results:
+                results[result_key] = {'analyses': [{'edge_bindings': edge_bindings,
+                                                     'resource_id': PROVENANCE_TAG}],
+                                       'node_bindings': node_bindings}
+                if support_graphs:
+                    results[result_key]['analyses'][0]['support_graphs'] = list(support_graphs)
+
+            else:
+                # otherwise append new edge bindings to the existing result
+                for qedge_id, edge_binding_list in edge_bindings.items():
+                    results[result_key]['analyses'][0]['edge_bindings'][qedge_id].extend(
+                        [new_edge_bind for new_edge_bind in edge_binding_list if new_edge_bind['id'] not in
+                         [existing_edge_bind['id'] for existing_edge_bind in
+                          results[result_key]['analyses'][0]['edge_bindings'][qedge_id]]])
+                if support_graphs:
+                    if 'support_graphs' not in results[result_key]['analyses'][0]:
+                        results[result_key]['analyses'][0]['support_graphs'] = list(support_graphs)
+                    else:
+                        support_graphs.update(results[result_key]['analyses'][0]['support_graphs'])
+                        results[result_key]['analyses'][0]['support_graphs'] = list(support_graphs)
+
+    knowledge_graph = {
+        'nodes': kg_nodes,
+        'edges': kg_edges
+    }
+    transformed_results = {
+        'results': list(results.values()),  # convert the results dictionary to a flattened list
+        'knowledge_graph': knowledge_graph,
+        'auxiliary_graphs': aux_graphs
+    }
+    return transformed_results
+
+
+def transform_nodes_list(nodes):
     kg_nodes = {}
     for cypher_node in nodes:
-        node = convert_bolt_node_to_dict(cypher_node) if bolt_protocol else convert_jolt_node_to_dict(cypher_node)
+        node = convert_bolt_node_to_dict(cypher_node)
         kg_nodes[node['id']] = {
             'name': node['name'],
             'categories': list(node.pop('labels')),
             **transform_attributes(node, node=True)}
+    return kg_nodes
 
-    # convert the list of unique edges from cypher results to dictionaries
-    # then convert them to TRAPI format, constructing the knowledge_graph["edges"] section of the TRAPI response
-    # also make a mapping of the neo4j element_id to the edge id to be used in the TRAPI response edge bindings
-    # the edge id used in TRAPI is the 'id' property on the edge if there is one, otherwise assigned integers 0,1,2..
-    kg_edges = {}   # the
+
+def transform_edges_list(edges):
+    kg_edges = {}
     element_id_to_edge_id = {}
     for edge_index, cypher_edge_result in enumerate(edges):
         # skip an empty list
@@ -313,6 +522,8 @@ def transform_result(cypher_result,
             # otherwise it's just one list (one edge)
             cypher_edges = list()  # this looks weird, but it's necessary to make a list of one list (I think?)
             cypher_edges.append(cypher_edge_result)
+
+        # transform the edge into TRAPI
         for cypher_edge in cypher_edges:
             edge_element_id, edge_dict = convert_bolt_edge_to_dict(cypher_edge)
             edge_id = edge_dict.get('id', edge_index)
@@ -322,87 +533,10 @@ def transform_result(cypher_result,
             edge_dict['sources'] = construct_sources_tree([
                     (edge_source_prop.removeprefix('biolink:'), edge_dict.get(edge_source_prop))
                     for edge_source_prop in EDGE_SOURCE_PROPS if edge_dict.get(edge_source_prop, None)])
-            # process other attributes from the edge, populate qualifiers and attributes,
-            # convert all attributes to TRAPI format
+            # convert all remaining attributes to TRAPI format
             edge_dict.update(transform_attributes(edge_dict, node=False))
             kg_edges[edge_id] = edge_dict
-
-    results = {}  # results are grouped by unique sets of result node ids
-
-    # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
-    # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
-    # We know how many to expect of each with the qgraph and can iterate through nodes, then edges,
-    # mapping the path values from query results to their corresponding qnode and qedge items from the qgraph.
-    for path in paths:
-        result_node_ids_key = ''
-        node_bindings = {}
-        nodes_from_path = path[:len(qgraph["nodes"])]
-        qnode_id_to_node_id = {qnode_id: result_node_id for (qnode_id, result_node_id) in
-                               zip(qgraph["nodes"], nodes_from_path)}
-        for (qnode_id, qnode), result_node_id in zip(qgraph["nodes"].items(), nodes_from_path):
-            if qnode.get('_superclass', False):
-                continue
-            if not result_node_id:
-                node_bindings[qnode_id] = []
-                continue
-
-            result_node_ids_key += result_node_id
-            if qnode.get('set_interpretation', 'BATCH') == 'ALL':
-                # if qnode has set_interpretation=ALL there won't be any superclass bindings
-                node_bindings[qnode_id] = [{'id': result_node_id, 'attributes': []}]
-            else:
-                # otherwise create the normal node bindings
-                # include query_id if a superclass node was included in the query for this qnode
-                # and the result node id is not the same as the superclass node id
-                qnode_superclass = f'{qnode_id}_superclass'
-                node_bindings[qnode_id] = \
-                    [{'id': result_node_id,
-                      'query_id': qnode_id_to_node_id[qnode_superclass],
-                      'attributes': []}
-                     if qnode_superclass in qnode_id_to_node_id and
-                        qnode_id_to_node_id[qnode_superclass] != result_node_id else
-                     {'id': result_node_id,
-                      'attributes': []}]
-
-        edge_bindings = {}
-        for (qedge_id, qedge), path_edge in zip(qgraph['edges'].items(), path[-len(qgraph['edges']):]):
-            if not path_edge:
-                continue
-            if qedge.get('_subclass', False):
-                # handle multiple edges
-                # if isinstance(path_edge, str):
-                #     path_edges = [path_edge]
-                # else:
-                #    path_edges = path_edge
-                pass
-            else:
-                edge_element_id = path_edge
-                graph_edge_id = element_id_to_edge_id[edge_element_id]
-                edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
-
-        if result_node_ids_key != '':  # avoid adding results for the default node binding key ''
-            # if we haven't encountered this specific group of result nodes before, create a new result
-            if result_node_ids_key not in results:
-                results[result_node_ids_key] = {'analyses': [{'edge_bindings': edge_bindings,
-                                                              'resource_id': PROVENANCE_TAG}],
-                                                'node_bindings': node_bindings}
-            else:
-                # otherwise append new edge bindings to the existing result
-                for qedge_id, edge_binding_list in edge_bindings.items():
-                    results[result_node_ids_key]['analyses'][0]['edge_bindings'][qedge_id].extend(
-                        [new_edge_bind for new_edge_bind in edge_binding_list if new_edge_bind['id'] not in
-                         [existing_edge_bind['id'] for existing_edge_bind in
-                          results[result_node_ids_key]['analyses'][0]['edge_bindings'][qedge_id]]])
-
-    knowledge_graph = {
-        'nodes': kg_nodes,
-        'edges': kg_edges
-    }
-    transformed_results = {
-        'results': list(results.values()),  # convert the results dictionary to a flattened list
-        'knowledge_graph': knowledge_graph
-    }
-    return transformed_results
+    return kg_edges, element_id_to_edge_id
 
 
 # This function takes EDGE_SOURCE_PROPS properties from results, converts them into proper
