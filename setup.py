@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="reasoner-transpiler",
-    version="2.2.5",
+    version="2.2.6",
     author="Patrick Wang",
     author_email="patrick@covar.com",
     maintainer="Evan Morris",
