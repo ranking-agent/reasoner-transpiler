@@ -19,11 +19,12 @@ def test_bolt_driver_transform_results(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    assert len(output['results']) == 16
+    assert len(output['results']) == 13
     for result in output["results"]:
         assert len(result["node_bindings"]) == 2
         assert len(result["analyses"]) == 1
     assert len(output['knowledge_graph']['nodes']) == 13
+    assert len(output['auxiliary_graphs']) == 11
 
 
 def test_http_driver_transform_results(neo4j_http_driver):
