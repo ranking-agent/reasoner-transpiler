@@ -31,7 +31,7 @@ class TranspilerNeo4jBoltDriver:
 
         neo4j_result = tx.run(cypher, parameters=query_parameters)
         if convert_to_trapi:
-            return transform_result(neo4j_result, qgraph, protocol='bolt')
+            return transform_result(neo4j_result, qgraph)
         return neo4j_result
 
     def run(self,
@@ -53,41 +53,3 @@ class TranspilerNeo4jBoltDriver:
 
     def close(self):
         self.driver.close()
-
-
-@pytest.fixture(name="neo4j_http_driver", scope="module")
-def fixture_neo4j_http_driver():
-    driver = TranspilerNeo4jHTTPDriver()
-    yield driver
-
-
-class TranspilerNeo4jHTTPDriver:
-    def __init__(self, auth=("neo4j", "plater_testing_pw")):
-        self._full_transaction_path = f"http://localhost:7474/db/neo4j/tx/commit"
-        self._header = {
-                'Accept': 'application/vnd.neo4j.jolt-v2',
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic %s' % base64.b64encode(f"{auth[0]}:{auth[1]}".encode('utf-8')).decode('utf-8')
-            }
-
-    def post_request_json(self, payload):
-        response = requests.post(self._full_transaction_path, json=payload, headers=self._header)
-        return response.text
-
-    def run(self,
-            query,
-            return_errors=False,
-            convert_to_trapi=False,
-            qgraph=None):
-        # make the statement dictionary
-        payload = {
-            "statements": [
-                {
-                    "statement": f"{query}"
-                }
-            ]
-        }
-        response = self.post_request_json(payload)
-        if convert_to_trapi:
-            response = transform_result(response, qgraph=qgraph, protocol='http')
-        return response

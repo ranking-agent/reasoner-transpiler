@@ -44,7 +44,6 @@ EDGE_SOURCE_PROPS = [
 ]
 
 PROVENANCE_TAG = os.environ.get('PROVENANCE_TAG', 'reasoner-transpiler')
-NEO4J_PROTOCOL = os.environ.get('NEO4J_PROTOCOL', 'bolt')
 
 
 def nest_op(operator, *args):
@@ -268,24 +267,9 @@ def get_query(qgraph, **kwargs):
 
 
 def transform_result(cypher_result,
-                     qgraph: dict,
-                     protocol: str = None):
-    # use the protocol parameter if it's provided, otherwise use NEO4J_PROTOCOL set by configuration
-    if not protocol:
-        protocol = NEO4J_PROTOCOL
+                     qgraph: dict):
 
-    if protocol == 'bolt':
-        # if the protcol is bolt (from the python driver) cypher_result is a neo4j.Result
-        bolt_protocol = True
-        # we could check for errors here, but it should happen around the actual driver calls (before this)
-    else:
-        # otherwise assume it's a jolt http response
-        bolt_protocol = False
-        # could check for errors like this, but it should happen around the http calls themselves
-        # if cypher_result['errors']:
-        #    raise Exception(f'Errors in http cypher result: {cypher_result["errors"]}')
-
-    nodes, edges, paths = unpack_bolt_result(cypher_result) if bolt_protocol else unpack_jolt_result(cypher_result)
+    nodes, edges, paths = unpack_bolt_result(cypher_result)
 
     # Convert the list of unique result nodes from cypher results to dictionaries
     # then convert them to TRAPI format, constructing the knowledge_graph["nodes"] section of the TRAPI response
@@ -716,22 +700,6 @@ def unpack_jolt_result(jolt_response):
         elif 'data' in line:
             data = {header: data_item for (header, data_item) in zip(headers, line['data'])}
             return data['nodes'], data['edges'], data['paths']
-
-
-def convert_http_results_to_dict(results: dict) -> list:
-    converted_results = []
-    if results:
-        for result in results:
-            cols = result.get('columns')
-            if cols:
-                data_items = result.get('data')
-                for item in data_items:
-                    new_row = {}
-                    row = item.get('row')
-                    for col_name, col_value in zip(cols, row):
-                        new_row[col_name] = col_value
-                    converted_results.append(new_row)
-    return converted_results
 
 
 def set_custom_attribute_types(attribute_types: dict):
