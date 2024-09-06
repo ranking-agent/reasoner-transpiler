@@ -1,7 +1,9 @@
 """Tools for compiling QGraph into Cypher query."""
 import os
 import json
+
 from pathlib import Path
+from collections import defaultdict
 
 from .biolink import bmt
 from .matching import match_query
@@ -305,15 +307,15 @@ def transform_result(cypher_result,
                                     if f'{qnode_id}_superclass' in qgraph_nodes}
 
     qgraph_edges = qgraph["edges"]
-    qedges_with_attached_subclass_edges = {}
+    qedges_with_attached_subclass_edges = defaultdict(list)
     for qedge_id, qedge in qgraph_edges.items():
         if not qedge.get('_subclass', False):
             if qedge["subject"] in qnodes_with_superclass_nodes:
-                qedges_with_attached_subclass_edges[qedge_id] = \
-                    f'{qedge["subject"]}_subclass_edge', 'subject', f'{qedge["subject"]}_superclass'
+                qedges_with_attached_subclass_edges[qedge_id].append(
+                    ('subject', f'{qedge["subject"]}_subclass_edge', f'{qedge["subject"]}_superclass'))
             if qedge["object"] in qnodes_with_superclass_nodes:
-                qedges_with_attached_subclass_edges[qedge_id] = \
-                    f'{qedge["object"]}_subclass_edge', 'object', f'{qedge["object"]}_superclass'
+                qedges_with_attached_subclass_edges[qedge_id].append(
+                    ('object', f'{qedge["object"]}_subclass_edge',  f'{qedge["object"]}_superclass'))
 
     # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
     # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
@@ -403,11 +405,11 @@ def transform_result(cypher_result,
             graph_edge_id = element_id_to_edge_id[edge_element_id]
 
             # Check to see if the edge has subclass edges that are connected to it
-            subclass_edge, subclass_subject_or_object, superclass_qnode_id = \
-                qedges_with_attached_subclass_edges.get(qedge_id, (None, None, None))
-            if subclass_edge:
+            subclass_edge_ids = []
+            superclass_node_ids = {}
+            for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in qedges_with_attached_subclass_edges.get(qedge_id, []):
                 # If so, check to see if there are results for it
-                qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_edge]
+                qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
                 # This handles cases where a subclass edge is part of the actual result but is also getting included
                 # in the subclass inference edge which creates a useless and weird result using the same edge twice.
                 # Just ignore them instead, because the result with one subclass edge should still be accounted for
@@ -419,47 +421,49 @@ def transform_result(cypher_result,
                     # If path_edge is Truthy, it means the subclass was used in the result.
                     # For subclass edges, path result is a list of element ids, due to being a variable length edge.
                     # make a list of the subclass edges plus the result edge from the query.
-                    composite_edges = [graph_edge_id] + [element_id_to_edge_id[ele_id] for ele_id in subclass_edge_element_ids]
-                    # make a composite id with all of their kg edge ids
-                    composite_edge_id = "_".join(composite_edges)
-                    aux_graph_id = f"aux_{composite_edge_id}"
-                    support_graphs.add(aux_graph_id)
-                    if composite_edge_id not in kg_edges:
-                        aux_graphs[f"aux_{composite_edge_id}"] = {
-                            "edges": composite_edges,
-                            "attributes": []
-                        }
-                        real_edge = kg_edges[graph_edge_id]
-                        qnode, superclass_result_node_id = qnode_id_to_results[superclass_qnode_id]
-                        inferred_result_edge = {"predicate": real_edge["predicate"],
-                                                "subject": real_edge["subject"],
-                                                "object": real_edge["object"],
-                                                "attributes": [
-                                                    {
-                                                        "value": "logical_entailment",
-                                                        "attribute_type_id": "biolink:knowledge_level"
-                                                    },
-                                                    {
-                                                        "value": "automated_agent",
-                                                        "attribute_type_id": "biolink:agent_type"
-                                                    }
-                                                ],
-                                                "sources": [
-                                                    {
-                                                        "resource_id": PROVENANCE_TAG,
-                                                        "resource_role": "primary_knowledge_source"
-                                                    }
-                                                ],
-                                                # this actually just overwrites either subject or object
-                                                subclass_subject_or_object: superclass_result_node_id}
-                        kg_edges[composite_edge_id] = inferred_result_edge
-                    # make an edge binding with the inferred subclass edge
-                    edge_bindings[qedge_id] = [{'id': composite_edge_id, 'attributes': []}]
-                else:
-                    # make a normal edge binding
-                    edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
+                    subclass_edge_ids.extend([element_id_to_edge_id[ele_id] for ele_id in subclass_edge_element_ids])
+
+                    qnode, superclass_result_node_id = qnode_id_to_results[superclass_qnode_id]
+                    superclass_node_ids[subclass_subject_or_object] = superclass_result_node_id
+
+            if subclass_edge_ids:
+                # make a composite id with all of their kg edge ids
+                composite_edge_ids = [graph_edge_id] + subclass_edge_ids
+                composite_edge_id = "_".join(composite_edge_ids)
+                aux_graph_id = f"aux_{composite_edge_id}"
+                support_graphs.add(aux_graph_id)
+                if composite_edge_id not in kg_edges:
+                    aux_graphs[f"aux_{composite_edge_id}"] = {
+                        "edges": composite_edge_ids,
+                        "attributes": []
+                    }
+                    real_edge = kg_edges[graph_edge_id]
+                    inferred_result_edge = {"subject": real_edge["subject"],
+                                            "predicate": real_edge["predicate"],
+                                            "object": real_edge["object"],
+                                            "attributes": [
+                                                {
+                                                    "value": "logical_entailment",
+                                                    "attribute_type_id": "biolink:knowledge_level"
+                                                },
+                                                {
+                                                    "value": "automated_agent",
+                                                    "attribute_type_id": "biolink:agent_type"
+                                                }
+                                            ],
+                                            "sources": [
+                                                {
+                                                    "resource_id": PROVENANCE_TAG,
+                                                    "resource_role": "primary_knowledge_source"
+                                                }
+                                            ],
+                                            **superclass_node_ids}
+                    kg_edges[composite_edge_id] = inferred_result_edge
+
+                # make an edge binding with the inferred subclass edge
+                edge_bindings[qedge_id] = [{'id': composite_edge_id, 'attributes': []}]
             else:
-                # make a normal edge binding
+                # if no subclass edges for this edge make a normal edge binding
                 edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
 
         if result_key != '' and not skip_this_path:  # avoid adding results for the default node binding key ''
@@ -469,7 +473,7 @@ def transform_result(cypher_result,
                                                      'resource_id': PROVENANCE_TAG}],
                                        'node_bindings': node_bindings}
                 if support_graphs:
-                    results[result_key]['analyses'][0]['support_graphs'] = list(support_graphs)
+                    results[result_key]['analyses'][0]['support_graphs'] = sorted(support_graphs)
 
             else:
                 # otherwise append new edge bindings to the existing result
@@ -480,10 +484,10 @@ def transform_result(cypher_result,
                           results[result_key]['analyses'][0]['edge_bindings'][qedge_id]]])
                 if support_graphs:
                     if 'support_graphs' not in results[result_key]['analyses'][0]:
-                        results[result_key]['analyses'][0]['support_graphs'] = list(support_graphs)
+                        results[result_key]['analyses'][0]['support_graphs'] = sorted(support_graphs)
                     else:
                         support_graphs.update(results[result_key]['analyses'][0]['support_graphs'])
-                        results[result_key]['analyses'][0]['support_graphs'] = list(support_graphs)
+                        results[result_key]['analyses'][0]['support_graphs'] = sorted(support_graphs)
 
     knowledge_graph = {
         'nodes': kg_nodes,
