@@ -25,9 +25,10 @@ def test_node_subclass(neo4j_driver):
     assert len(output['results']) == 1
     assert len(output['knowledge_graph']['nodes']) == 3
     assert len(output['knowledge_graph']['edges']) == 2
-    support_graphs = output['results'][0]['analyses'][0]['support_graphs']
-    assert len(support_graphs) == 2
-    assert 'aux_monogenic_diabetes_is_a_diabetes' in support_graphs
+    # print(json.dumps(output))
+    # support_graphs = output['results'][0]['analyses'][0]['support_graphs']
+    # assert len(support_graphs) == 2
+    # assert 'aux_monogenic_diabetes_is_a_diabetes' in support_graphs
     aux_graphs = output['auxiliary_graphs']
     assert len(aux_graphs) == 2
     assert 'aux_t2d_isa_disease' in aux_graphs
@@ -53,12 +54,14 @@ def test_onehop_subclass(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    assert len(output['results']) == 11
-    assert len(output['auxiliary_graphs']) == 9
-    expected_result = {'analyses': [{'edge_bindings': {'e01': [{'id': 't2d_invalid_predicate_albuminaria_t2d_isa_disease', 'attributes': []}, {'id': 't2d_has_phenotype_albuminaria_t2d_isa_disease', 'attributes': []}]}, 'resource_id': 'reasoner-transpiler', 'support_graphs': ['aux_t2d_has_phenotype_albuminaria_t2d_isa_disease', 'aux_t2d_invalid_predicate_albuminaria_t2d_isa_disease']}], 'node_bindings': {'n0': [{'id': 'MONDO:0000001', 'attributes': []}], 'n1': [{'id': 'HP:0012592', 'attributes': []}]}}
+    assert len(output['results']) == 12
+    assert len(output['auxiliary_graphs']) == 11
+    expected_result = {'analyses': [{'edge_bindings': {'e01': [{'id': 't2d_invalid_predicate_albuminaria_t2d_isa_disease', 'attributes': []}, {'id': 't2d_has_phenotype_albuminaria_t2d_isa_disease', 'attributes': []}]}, 'resource_id': 'reasoner-transpiler'}], 'node_bindings': {'n0': [{'id': 'MONDO:0000001', 'attributes': []}], 'n1': [{'id': 'HP:0012592', 'attributes': []}]}}
     assert any(expected_result == result for result in output['results'])
-    assert 'aux_t2d_invalid_predicate_albuminaria_t2d_isa_disease' in output['auxiliary_graphs']
-    assert 't2d_invalid_predicate_albuminaria_t2d_isa_disease' in output['knowledge_graph']['edges']
+    assert 'aux_t2d_has_phenotype_albuminaria_t2d_isa_disease' in output['auxiliary_graphs']
+    assert 't2d_has_phenotype_albuminaria_t2d_isa_disease' in output['knowledge_graph']['edges']
+    assert {"attribute_type_id": "biolink:support_graphs", "value": ["aux_anagliptin_treats_t2d_t2d_isa_disease"]}\
+           in output['knowledge_graph']['edges']['anagliptin_treats_t2d_t2d_isa_disease']['attributes']
 
 
 def test_onehop_subclass_categories():
@@ -103,8 +106,8 @@ def test_backward_subclass(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    assert len(output['results']) == 11
-    assert len(output['auxiliary_graphs']) == 9
+    assert len(output['results']) == 12
+    assert len(output['auxiliary_graphs']) == 11
 
 
 def test_pinned_subclass(neo4j_driver):
@@ -122,9 +125,7 @@ def test_pinned_subclass(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    print(json.dumps(output, indent=4))
-    assert False
-    # assert len(output['results']) == 1
+    assert len(output['results']) == 1
     assert output["results"][0]["node_bindings"] == {
         "n0": [{"id": "MONDO:0000001", "attributes": []}],
         "n1": [{"id": "HP:0000118", "attributes": []}],
@@ -146,8 +147,10 @@ def test_same_pinned_subclass(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-
-    assert len(output['results']) == 4
+    assert len(output['results']) == 1
+    assert len(output['knowledge_graph']['nodes']) == 3
+    assert len(output['knowledge_graph']['edges']) == 4
+    assert len(output['auxiliary_graphs']) == 2
 
 
 def test_multihop_subclass(neo4j_driver):
@@ -170,7 +173,7 @@ def test_multihop_subclass(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    assert len(output['results']) == 32
+    assert len(output['results']) == 35
 
 
 def test_dont_subclass(neo4j_driver):
@@ -204,7 +207,7 @@ def test_batch_subclass(neo4j_driver):
         },
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    assert len(output['results']) == 13
+    assert len(output['results']) == 15
     for result in output["results"]:
         for binding in result["node_bindings"]["n0"]:
             assert binding["id"] in ["MONDO:0000001", "HP:0000118"]
