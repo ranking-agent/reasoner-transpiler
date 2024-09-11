@@ -304,7 +304,6 @@ def transform_result(cypher_result,
     # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
     # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
     for path in paths:
-        skip_this_path = False
 
         # Map results/paths to their corresponding qnodes and qedges
         qnode_id_to_results = {qnode_id: (qnode, result_node_id) for (qnode_id, qnode), result_node_id in
@@ -318,7 +317,6 @@ def transform_result(cypher_result,
         # create TRAPI node bindings
         edge_bindings = {}
         node_bindings = {}
-        support_graphs = set()
         for qnode_id, (qnode, result_node_id) in qnode_id_to_results.items():
 
             # don't return superclass qnodes in the node bindings
@@ -359,7 +357,6 @@ def transform_result(cypher_result,
                         # make a composite id with all of their kg edge ids
                         composite_edge_id = "_".join(composite_edges)
                         aux_graph_id = f"aux_{composite_edge_id}"
-                        support_graphs.add(aux_graph_id)
                         if composite_edge_id not in aux_graphs:
                             aux_graphs[f"aux_{composite_edge_id}"] = {
                                 "edges": composite_edges,
@@ -378,7 +375,7 @@ def transform_result(cypher_result,
         for qedge_id, (qedge, path_edge) in qedge_id_to_results.items():
 
             # skip empty results
-            if not path_edge or skip_this_path:
+            if not path_edge:
                 continue
             # don't return subclass qedges in the edge bindings
             if qedge.get("_subclass", False):
@@ -394,13 +391,6 @@ def transform_result(cypher_result,
             for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in qedges_with_attached_subclass_edges.get(qedge_id, []):
                 # If so, check to see if there are results for it
                 qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
-                # This handles cases where a subclass edge is part of the actual result but is also getting included
-                # in the subclass inference edge which creates a useless and weird result using the same edge twice.
-                # Just ignore them instead, because the result with one subclass edge should still be accounted for
-                # separately with the direct path.
-                if edge_element_id in subclass_edge_element_ids:
-                    skip_this_path = True
-                    continue
                 if subclass_edge_element_ids:
                     # If path_edge is Truthy, it means the subclass was used in the result.
                     # For subclass edges, path result is a list of element ids, due to being a variable length edge.
@@ -415,24 +405,28 @@ def transform_result(cypher_result,
                 composite_edge_ids = [graph_edge_id] + subclass_edge_ids
                 composite_edge_id = "_".join(composite_edge_ids)
                 aux_graph_id = f"aux_{composite_edge_id}"
-                support_graphs.add(aux_graph_id)
-                if composite_edge_id not in kg_edges:
-                    aux_graphs[f"aux_{composite_edge_id}"] = {
+                if aux_graph_id not in aux_graphs:
+                    aux_graphs[aux_graph_id] = {
                         "edges": composite_edge_ids,
                         "attributes": []
                     }
+                if composite_edge_id not in kg_edges:
                     real_edge = kg_edges[graph_edge_id]
                     inferred_result_edge = {"subject": real_edge["subject"],
                                             "predicate": real_edge["predicate"],
                                             "object": real_edge["object"],
                                             "attributes": [
                                                 {
-                                                    "value": "logical_entailment",
-                                                    "attribute_type_id": "biolink:knowledge_level"
+                                                    "attribute_type_id": "biolink:knowledge_level",
+                                                    "value": "logical_entailment"
                                                 },
                                                 {
+                                                    "attribute_type_id": "biolink:agent_type",
                                                     "value": "automated_agent",
-                                                    "attribute_type_id": "biolink:agent_type"
+                                                },
+                                                {
+                                                    "attribute_type_id": "biolink:support_graphs",
+                                                    "value": [aux_graph_id]
                                                 }
                                             ],
                                             "sources": [
@@ -441,6 +435,8 @@ def transform_result(cypher_result,
                                                     "resource_role": "primary_knowledge_source"
                                                 }
                                             ],
+                                            # this overwrites subject and/or object with the superclass node ids
+                                            # if they exist
                                             **superclass_node_ids}
                     kg_edges[composite_edge_id] = inferred_result_edge
 
@@ -450,15 +446,12 @@ def transform_result(cypher_result,
                 # if no subclass edges for this edge make a normal edge binding
                 edge_bindings[qedge_id] = [{'id': graph_edge_id, 'attributes': []}]
 
-        if result_key != '' and not skip_this_path:  # avoid adding results for the default node binding key ''
+        if result_key != '':  # avoid adding results for the default node binding key ''
             # if we haven't encountered this specific group of result nodes before, create a new result
             if result_key not in results:
-                results[result_key] = {'analyses': [{'edge_bindings': edge_bindings,
-                                                     'resource_id': PROVENANCE_TAG}],
-                                       'node_bindings': node_bindings}
-                if support_graphs:
-                    results[result_key]['analyses'][0]['support_graphs'] = sorted(support_graphs)
-
+                results[result_key] = {'node_bindings': node_bindings,
+                                       'analyses': [{'edge_bindings': edge_bindings,
+                                                     'resource_id': PROVENANCE_TAG}]}
             else:
                 # otherwise append new edge bindings to the existing result
                 for qedge_id, edge_binding_list in edge_bindings.items():
@@ -466,12 +459,6 @@ def transform_result(cypher_result,
                         [new_edge_bind for new_edge_bind in edge_binding_list if new_edge_bind['id'] not in
                          [existing_edge_bind['id'] for existing_edge_bind in
                           results[result_key]['analyses'][0]['edge_bindings'][qedge_id]]])
-                if support_graphs:
-                    if 'support_graphs' not in results[result_key]['analyses'][0]:
-                        results[result_key]['analyses'][0]['support_graphs'] = sorted(support_graphs)
-                    else:
-                        support_graphs.update(results[result_key]['analyses'][0]['support_graphs'])
-                        results[result_key]['analyses'][0]['support_graphs'] = sorted(support_graphs)
 
     knowledge_graph = {
         'nodes': kg_nodes,
@@ -491,7 +478,7 @@ def transform_nodes_list(nodes):
         node = convert_bolt_node_to_dict(cypher_node)
         kg_nodes[node['id']] = {
             'name': node['name'],
-            'categories': list(node.pop('labels')),
+            'categories': sorted(node.pop('labels')),
             **transform_attributes(node, node=True)}
     return kg_nodes
 
