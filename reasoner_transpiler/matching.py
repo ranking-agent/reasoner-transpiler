@@ -7,16 +7,15 @@ from .nesting import Query
 from .util import ensure_list, snake_case, space_case, pascal_case
 
 
-# A placeholder for an optional list of predicates to be used as a filter when constructing cypher queries.
-# If set, only the predicates in this list will be included in cypher queries.
+# A placeholder for an optional set of predicates to be used as a filter when constructing cypher queries.
+# If not None/empty, only the predicates in this list will be included in cypher queries.
 PREDICATES_IN_GRAPH = None
 
 
-# see PREDICATES_IN_GRAPH
-def set_predicates_in_graph(predicates: list):
+def set_predicates_in_graph(predicates: set):
     global PREDICATES_IN_GRAPH
     if predicates:
-        PREDICATES_IN_GRAPH = [space_case(p.removeprefix('biolink:')) for p in predicates]
+        PREDICATES_IN_GRAPH = {space_case(p.removeprefix('biolink:')) for p in predicates}
 
 
 def reset_predicates_in_graph():
