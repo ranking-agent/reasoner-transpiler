@@ -14,25 +14,18 @@ def get_node_binding_ids_from_neo4j_driver_output(output):
 
 def test_node_subclass(neo4j_driver):
     """Test node-only subclass query."""
+    # for queries without edges, we don't include subclasses of the query node or subclass edges
     qgraph = {
         "nodes": {"n0": {"ids": ["MONDO:0000001"]}},
         "edges": dict(),
     }
     original_qgraph = copy.deepcopy(qgraph)
     query = get_query(qgraph)
-    assert qgraph != original_qgraph  # subclass queries should change the qgraph and add qnodes etc
+    # assert qgraph != original_qgraph  # subclass queries should change the qgraph and add qnodes etc
     output = neo4j_driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
-    assert len(output['knowledge_graph']['nodes']) == 3
-    assert len(output['knowledge_graph']['edges']) == 2
-    # print(json.dumps(output))
-    # support_graphs = output['results'][0]['analyses'][0]['support_graphs']
-    # assert len(support_graphs) == 2
-    # assert 'aux_monogenic_diabetes_is_a_diabetes' in support_graphs
-    aux_graphs = output['auxiliary_graphs']
-    assert len(aux_graphs) == 2
-    assert 'aux_t2d_isa_disease' in aux_graphs
-    assert 't2d_isa_disease' in aux_graphs['aux_t2d_isa_disease']['edges']
+    assert len(output['knowledge_graph']['nodes']) == 1
+    assert len(output['knowledge_graph']['edges']) == 0
 
     node_binding_ids = get_node_binding_ids_from_neo4j_driver_output(output)
     assert 'MONDO:0015967' not in node_binding_ids

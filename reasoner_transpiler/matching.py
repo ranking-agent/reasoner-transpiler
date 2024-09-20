@@ -80,9 +80,11 @@ class NodeReference:
         self._filters = []
         self.labels = []
 
-        category = node.pop("categories", None)
+        category = node.pop("categories", ["biolink:NamedThing"])
         if isinstance(category, list) and len(category) == 1:
             category = category[0]
+        elif category is None:
+            category = "biolink:NamedThing"
         if isinstance(category, list):
             self.labels = ['biolink:NamedThing']
             self._filters.append(" OR ".join([
@@ -452,17 +454,17 @@ def match_query(qgraph, subclass=True, **kwargs):
     Returns the query fragment as a string.
     """
 
-    # If there's no label on a query node, neo4j can't use an index for id lookups.
-    # So, if there's an ID but no specific cateogries, add the root entity type NamedThing.
-    for qnode_id, qnode in qgraph["nodes"].items():
-        if qnode.get("ids", None) is not None and qnode.get("categories", None) is None:
-            qnode["categories"] = ["biolink:NamedThing"]
+    qgraph_nodes = qgraph["nodes"]
+    qgraph_edges = qgraph["edges"]
 
-    if subclass:
+    # Subclass is just a flag that can turn subclassing off completely.
+    # We also check to make sure there is at least one qedge, because we decided that queries with only nodes shouldn't
+    # do subclassing. This is primarily because there's currently no great way to represent those results.
+    if subclass and qgraph_edges:
         # We don't want to include subclass nodes in queries that explicitly ask for subclass relationships.
-        # Find all the qnode ids that have subclass or superclass edges connected to them, so we can handle excluding them.
+        # Find all the qnodes that have subclass or superclass edges connected to them, so we can handle excluding them.
         qnode_ids_with_hierarchy_edges = set()
-        for qedge_id, qedge in qgraph["edges"].items():
+        for qedge_id, qedge in qgraph_edges.items():
             predicates = qedge.get("predicates", None)
             if predicates and ("biolink:subclass_of" in predicates or "biolink:superclass_of" in predicates):
                 qnode_ids_with_hierarchy_edges.add(qedge['subject'])
@@ -474,7 +476,7 @@ def match_query(qgraph, subclass=True, **kwargs):
                 "categories": qnode.pop("categories", None),
                 "_superclass": True
             }
-            for qnode_id, qnode in qgraph["nodes"].items()
+            for qnode_id, qnode in qgraph_nodes.items()
             if qnode.get("ids", None) is not None and qnode_id not in qnode_ids_with_hierarchy_edges
         }
         if 'subclass_depth' in kwargs:
@@ -500,21 +502,21 @@ def match_query(qgraph, subclass=True, **kwargs):
             for qnode_id in superclasses
         }
         # add the sub/super class nodes and edges to the qgraph
-        qgraph["nodes"].update(superclasses)
-        qgraph["edges"].update(subclass_edges)
+        qgraph_nodes.update(superclasses)
+        qgraph_edges.update(subclass_edges)
 
     # sets of ids
-    defined_nodes = set(qgraph["nodes"])
+    defined_nodes = set(qgraph_nodes)
     defined_edges = set(qgraph["edges"])
     referenced_nodes = set(
-        [e["subject"] for e in qgraph["edges"].values()]
-        + [e["object"] for e in qgraph["edges"].values()]
+        [e["subject"] for e in qgraph_edges.values()]
+        + [e["object"] for e in qgraph_edges.values()]
     )
 
     # generate internal node and edge variable names
     node_references = {
         qnode_id: NodeReference(qnode_id, qnode, **kwargs)
-        for qnode_id, qnode in qgraph["nodes"].items()
+        for qnode_id, qnode in qgraph_nodes.items()
     }
     for node_id in referenced_nodes - defined_nodes:  # reference-only nodes
         node_references[node_id] = MissingReference(node_id)
@@ -531,7 +533,7 @@ def match_query(qgraph, subclass=True, **kwargs):
         ))
 
     # match edges
-    for qedge_id, qedge in qgraph["edges"].items():
+    for qedge_id, qedge in qgraph_edges.items():
         clauses.append(match_edge(
             qedge_id,
             qedge,

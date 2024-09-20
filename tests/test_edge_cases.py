@@ -29,18 +29,36 @@ def test_empty(neo4j_driver):
     assert output["knowledge_graph"]["edges"] == {}
 
 
+def test_category_not_specified(neo4j_driver):
+    """Test node with type None."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0014488"]
+            }
+        },
+        "edges": dict(),
+    }
+    cypher = get_query(qgraph)
+    assert "NamedThing" in cypher
+    output = neo4j_driver.run(cypher, convert_to_trapi=True, qgraph=qgraph)
+    assert len(output["results"]) == 1
+
+
 def test_category_none(neo4j_driver):
     """Test node with type None."""
     qgraph = {
         "nodes": {
             "n0": {
-                "ids": "MONDO:0014488",
-                "categories": None,
+                "ids": ["MONDO:0014488"],
+                "categories": None
             }
         },
         "edges": dict(),
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    cypher = get_query(qgraph)
+    assert "NamedThing" in cypher
+    output = neo4j_driver.run(cypher, convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
 
 
@@ -153,11 +171,45 @@ def test_backwards_predicate(neo4j_driver):
                 "object": "drug",
                 "predicates": ["biolink:related_to", "biolink:treats"]
             }
-        },
+        }
     }
-    print(get_query(qgraph))
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 3
+
+
+def test_index_usage_empty_labels():
+    """
+    Test when using single labels, checks if id index is with the node type is used
+    """
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"],
+                "categories": [],
+            }
+        },
+        "edges": {}
+    }
+    cypher = get_query(qgraph, **{"use_hints": True})
+    # superclass node_id is suffixed with _superclass
+    assert "USING INDEX `n0`:`biolink:NamedThing`(id)" in cypher
+
+
+def test_index_usage_missing_labels():
+    """
+    Test when using single labels, checks if id index is with the node type is used
+    """
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"]
+            }
+        },
+        "edges": {}
+    }
+    cypher = get_query(qgraph, **{"use_hints": True})
+    # superclass node_id is suffixed with _superclass
+    assert "USING INDEX `n0`:`biolink:NamedThing`(id)" in cypher
 
 
 def test_index_usage_single_labels():
@@ -175,7 +227,7 @@ def test_index_usage_single_labels():
     }
     cypher = get_query(qgraph, **{"use_hints": True})
     # superclass node_id is suffixed with _superclass
-    assert "USING INDEX `n0_superclass`:`biolink:Disease`(id)" in cypher
+    assert "USING INDEX `n0`:`biolink:Disease`(id)" in cypher
 
 
 def test_index_usage_multiple_labels():
@@ -186,11 +238,36 @@ def test_index_usage_multiple_labels():
         "nodes": {
             "n0": {
                 "ids": ["MONDO:0005148"],
-                "categories": ["biolink:Disease", "biolink:PhenotypicFeature"],
+                "categories": ["biolink:Disease", "biolink:PhenotypicFeature"]
             }
         },
         "edges": {}
     }
     cypher = get_query(qgraph, **{"use_hints": True})
     # superclass node_id is suffixed with _superclass
-    assert "USING INDEX `n0_superclass`:`biolink:NamedThing`(id)" in cypher
+    assert "USING INDEX `n0`:`biolink:NamedThing`(id)" in cypher
+
+
+def test_index_usage_with_subclass(neo4j_driver):
+    """Test an extra backwards predicate."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"],
+                "categories": "biolink:Disease",
+            },
+            "n1": {
+                "categories": "biolink:ChemicalSubstance",
+            },
+        },
+        "edges": {
+            "related to": {
+                "subject": "type-2 diabetes",
+                "object": "drug",
+                "predicates": ["biolink:related_to", "biolink:treats"]
+            }
+        }
+    }
+    cypher = get_query(qgraph, **{"use_hints": True})
+    # superclass node_id is suffixed with _superclass
+    assert "USING INDEX `n0_superclass`:`biolink:Disease`(id)" in cypher

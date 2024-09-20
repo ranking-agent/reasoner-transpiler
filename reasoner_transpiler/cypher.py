@@ -338,30 +338,9 @@ def transform_result(cypher_result,
                 # We used to include the query_id property here to show that, but now we're making a support graph
                 # that can represent the underlying subclass edge(s).
                 superclass_qnode, superclass_result_id = qnode_id_to_results[f'{qnode_id}_superclass']
-                if superclass_result_id == result_node_id:
-                    node_bindings[qnode_id] = \
-                        [{'id': result_node_id,
-                          'attributes': []}]
-                else:
-                    node_bindings[qnode_id] = \
-                        [{'id': superclass_result_id,
-                          'attributes': []}]
-                    # for cases where we have a node with a superclass node, but no qedges_with_attached_subclass_edges,
-                    # it means the query had unconnected nodes we need to make support graphs for
-                    if not qedges_with_attached_subclass_edges:
-                        # find the results for the subclass edge
-                        subclass_qedge = f'{qnode_id}_subclass_edge'
-                        qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge]
-                        # make a list of ids for the subclass edges
-                        composite_edges = [element_id_to_edge_id[ele_id] for ele_id in subclass_edge_element_ids]
-                        # make a composite id with all of their kg edge ids
-                        composite_edge_id = "_".join(composite_edges)
-                        aux_graph_id = f"aux_{composite_edge_id}"
-                        if composite_edge_id not in aux_graphs:
-                            aux_graphs[f"aux_{composite_edge_id}"] = {
-                                "edges": composite_edges,
-                                "attributes": []
-                            }
+                node_bindings[qnode_id] = \
+                    [{'id': result_node_id if superclass_result_id == result_node_id else superclass_result_id,
+                      'attributes': []}]
             else:
                 # Otherwise, create a normal node binding.
                 node_bindings[qnode_id] = \
