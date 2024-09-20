@@ -10,7 +10,7 @@ def test_single_qualifier(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {
@@ -48,7 +48,7 @@ def test_multi_qualifier(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {
@@ -95,7 +95,7 @@ def test_qualifier_heirarchy(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {
@@ -127,7 +127,7 @@ def test_mismatch_qualifier_value(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {
@@ -158,7 +158,7 @@ def test_empty_qualifier_set(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {

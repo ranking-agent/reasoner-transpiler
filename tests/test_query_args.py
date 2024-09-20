@@ -10,7 +10,7 @@ def test_skip_limit(neo4j_driver):
         "nodes": {
             "n0": {
                 "categories": "biolink:Disease",
-                "ids": "MONDO:0005148",
+                "ids": ["MONDO:0005148"],
             },
             "n1": {
                 "categories": "biolink:ChemicalSubstance",
@@ -56,7 +56,7 @@ def test_max_connectivity(neo4j_driver):
             },
             "n1": {
                 "categories": "biolink:ChemicalSubstance",
-                "ids": "CHEBI:6801",
+                "ids": ["CHEBI:6801"],
             },
         },
         "edges": {
@@ -87,7 +87,7 @@ def test_use_hints():
         "nodes": {
             "n0": {
                 "ids": [
-                    "NCBIGene:841",
+                    ["NCBIGene:841"],
                 ],
                 "categories": "biolink:Gene",
             },

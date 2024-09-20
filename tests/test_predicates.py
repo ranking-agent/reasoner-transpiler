@@ -11,7 +11,7 @@ def test_symmetric(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:836"
+                "ids": ["NCBIGene:836"]
             },
         },
         "edges": {
@@ -32,7 +32,7 @@ def test_any(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:836"
+                "ids": ["NCBIGene:836"]
             },
         },
         "edges": {
@@ -52,7 +52,7 @@ def test_root_predicate(neo4j_driver):
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:836"
+                "ids": ["NCBIGene:836"]
             },
         },
         "edges": {
@@ -72,7 +72,7 @@ def test_sub(neo4j_driver):
     qgraph = {
         "nodes": {
             "n0": {
-                "ids": "MONDO:0004993",
+                "ids": ["MONDO:0004993"]
             },
             "n1": {},
         },
@@ -93,7 +93,7 @@ def test_inverse(neo4j_driver):
     qgraph = {
         "nodes": {
             "n0": {
-                "ids": "NCBIGene:672",
+                "ids": ["NCBIGene:672"]
             },
             "n1": {},
         },

@@ -74,7 +74,7 @@ def test_invalid_qualifier():
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {
@@ -105,7 +105,7 @@ def test_invalid_qualifier_value():
         "nodes": {
             "n0": {},
             "n1": {
-                "ids": "NCBIGene:283871"
+                "ids": ["NCBIGene:283871"]
             },
         },
         "edges": {

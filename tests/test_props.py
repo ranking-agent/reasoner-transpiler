@@ -102,10 +102,10 @@ def test_publications(neo4j_driver):
     qgraph = {
         "nodes": {
             "n0": {
-                "ids": "NCBIGene:836",
+                "ids": ["NCBIGene:836"],
             },
             "n1": {
-                "ids": "NCBIGene:841",
+                "ids": ["NCBIGene:841"],
             },
         },
         "edges": {
@@ -197,10 +197,10 @@ def test_props_customization(neo4j_driver):
     qgraph = {
         "nodes": {
             "n0": {
-                "ids": "NCBIGene:836",
+                "ids": ["NCBIGene:836"],
             },
             "n1": {
-                "ids": "NCBIGene:841",
+                "ids": ["NCBIGene:841"],
             },
         },
         "edges": {
