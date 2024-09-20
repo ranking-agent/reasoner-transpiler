@@ -10,6 +10,8 @@ setup(
     maintainer_email="emorris@renci.org",
     url="https://github.com/ranking-agent/reasoner-transpiler",
     description="TRAPI → Cypher transpiler",
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     packages=["reasoner_transpiler"],
     package_data={"reasoner_transpiler": ["attribute_types.json", "value_types.json"]},
     install_requires=[
