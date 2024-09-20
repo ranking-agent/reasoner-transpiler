@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.9, 3.12]
     services:
       neo4j:
-        image: neo4j:4.2.1
+        image: neo4j:5.22.0
         env:
           NEO4J_AUTH: none
           NEO4JLABS_PLUGINS: '["apoc"]'
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov codecov neo4j==4.0.2
+          pip install pytest pytest-cov codecov neo4j==5.22.0
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi    
 
       - name: Set up Neo4j data

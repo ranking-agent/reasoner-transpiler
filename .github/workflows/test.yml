@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.9, 3.12]
     services:
       neo4j:
-        image: neo4j:4.2.1
+        image: neo4j:5.22.0
         env:
           NEO4J_AUTH: none
           NEO4JLABS_PLUGINS: '["apoc"]'
