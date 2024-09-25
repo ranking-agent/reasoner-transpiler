@@ -2,46 +2,11 @@
 import os
 import json
 
-from pathlib import Path
 from collections import defaultdict
 
-from .biolink import bmt
+from .attributes import transform_attributes, EDGE_SOURCE_PROPS
 from .matching import match_query
 
-DIR_PATH = Path(__file__).parent
-
-with open(DIR_PATH / "attribute_types.json", "r") as stream:
-    ATTRIBUTE_TYPES = json.load(stream)
-
-DEFAULT_ATTRIBUTE_TYPE = {
-    "attribute_type_id": "biolink:Attribute",
-    "value_type_id": "EDAM:data_0006",
-}
-
-ATTRIBUTE_SKIP_LIST = []
-
-RESERVED_NODE_PROPS = [
-    "id",
-    "name",
-    "labels",
-    "element_id"
-]
-RESERVED_EDGE_PROPS = [
-    "id",
-    "predicate",
-    "object",
-    "subject",
-    "sources"
-]
-
-# this should really be one representation or the other, or be configurable,
-# but we have graphs with each now so temporarily (I hope, hope, hope) looking for both
-EDGE_SOURCE_PROPS = [
-    "aggregator_knowledge_source",
-    "primary_knowledge_source",
-    "biolink:aggregator_knowledge_source",
-    "biolink:primary_knowledge_source"
-]
 
 PROVENANCE_TAG = os.environ.get('PROVENANCE_TAG', 'reasoner-transpiler')
 
@@ -65,125 +30,6 @@ def assemble_results(qnodes, qedges, **kwargs):
     # TODO - implement pagination (SKIP and LIMIT)
     #  right now SKIP and LIMIT are unsupported and this will throw NotImplementedError if they are requested
     pagination(**kwargs)
-
-    """
-    The following is the old way of assembling results within the cypher query, it doesn't work in neo4j 5 because
-    it uses forms of implicit aggregation that aren't supported. Leaving it here though because it would be smart 
-    to do something similar - especially regarding de-duplicating nodes and/or edges.
-    
-    # assemble result (bindings) and associated (result) kgraph
-    node_bindings = [
-        # when set_interpretation is ALL
-        (
-            "`{0}`: [ni IN collect(DISTINCT `{0}`.id) "
-            "WHERE ni IS NOT null "
-            "| {{id: ni}}]"
-        ).format(
-            qnode_id,
-        ) if qnode.get("set_interpretation", "BATCH") == "ALL" else
-        # when set_interpretation is BATCH, MANY  or missing
-        (
-            "`{0}`: (CASE "
-            "WHEN `{0}` IS NOT NULL THEN [{{id: `{0}`.id{1}}}] "
-            "ELSE [] "
-            "END)"
-        ).format(
-            qnode_id,
-            f", query_id: `{qnode_id}_superclass`.id" if f"{qnode_id}_superclass" in qnodes else "",
-        )
-        for qnode_id, qnode in qnodes.items()
-        if qnode.get("_return", True)
-    ]
-    edge_bindings = [
-        (
-            "`{0}`: [ei IN collect(DISTINCT toString(id(`{0}`))) "
-            "WHERE ei IS NOT null "
-            "| {{id: ei}}]"
-        ).format(
-            qedge_id,
-        ) if kwargs.get("relationship_id", "property") == "internal" else
-        (
-            "`{0}`: [ei IN collect(DISTINCT `{0}`.id) "
-            "WHERE ei IS NOT null "
-            "| {{id: ei}}]"
-        ).format(
-            qedge_id,
-        )
-        for qedge_id, qedge in qedges.items()
-        if qedge.get("_return", True)
-    ]
-    knodes = [
-        "collect(DISTINCT `{0}`)".format(qnode_id)
-        for qnode_id, qnode in qnodes.items()
-        if qnode.get("_return", True)
-    ]
-    kedges = [
-        "collect(DISTINCT `{0}`)".format(qedge_id)
-        for qedge_id, qedge in qedges.items()
-        if qedge.get("_return", True)
-    ]
-    assemble_clause = (
-        "WITH {{node_bindings: {{{0}}}, analyses: [{{edge_bindings: {{{1}}}}}]}} AS result, "
-        "{{nodes: {2}, edges: {3}}} AS knowledge_graph"
-    ).format(
-        ", ".join(node_bindings) or "",
-        ", ".join(edge_bindings) or "",
-        " + ".join(knodes) or "[]",
-        " + ".join(kedges) or "[]",
-    )
-    clauses.append(assemble_clause)
-
-    # add SKIP and LIMIT sub-clauses
-    clauses.extend(pagination(**kwargs))
-
-    # collect results and aggregate kgraphs
-    # also fetch extra knode/kedge properties
-    if knodes:
-        clauses.append("UNWIND knowledge_graph.nodes AS knode")
-    if kedges:
-        clauses.append("UNWIND knowledge_graph.edges AS kedge")
-    aggregate_clause = "WITH collect(DISTINCT result) AS results, {"
-    aggregate_clause += (
-        (
-            "nodes: apoc.map.fromLists("
-            "[n IN collect(DISTINCT knode) | n.id], "
-            "[n IN collect(DISTINCT knode) | {"
-            "categories: labels(n), name: n.name, "
-            "attributes: [key in apoc.coll.subtract(keys(n), "
-            + cypher_expression.dumps(RESERVED_NODE_PROPS) +
-            ") | {original_attribute_name: key, attribute_type_id: COALESCE("
-            + cypher_expression.dumps(ATTRIBUTE_TYPES) +
-            "[key], \"NA\"), value: n[key]}]}]), "
-        )
-        if qnodes else
-        "nodes: [], "
-    )
-    aggregate_clause += (
-        (
-            "edges: apoc.map.fromLists(" + (
-            "[e IN collect(DISTINCT kedge) | toString(ID(e)) ], " if kwargs.get("relationship_id", "property") == "internal" else
-            "[e IN collect(DISTINCT kedge) | e.id], "
-            ) +
-            "[e IN collect(DISTINCT kedge) | {"
-            "predicate: type(e), subject: startNode(e).id, object: endNode(e).id, "
-            "attributes: [key in apoc.coll.subtract(keys(e), "
-            + cypher_expression.dumps(RESERVED_EDGE_PROPS + EDGE_SOURCE_PROPS) +
-            ") | {original_attribute_name: key, attribute_type_id: COALESCE("
-            + cypher_expression.dumps(ATTRIBUTE_TYPES) +
-            "[key], \"NA\"), value: e[key]}]," +
-            "sources: [key IN " + cypher_expression.dumps(EDGE_SOURCE_PROPS) +" | "
-            " {resource_id: e[key] , resource_role: key }]"
-            "}])"
-        )
-        if kedges else
-        "edges: []"
-    )
-    aggregate_clause += "} AS knowledge_graph"
-    clauses.append(aggregate_clause)
-
-    # return results and knowledge graph
-    return_clause = "RETURN results, knowledge_graph"
-    """
 
     nodes = [f"`{qnode_id}`.id" for qnode_id, qnode in qnodes.items()]
     edges = [f"elementId(`{qedge_id}`)" if not qedge.get('_subclass', False) else f"[x in `{qedge_id}` | elementId(x)]"
@@ -547,55 +393,6 @@ def construct_sources_tree(sources):
     return list(formatted_sources)
 
 
-def transform_attributes(result_item, node=False):
-
-    # make a list of attributes to ignore while processing
-    ignore_list = RESERVED_NODE_PROPS if node else EDGE_SOURCE_PROPS + RESERVED_EDGE_PROPS
-    ignore_list += ATTRIBUTE_SKIP_LIST
-
-    # an "attributes" attribute in neo4j should be a list of json strings,
-    # attempt to start the attributes section of transformed attributes with its contents
-    json_attributes = []
-    json_attributes_attribute = result_item.pop('attributes', None)
-    if json_attributes_attribute:
-        if isinstance(json_attributes_attribute, list):
-            try:
-                json_attributes = [json.loads(json_attribute_string)
-                                   for json_attribute_string in json_attributes_attribute]
-            except json.JSONDecodeError:
-                print(f'!!! JSONDecodeError while parsing attributes property, ignoring: {json_attributes_attribute}')
-        else:
-            print(f'!!! the attributes edge property should be a list, ignoring: {json_attributes_attribute}')
-    transformed_attributes = {
-        'attributes': json_attributes
-    }
-
-    if not node:
-        # for edges, find and format attributes that are qualifiers
-        qualifiers = [key for key in result_item if key not in ignore_list
-                      and bmt.is_qualifier(key)]
-        transformed_attributes['qualifiers'] = [
-            {"qualifier_type_id": f"biolink:{key}",
-             "qualifier_value": value}
-            for key, value in result_item.items() if key in qualifiers
-        ]
-    else:
-        qualifiers = []
-
-    # format the rest of the attributes, look up their attribute type and value type
-    transformed_attributes['attributes'].extend([
-        {'original_attribute_name': key,
-         'value': value,
-         # the following function will return
-         # 'attribute_type_id': 'biolink-ified attribute type id'
-         # 'value_type_id': 'biolink-ified value type id'
-         **ATTRIBUTE_TYPES.get(key, DEFAULT_ATTRIBUTE_TYPE)}
-        for key, value in result_item.items()
-        if key not in ignore_list + qualifiers
-    ])
-    return transformed_attributes
-
-
 def convert_bolt_node_to_dict(bolt_node):
     if not bolt_node:
         return None
@@ -666,13 +463,3 @@ def unpack_jolt_result(jolt_response):
         elif 'data' in line:
             data = {header: data_item for (header, data_item) in zip(headers, line['data'])}
             return data['nodes'], data['edges'], data['paths']
-
-
-def set_custom_attribute_types(attribute_types: dict):
-    global ATTRIBUTE_TYPES
-    ATTRIBUTE_TYPES = attribute_types
-
-
-def set_custom_attribute_skip_list(skip_list: list):
-    global ATTRIBUTE_SKIP_LIST
-    ATTRIBUTE_SKIP_LIST = skip_list

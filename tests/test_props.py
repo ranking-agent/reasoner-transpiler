@@ -1,7 +1,9 @@
 """Test querying with properties."""
 import pytest
-from reasoner_transpiler.cypher import get_query, set_custom_attribute_types, set_custom_attribute_skip_list
 from .fixtures import fixture_neo4j_driver
+from reasoner_transpiler.attributes import set_custom_attribute_types, set_custom_attribute_skip_list, \
+    reset_custom_attribute_types, DEFAULT_ATTRIBUTE_TYPE
+from reasoner_transpiler.cypher import get_query
 
 
 def test_numeric(neo4j_driver):
@@ -152,6 +154,69 @@ def test_empty_constraints(neo4j_driver):
     assert len(output["results"]) == 10
 
 
+def test_valid_biolink_attribute_without_mapping(neo4j_driver):
+    """publications is included in the default attribute types mapping included in the codebase,
+    but here we test that it still gets recognized as being biolink compliant when it's not in the mapping"""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["MONDO:0005148"],
+            },
+            "n1": {
+                "ids": ["NCBIGene:841"],
+            },
+        },
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1",
+            },
+        },
+    }
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    edges = output["knowledge_graph"]["edges"]
+    assert len(edges) == 1
+    attributes = list(edges.values())[0]["attributes"]
+    assert len(attributes) == 1
+    assert attributes[0] == {
+        "original_attribute_name": "p_value",
+        "attribute_type_id": "biolink:p_value",
+        "value": 0.000007,
+        "value_type_id": DEFAULT_ATTRIBUTE_TYPE['value_type_id']
+    }
+    reset_custom_attribute_types()
+
+
+def test_invalid_biolink_attribute_without_mapping(neo4j_driver):
+    """Test to make sure an attribute that isn't biolink compliant, and isn't custom mapped, returns correctly."""
+    qgraph = {
+        "nodes": {
+            "n0": {
+                "ids": ["NCBIGene:836"]
+            },
+            "n1": {
+                "ids": ["MONDO:0005148"]
+            },
+        },
+        "edges": {
+            "e01": {
+                "subject": "n0",
+                "object": "n1"
+            },
+        },
+    }
+    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    edges = output["knowledge_graph"]["edges"]
+    attribute = list(edges.values())[0]["attributes"][0]
+    expected_attribute = {
+        "original_attribute_name": "non_biolink_attribute",
+        "attribute_type_id": DEFAULT_ATTRIBUTE_TYPE['attribute_type_id'],
+        "value": "xxx123",
+        "value_type_id": DEFAULT_ATTRIBUTE_TYPE['value_type_id']
+    }
+    assert attribute == expected_attribute
+
+
 def test_json_attributes(neo4j_driver):
     qgraph = {
         "nodes": {
@@ -240,3 +305,4 @@ def test_props_customization(neo4j_driver):
         "value": ["xxx"],
         "value_type_id": "transpiler:custom_value_type"
     }
+    reset_custom_attribute_types()
