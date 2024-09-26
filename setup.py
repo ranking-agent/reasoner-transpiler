@@ -13,7 +13,7 @@ setup(
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     packages=["reasoner_transpiler"],
-    package_data={"reasoner_transpiler": ["attribute_types.json", "value_types.json"]},
+    package_data={"reasoner_transpiler": ["attribute_types.json"]},
     install_requires=[
         "bmt==1.4.4",
     ],
