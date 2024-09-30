@@ -3,6 +3,7 @@ import os
 import json
 
 from collections import defaultdict
+from neo4j import AsyncResult, Result
 
 from .attributes import transform_attributes, EDGE_SOURCE_PROPS
 from .matching import match_query
@@ -112,10 +113,10 @@ def get_query(qgraph, **kwargs):
     return " ".join(clauses)
 
 
-def transform_result(cypher_result,
+def transform_result(cypher_record,
                      qgraph: dict):
 
-    nodes, edges, paths = unpack_bolt_result(cypher_result)
+    nodes, edges, paths = unpack_bolt_record(cypher_record)
 
     # Convert the list of unique result nodes from cypher results to dictionaries
     # then convert them to TRAPI format, constructing the knowledge_graph["nodes"] section of the TRAPI response
@@ -449,9 +450,8 @@ def convert_jolt_edge_to_dict(jolt_edges, jolt_element_id_lookup):
     return convert_edges
 
 
-def unpack_bolt_result(bolt_response):
-    record = bolt_response.single()
-    return record['nodes'], record['edges'], record['paths']
+def unpack_bolt_record(bolt_record):
+    return bolt_record['nodes'], bolt_record['edges'], bolt_record['paths']
 
 
 def unpack_jolt_result(jolt_response):
