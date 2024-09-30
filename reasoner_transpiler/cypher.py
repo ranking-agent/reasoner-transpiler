@@ -327,7 +327,7 @@ def transform_edges_list(edges):
         # transform the edge into TRAPI
         for cypher_edge in cypher_edges:
             edge_element_id, edge_dict = convert_bolt_edge_to_dict(cypher_edge)
-            edge_id = edge_dict.get('id', edge_index)
+            edge_id = edge_dict.get('id', f'edge_{edge_index}')
             element_id_to_edge_id[edge_element_id] = edge_id
             # get properties matching EDGE_SOURCE_PROPS keys, remove biolink: if needed,
             # then pass (key, value) tuples to construct_sources_tree for formatting, constructing the 'sources' section
