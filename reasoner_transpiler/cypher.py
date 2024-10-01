@@ -313,7 +313,8 @@ def transform_edges_list(edges):
     # it is a list of lists (which can also be lists), representing unique edges from the graph
     kg_edges = {}
     element_id_to_edge_id = {}
-    for edge_index, cypher_edge_result in enumerate(edges):
+    edge_index = 1
+    for cypher_edge_result in edges:
         # skip an empty list
         if len(cypher_edge_result) == 0:
             cypher_edges = []
@@ -327,17 +328,27 @@ def transform_edges_list(edges):
 
         # transform the edge(s) into TRAPI
         for cypher_edge in cypher_edges:
+            # get the element id from the cypher results (see convert_bolt_edge_to_dict for more details)
+            edge_element_id = cypher_edge[0]
+            # skip the edge if we already processed it
+            # this prevents duplicating effort for cases where a subclass edge is included multiple times in a result
+            # this can happen because neo4j tries to deduplicate, but variable length subclass edges fail
+            # to match a single edge even when the single edge is part of the variable length edge
+            if edge_element_id in element_id_to_edge_id:
+                continue
+
             # transform the edge into TRAPI and return:
-            # edge_element_id - neo4j element id,
             # edge_id - the edge id that will be used for edges in the TRAPI knowledge graph and edge bindings
             # trapi_edge - a dictionary that represents an edge in the knowledge_graph part of the TRAPI response
-            edge_element_id, edge_id, trapi_edge = convert_bolt_edge_to_trapi(cypher_edge)
+            edge_id, trapi_edge = convert_bolt_edge_to_trapi(cypher_edge)
             if not edge_id:
                 edge_id = f'e_{edge_index}'
             # make a mapping that will be used to look up the edge id by element id later
             element_id_to_edge_id[edge_element_id] = edge_id
             # add it to the knowledge graph
             kg_edges[edge_id] = trapi_edge
+            edge_index += 1
+    # returns the TRAPI knowledge graph edges and a lookup mapping of edge element id -> TRAPI edge id
     return kg_edges, element_id_to_edge_id
 
 
@@ -423,7 +434,6 @@ def convert_bolt_edge_to_trapi(bolt_edge):
         print(f'Tried to convert a missing edge: {bolt_edge}')
         return None, None
 
-    element_id = bolt_edge[0]
     converted_edge = {
         'subject': bolt_edge[1],
         'predicate': bolt_edge[2],
@@ -444,8 +454,8 @@ def convert_bolt_edge_to_trapi(bolt_edge):
     # convert all remaining attributes to TRAPI format, constructing the attributes section
     converted_edge.update(transform_attributes(edge_props, node=False))
 
-    # return element id, a dict with the core edge properties, and a dict with any other properties
-    return element_id, edge_id, converted_edge,
+    # return the edge id if there was one, and a TRAPI edge
+    return edge_id, converted_edge
 
 
 def convert_jolt_edge_to_dict(jolt_edges, jolt_element_id_lookup):
