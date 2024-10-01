@@ -23,15 +23,10 @@ def test_numeric(neo4j_driver):
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
-    results = sorted(
-        output["knowledge_graph"]["nodes"].values(),
-        key=lambda node: node["name"],
-    )
-    expected_nodes = [
-        "CASP3",
-    ]
-    for ind, result in enumerate(results):
-        assert result["name"] == expected_nodes[ind]
+
+    node_1 = list(output["knowledge_graph"]["nodes"].values())[0]
+    assert node_1["name"] == "CASP3"
+    assert "length" not in node_1
 
 
 def test_string(neo4j_driver):
@@ -176,7 +171,9 @@ def test_valid_biolink_attribute_without_mapping(neo4j_driver):
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
-    attributes = list(edges.values())[0]["attributes"]
+    edge = list(edges.values())[0]
+    assert "p_value" not in edge
+    attributes = edge["attributes"]
     assert len(attributes) == 1
     assert attributes[0] == {
         "original_attribute_name": "p_value",

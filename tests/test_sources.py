@@ -31,6 +31,7 @@ def test_primary_source(neo4j_driver):
     edge_sources = {
         e: edge["sources"] for e, edge in output["knowledge_graph"]["edges"].items()
     }
+    assert not any(['primary_knowledge_source' in edge for edge in output["knowledge_graph"]["edges"].values()])
     assert edge_sources["metformin_treats_t2d"] == [
         {'resource_id': 'infores:test', 'resource_role': 'primary_knowledge_source'},
         {'resource_id': 'ctd', 'resource_role': 'aggregator_knowledge_source',

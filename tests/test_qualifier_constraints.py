@@ -40,6 +40,8 @@ def test_single_qualifier(neo4j_driver):
     qualified_predicate_output = {'qualifier_type_id': 'biolink:qualified_predicate', 'qualifier_value': 'biolink:causes'}
     qualifier_output = output["knowledge_graph"]["edges"]["qualified_edge_multiple_qualifier"]["qualifiers"]
     assert qualified_predicate_output in qualifier_output
+    assert "qualified_predicate" not in output["knowledge_graph"]["edges"]["qualified_edge_multiple_qualifier"]
+    assert "biolink:qualified_predicate" not in output["knowledge_graph"]["edges"]["qualified_edge_multiple_qualifier"]
 
 
 def test_multi_qualifier(neo4j_driver):
