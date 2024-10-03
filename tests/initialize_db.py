@@ -4,8 +4,9 @@ import argparse
 import logging
 import time
 
+import neo4j.exceptions
 from neo4j import GraphDatabase
-from neo4j.exceptions import ServiceUnavailable, DatabaseUnavailable
+from neo4j.exceptions import ServiceUnavailable, DatabaseUnavailable, ClientError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,11 +20,9 @@ def get_driver(url):
     while True:
         try:
             driver = GraphDatabase.driver(url, auth=("neo4j", "plater_testing_pw"))
-            # make sure we can start and finish a session
-            with driver.session() as session:
-                session.run("SHOW PROCEDURES")
+            driver.verify_connectivity()
             return driver
-        except (OSError, ServiceUnavailable, DatabaseUnavailable) as err:
+        except (OSError, ServiceUnavailable, DatabaseUnavailable, ClientError) as err:
             if seconds >= 256:
                 raise err
             LOGGER.error(
@@ -53,6 +52,7 @@ def main(hash: str = None):
                     "name: row.name, id: row.id"
                     "}, apoc.convert.fromJsonMap(row.props))) YIELD node "
                     "RETURN count(*)")
+        print(f'Nodes added: {result.single()["count(*)"]}')
         result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
         result = session.run(f"LOAD CSV WITH HEADERS FROM \"{edge_file}\" "
                     "AS edge "
@@ -62,8 +62,10 @@ def main(hash: str = None):
                     "apoc.map.merge({predicate: edge.predicate, id: edge.id}, "
                     "apoc.convert.fromJsonMap(edge.props)), object) YIELD rel "
                     "RETURN count(*)")
-        result.consume() # this looks like it doesn't do anything, but it's needed to throw errors if they occur
+        print(f'Edges added: {result.single()["count(*)"]}')
+        result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
 
+    driver.close()
     LOGGER.info("Done. Neo4j is ready for testing.")
 
 

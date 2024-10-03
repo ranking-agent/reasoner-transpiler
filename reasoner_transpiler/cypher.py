@@ -1,14 +1,10 @@
 """Tools for compiling QGraph into Cypher query."""
-import os
 import json
 
 from collections import defaultdict
 
-from .attributes import transform_attributes, EDGE_SOURCE_PROPS
+from .attributes import transform_attributes, PROVENANCE_TAG
 from .matching import match_query
-
-
-PROVENANCE_TAG = os.environ.get('PROVENANCE_TAG', 'reasoner-transpiler')
 
 
 def nest_op(operator, *args):
@@ -51,7 +47,8 @@ def assemble_results(qnodes, qedges, **kwargs):
         ])
         if not edges_assemble:
             edges_assemble = '[]'
-        assemble_clause = f"WITH apoc.coll.toSet({nodes_assemble}) AS nodes, apoc.coll.toSet({edges_assemble}) AS edges, collect(DISTINCT ["
+        assemble_clause = f"WITH apoc.coll.toSet({nodes_assemble}) AS nodes, " \
+                          f"apoc.coll.toSet({edges_assemble}) AS edges, collect(DISTINCT ["
 
         if nodes:
             assemble_clause += ', '.join(nodes)
@@ -117,9 +114,18 @@ def transform_result(cypher_record,
 
     nodes, edges, paths = unpack_bolt_record(cypher_record)
 
-    # Convert the list of unique result nodes from cypher results to dictionaries
-    # then convert them to TRAPI format, constructing the knowledge_graph["nodes"] section of the TRAPI response
-    kg_nodes = transform_nodes_list(nodes)
+    # Construct the knowledge_graph["nodes"] section of the TRAPI response
+    kg_nodes = {}
+    for cypher_node in nodes:
+        # Convert the list of unique result nodes from cypher results to dictionaries
+        node = convert_bolt_node_to_dict(cypher_node)
+        # Convert nodes to TRAPI format
+        # id, name, and labels are removed before transform_attributes
+        node_id = node.pop('id')
+        kg_nodes[node_id] = {
+            'name': node.pop('name'),
+            'categories': sorted(node.pop('labels'))}
+        kg_nodes[node_id].update(**transform_attributes(node, node=True))
 
     # Convert the list of unique edges from cypher results to dictionaries
     # then convert them to TRAPI format, constructing the knowledge_graph["edges"] section of the TRAPI response.
@@ -213,7 +219,8 @@ def transform_result(cypher_record,
             # Check to see if the edge has subclass edges that are connected to it
             subclass_edge_ids = []
             superclass_node_ids = {}
-            for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in qedges_with_attached_subclass_edges.get(qedge_id, []):
+            for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in \
+                    qedges_with_attached_subclass_edges.get(qedge_id, []):
                 # If so, check to see if there are results for it
                 qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
                 if subclass_edge_element_ids:
@@ -297,17 +304,6 @@ def transform_result(cypher_record,
     return transformed_results
 
 
-def transform_nodes_list(nodes):
-    kg_nodes = {}
-    for cypher_node in nodes:
-        node = convert_bolt_node_to_dict(cypher_node)
-        kg_nodes[node['id']] = {
-            'name': node['name'],
-            'categories': sorted(node.pop('labels')),
-            **transform_attributes(node, node=True)}
-    return kg_nodes
-
-
 def transform_edges_list(edges):
     # See convert_bolt_edge_to_dict() for details on the contents of edges,
     # it is a list of lists (which can also be lists), representing unique edges from the graph
@@ -352,65 +348,10 @@ def transform_edges_list(edges):
     return kg_edges, element_id_to_edge_id
 
 
-# This function takes EDGE_SOURCE_PROPS properties from results, converts them into proper
-# TRAPI dictionaries, and assigns the proper upstream ids to each resource. It does not currently attempt to avoid
-# duplicate aggregator results, which shouldn't exist in the graphs.
-def construct_sources_tree(sources):
-
-    # first find the primary knowledge source, there should always be one
-    primary_knowledge_source = None
-    formatted_sources = None
-    for resource_role, resource_id in sources:
-        if resource_role == "primary_knowledge_source":
-            primary_knowledge_source = resource_id
-            # add it to the formatted TRAPI output
-            formatted_sources = [{
-                "resource_id": primary_knowledge_source,
-                "resource_role": "primary_knowledge_source"
-            }]
-    if not primary_knowledge_source:
-        # we could hard fail here, every edge should have a primary ks, but I haven't fixed all the tests yet
-        #     raise KeyError(f'primary_knowledge_source missing from sources section of cypher results! '
-        #                    f'sources: {sources}')
-        return []
-
-    # then find any aggregator lists
-    aggregator_list_sources = []
-    for resource_role, resource_id in sources:
-        # this looks weird but the idea is that you could have a few parallel lists like:
-        # aggregator_knowledge_source, aggregator_knowledge_source_2, aggregator_knowledge_source_3
-        if resource_role.startswith("aggregator_knowledge_source"):
-            aggregator_list_sources.append(resource_id)
-    # walk through the aggregator lists and construct the chains of provenance
-    terminal_aggregators = set()
-    for aggregator_list in aggregator_list_sources:
-        # each aggregator list should be in order, so we can deduce the upstream chains
-        last_aggregator = None
-        for aggregator_knowledge_source in aggregator_list:
-            formatted_sources.append({
-                "resource_id": aggregator_knowledge_source,
-                "resource_role": "aggregator_knowledge_source",
-                "upstream_resource_ids": [last_aggregator] if last_aggregator else [primary_knowledge_source]
-            })
-            last_aggregator = aggregator_knowledge_source
-        # store the last aggregator in the list, because this will be an upstream source for the plater one
-        terminal_aggregators.add(last_aggregator)
-    # add PROVENANCE_TAG as the most downstream aggregator,
-    # it will have as upstream either the primary ks or all of the furthest downstream aggregators if they exist
-    # this will be used by applications like Plater which need to append themselves as an aggregator
-    formatted_sources.append({
-        "resource_id": PROVENANCE_TAG,
-        "resource_role": "aggregator_knowledge_source",
-        "upstream_resource_ids": list(terminal_aggregators) if terminal_aggregators else [primary_knowledge_source]
-    })
-    return list(formatted_sources)
-
-
 def convert_bolt_node_to_dict(bolt_node):
     if not bolt_node:
         return None
     node = {key: value for key, value in bolt_node.items()}
-    # node['element_id'] = bolt_node.element_id
     node['labels'] = bolt_node.labels
     return node
 
@@ -442,16 +383,10 @@ def convert_bolt_edge_to_trapi(bolt_edge):
     # edge_props - any other properties from the edge
     edge_props = {**bolt_edge[4]}
 
-    # get the id if there is one on the edge
+    # retrieve and remove the id if there is one on the edge
     edge_id = edge_props.pop('id', None)
 
-    # get properties matching EDGE_SOURCE_PROPS keys, remove biolink: if needed,
-    # then pass (key, value) tuples to construct_sources_tree for formatting, constructing the sources section
-    converted_edge['sources'] = construct_sources_tree([
-        (edge_source_prop.removeprefix('biolink:'), edge_props.pop(edge_source_prop))
-        for edge_source_prop in EDGE_SOURCE_PROPS if edge_source_prop in edge_props])
-
-    # convert all remaining attributes to TRAPI format, constructing the attributes section
+    # convert all remaining attributes to TRAPI format, constructing the attributes and sources sections
     converted_edge.update(transform_attributes(edge_props, node=False))
 
     # return the edge id if there was one, and a TRAPI edge

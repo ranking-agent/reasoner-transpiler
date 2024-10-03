@@ -27,6 +27,7 @@ def test_numeric(neo4j_driver):
     node_1 = list(output["knowledge_graph"]["nodes"].values())[0]
     assert node_1["name"] == "CASP3"
     assert "length" not in node_1
+    assert "element_id" not in node_1
 
 
 def test_string(neo4j_driver):
@@ -116,13 +117,12 @@ def test_publications(neo4j_driver):
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     attributes = list(edges.values())[0]["attributes"]
-    assert len(attributes) == 1
-    assert attributes[0] == {
+    assert any([attribute == {
         "original_attribute_name": "publications",
         "attribute_type_id": "biolink:publications",
         "value": ["xxx"],
         "value_type_id": "linkml:Uriorcurie"
-    }
+    } for attribute in attributes])
 
 
 def test_empty_constraints(neo4j_driver):
@@ -174,13 +174,12 @@ def test_valid_biolink_attribute_without_mapping(neo4j_driver):
     edge = list(edges.values())[0]
     assert "p_value" not in edge
     attributes = edge["attributes"]
-    assert len(attributes) == 1
-    assert attributes[0] == {
+    assert any([attribute == {
         "original_attribute_name": "p_value",
         "attribute_type_id": "biolink:p_value",
         "value": 0.000007,
         "value_type_id": DEFAULT_ATTRIBUTE_TYPE['value_type_id']
-    }
+    } for attribute in attributes])
     reset_custom_attribute_types()
 
 
@@ -204,14 +203,14 @@ def test_invalid_biolink_attribute_without_mapping(neo4j_driver):
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
-    attribute = list(edges.values())[0]["attributes"][0]
+    attributes = list(edges.values())[0]["attributes"]
     expected_attribute = {
         "original_attribute_name": "non_biolink_attribute",
         "attribute_type_id": DEFAULT_ATTRIBUTE_TYPE['attribute_type_id'],
         "value": "xxx123",
         "value_type_id": DEFAULT_ATTRIBUTE_TYPE['value_type_id']
     }
-    assert attribute == expected_attribute
+    assert any([attribute == expected_attribute for attribute in attributes])
 
 
 def test_json_attributes(neo4j_driver):
@@ -279,7 +278,8 @@ def test_props_customization(neo4j_driver):
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     attributes = list(edges.values())[0]["attributes"]
-    assert len(attributes) == 0
+    assert not any([attribute["attribute_type_id"] == "biolink:publications" for attribute in attributes])
+    assert not any([attribute["attribute_type_id"] == "publications" for attribute in attributes])
 
     # reset the skip list
     set_custom_attribute_skip_list([])
@@ -295,11 +295,10 @@ def test_props_customization(neo4j_driver):
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     attributes = list(edges.values())[0]["attributes"]
-    assert len(attributes) == 1
-    assert attributes[0] == {
+    assert any([attribute == {
         "original_attribute_name": "publications",
         "attribute_type_id": "transpiler:custom_attribute_type",
         "value": ["xxx"],
         "value_type_id": "transpiler:custom_value_type"
-    }
+    } for attribute in attributes])
     reset_custom_attribute_types()

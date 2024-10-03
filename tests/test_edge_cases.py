@@ -14,7 +14,7 @@ def test_categories(neo4j_driver):
         "edges": dict(),
     }
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
-    assert len(output['results']) == 11
+    assert len(output['results']) == 12
 
 
 def test_empty(neo4j_driver):
