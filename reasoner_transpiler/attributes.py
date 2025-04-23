@@ -15,8 +15,7 @@ def get_attribute_types_from_config():
 ATTRIBUTE_TYPES = get_attribute_types_from_config()
 
 DEFAULT_ATTRIBUTE_TYPE = {
-    "attribute_type_id": "biolink:Attribute",
-    "value_type_id": "EDAM:data_0006",
+    "attribute_type_id": "biolink:Attribute"
 }
 
 ATTRIBUTE_SKIP_LIST = []
@@ -113,23 +112,24 @@ def transform_attributes(result_entity, node=False):
 
     # for attributes that aren't in ATTRIBUTE_TYPES, see if they are valid biolink attributes
     # add them to ATTRIBUTE_TYPES, so we don't need to look again
-    for attribute in [key for key in result_entity.keys() if key not in list(ATTRIBUTE_TYPES.keys())]:
-        attribute_mapping = DEFAULT_ATTRIBUTE_TYPE
+    # TODO this is still inefficient - we should really map all the attributes on start up and/or not attempt this
+    for attribute in [key for key in result_entity.keys() if key not in ATTRIBUTE_TYPES]:
         bmt_element = bmt.get_element(attribute)
         if bmt_element:
-            if 'slot_uri' in bmt_element:
-                attribute_mapping['attribute_type_id'] = bmt_element['slot_uri']
-            elif 'class_uri' in bmt_element:
-                attribute_mapping['attribute_type_id'] = bmt_element['class_uri']
-        ATTRIBUTE_TYPES[attribute] = attribute_mapping
+            attribute_mapping = {
+                'attribute_type_id': bmt_element['slot_uri'] if 'slot_uri' in bmt_element else f'biolink:{attribute}'
+            }
+            if 'class_uri' in bmt_element:
+                attribute_mapping['value_type_id'] = bmt_element['class_uri']
+            ATTRIBUTE_TYPES[attribute] = attribute_mapping
+        else:
+            ATTRIBUTE_TYPES[attribute] = DEFAULT_ATTRIBUTE_TYPE
 
     # format the rest of the attributes, look up their attribute type and value type
     trapi_attributes.extend([
         {'original_attribute_name': key,
          'value': value,
-         # the following function will return
-         # 'attribute_type_id': 'biolink-ified attribute type id'
-         # 'value_type_id': 'biolink-ified value type id'
+         # ATTRIBUTE_TYPES is a mapping for things like attribute_type_id, value_type_id or other TRAPI fields
          **ATTRIBUTE_TYPES.get(key)}
         for key, value in result_entity.items()
     ])
