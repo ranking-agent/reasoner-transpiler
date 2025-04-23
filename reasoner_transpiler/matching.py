@@ -40,6 +40,8 @@ def convert_constraints(constraints):
     props = {}
     for constraint in constraints:
         try:
+            if "not" in constraint and constraint["not"]:
+                raise UnsupportedError(f'Unsupported attribute constraint, not is not supported: {constraint}')
             constraint["id"] = constraint["id"].removeprefix("biolink:")
             operator = constraint.get("operator", "===")
             if operator == "===":
