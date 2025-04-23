@@ -63,7 +63,8 @@ def test_multiple_noncanonical():
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
     expected_preds = [ f"`biolink:{x}`" for x in ["ameliorates_condition", "predisposes_to_condition",
-                                                  "preventative_for_condition", "affects_likelihood_of"]]
+                                                  "preventative_for_condition", "affects_likelihood_of",
+                                                  "promotes_condition", "exacerbates_condition"]]
     assert set(preds) == set(expected_preds)  # order doesn't matter
     assert ref.directed
     assert len(ref.filters) == 0
@@ -97,16 +98,19 @@ def test_multiple_conflicting():
     ref = EdgeReference("e0", edge, invert=True)
     preds = ref.label.split('|')
     #Make sure that the label contains only canonical predicates
-    expected_preds = [ f"`biolink:{x}`" for x in ["ameliorates_condition", "predisposes_to_condition",
-                                                  "preventative_for_condition", "affects_likelihood_of"]]
+    expected_preds = [f"`biolink:{x}`" for x in ["ameliorates_condition", "predisposes_to_condition",
+                                                 "preventative_for_condition", "affects_likelihood_of",
+                                                 "promotes_condition", "exacerbates_condition"]]
     assert set(preds) == set(expected_preds) #order doesn't matter
     assert not ref.directed
     #filters should look like:
     #['(type(`e0`) in ["biolink:treats", "biolink:ameliorates"] AND startNode(`e0`) = `s`) OR (type(`e0`) in ["biolink:predisposes", "biolink:prevents", "biolink:affects_risk_for"] AND startNode(`e0`) = `o`)']
-    expected_filter = {"s": set(["biolink:ameliorates_condition"]),
-                       "o": set(["biolink:predisposes_to_condition",
-                                 "biolink:preventative_for_condition",
-                                 "biolink:affects_likelihood_of"])}
+    expected_filter = {"s": {"biolink:ameliorates_condition"},
+                       "o": {"biolink:predisposes_to_condition",
+                             "biolink:preventative_for_condition",
+                             "biolink:affects_likelihood_of",
+                             "biolink:promotes_condition",
+                             "biolink:exacerbates_condition"}}
     assert len(ref.filters) == 1
     parsed_filter = parse_filter(ref.filters[0])
     assert parsed_filter == expected_filter
@@ -122,7 +126,8 @@ def test_symmetric_canonical():
     # Make sure that the label contains only canonical predicates
     correlated_sub_preds = ["correlated_with", "biomarker_for", "coexpressed_with", "negatively_correlated_with",
                             "positively_correlated_with", "occurs_together_in_literature_with"]
-    likelihood_of_sub_preds = ["predisposes_to_condition", "preventative_for_condition", "affects_likelihood_of"]
+    likelihood_of_sub_preds = ["predisposes_to_condition", "preventative_for_condition", "affects_likelihood_of",
+                               "promotes_condition", "exacerbates_condition"]
     expected_preds = [f"`biolink:{x}`" for x in correlated_sub_preds + likelihood_of_sub_preds]
     assert set(preds) == set(expected_preds)  # order doesn't matter
     assert not ref.directed
@@ -144,7 +149,8 @@ def test_symmetric_noncanonical():
     # Make sure that the label contains only canonical predicates
     correlated_sub_preds = ["correlated_with", "biomarker_for", "coexpressed_with", "negatively_correlated_with",
                             "positively_correlated_with", "occurs_together_in_literature_with"]
-    ameliorates_sub_preds = ["predisposes_to_condition", "preventative_for_condition", "affects_likelihood_of"]
+    ameliorates_sub_preds = ["predisposes_to_condition", "preventative_for_condition", "affects_likelihood_of",
+                             "promotes_condition", "exacerbates_condition"]
     expected_preds = [f"`biolink:{x}`" for x in correlated_sub_preds + ameliorates_sub_preds]
     assert set(preds) == set(expected_preds)  # order doesn't matter
     assert not ref.directed
