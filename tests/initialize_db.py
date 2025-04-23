@@ -59,7 +59,7 @@ def main(hash: str = None):
                     "MATCH (subject), (object) "
                     "WHERE subject.id = edge.subject AND object.id = edge.object "
                     "CALL apoc.create.relationship(subject, edge.predicate, "
-                    "apoc.map.merge({predicate: edge.predicate, id: edge.id}, "
+                    "apoc.map.merge({id: edge.id}, "
                     "apoc.convert.fromJsonMap(edge.props)), object) YIELD rel "
                     "RETURN count(*)")
         print(f'Edges added: {result.single()["count(*)"]}')

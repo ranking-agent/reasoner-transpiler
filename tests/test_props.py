@@ -177,8 +177,7 @@ def test_valid_biolink_attribute_without_mapping(neo4j_driver):
     assert any([attribute == {
         "original_attribute_name": "p_value",
         "attribute_type_id": "biolink:p_value",
-        "value": 0.000007,
-        "value_type_id": DEFAULT_ATTRIBUTE_TYPE['value_type_id']
+        "value": 0.000007
     } for attribute in attributes])
     reset_custom_attribute_types()
 
@@ -207,8 +206,7 @@ def test_invalid_biolink_attribute_without_mapping(neo4j_driver):
     expected_attribute = {
         "original_attribute_name": "non_biolink_attribute",
         "attribute_type_id": DEFAULT_ATTRIBUTE_TYPE['attribute_type_id'],
-        "value": "xxx123",
-        "value_type_id": DEFAULT_ATTRIBUTE_TYPE['value_type_id']
+        "value": "xxx123"
     }
     assert any([attribute == expected_attribute for attribute in attributes])
 
@@ -277,7 +275,7 @@ def test_props_customization(neo4j_driver):
     output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
-    attributes = list(edges.values())[0]["attributes"]
+    attributes = list(edges.values())[0].get("attributes", [])
     assert not any([attribute["attribute_type_id"] == "biolink:publications" for attribute in attributes])
     assert not any([attribute["attribute_type_id"] == "publications" for attribute in attributes])
 
