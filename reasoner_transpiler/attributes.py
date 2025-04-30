@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-from .biolink import bmt
+from .biolink import bmt, is_biolink_slot, is_biolink_class, get_slot_uri, get_class_uri
 
 DIR_PATH = Path(__file__).parent
 
@@ -111,19 +111,30 @@ def transform_attributes(result_entity, node=False):
                                           for qualifier in qualifiers]
 
     # for attributes that aren't in ATTRIBUTE_TYPES, see if they are valid biolink attributes
-    # add them to ATTRIBUTE_TYPES, so we don't need to look again
-    # TODO this is still inefficient - we should really map all the attributes on start up and/or not attempt this
-    for attribute in [key for key in result_entity.keys() if key not in ATTRIBUTE_TYPES]:
-        bmt_element = bmt.get_element(attribute)
-        if bmt_element:
-            attribute_mapping = {
-                'attribute_type_id': bmt_element['slot_uri'] if 'slot_uri' in bmt_element else f'biolink:{attribute}'
-            }
-            if 'class_uri' in bmt_element:
-                attribute_mapping['value_type_id'] = bmt_element['class_uri']
-            ATTRIBUTE_TYPES[attribute] = attribute_mapping
-        else:
-            ATTRIBUTE_TYPES[attribute] = DEFAULT_ATTRIBUTE_TYPE
+    # TODO this is still inefficient - we should really map all the possible attributes on start up
+    for attribute in result_entity:
+        if attribute not in ATTRIBUTE_TYPES:
+            bmt_element = bmt.get_element(attribute)
+            if not bmt_element:
+                ATTRIBUTE_TYPES[attribute] = DEFAULT_ATTRIBUTE_TYPE
+            else:
+                # This looks in the biolink model for the slot_uri or class_uri depending on if the element
+                # is a slot or a class and attempts to populate the attribute_type_id and value_type_id with something
+                # useful. Technically classes probably shouldn't be included as attribute_type_id but examples exist
+                # and it seems better than having a default value that also isn't compliant.
+                attribute_type_id = f'biolink:{attribute}'
+                value_type_id = None
+                if is_biolink_slot(bmt_element):
+                    bl_slot_uri = get_slot_uri(bmt_element)
+                    value_type_id = bl_slot_uri if bl_slot_uri != attribute_type_id else None
+                elif is_biolink_class(bmt_element):
+                    attribute_type_id = get_class_uri(bmt_element)
+                attribute_mapping = {
+                    'attribute_type_id': attribute_type_id,
+                    **({'value_type_id': value_type_id} if value_type_id else {})
+                }
+                # add it to ATTRIBUTE_TYPES, so we don't need to check biolink again
+                ATTRIBUTE_TYPES[attribute] = attribute_mapping
 
     # format the rest of the attributes, look up their attribute type and value type
     trapi_attributes.extend([
