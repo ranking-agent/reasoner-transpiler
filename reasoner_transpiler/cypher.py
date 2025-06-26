@@ -47,9 +47,8 @@ def assemble_results(qnodes, qedges, **kwargs):
         ])
         if not edges_assemble:
             edges_assemble = '[]'
-        assemble_clause = f"WITH apoc.coll.toSet({nodes_assemble}) AS nodes, " \
-                          f"apoc.coll.toSet({edges_assemble}) AS edges, collect(DISTINCT ["
-
+        assemble_clause = f"WITH {nodes_assemble} AS raw_nodes, " \
+                          f"{edges_assemble} AS raw_edges, collect(DISTINCT ["
         if nodes:
             assemble_clause += ', '.join(nodes)
             if edges:
@@ -57,6 +56,8 @@ def assemble_results(qnodes, qedges, **kwargs):
         if edges:
             assemble_clause += ', '.join(edges)
         assemble_clause += "]) AS paths "
+        assemble_clause += "CALL { WITH raw_nodes UNWIND raw_nodes AS node RETURN collect(DISTINCT node) AS nodes } "
+        assemble_clause += "CALL { WITH raw_edges UNWIND raw_edges AS edge RETURN collect(DISTINCT edge) AS edges } "
         clauses.append(assemble_clause)
         return_clause = "RETURN nodes, edges, paths"
     else:
