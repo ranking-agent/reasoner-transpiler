@@ -74,6 +74,7 @@ class NodeReference:
         """
         max_connectivity = kwargs.get("max_connectivity", -1)
         self.anonymous = kwargs.get("anonymous", False)
+        dialect = kwargs.get("dialect", "neo4j")
 
         node = dict(node)  # shallow copy
         self.name = f"`{node_id}`"
@@ -82,20 +83,33 @@ class NodeReference:
         self._filters = []
         self.labels = []
 
-        category = node.pop("categories", ["biolink:NamedThing"])
+        if dialect == "kuzudb":
+            category = node.pop("categories", None)
+        else:
+            category = node.pop("categories", ["biolink:NamedThing"])
         if isinstance(category, list) and len(category) == 1:
             category = category[0]
         elif category is None:
-            category = "biolink:NamedThing"
+            if not dialect == "kuzudb":
+                category = "biolink:NamedThing"
         if isinstance(category, list):
-            self.labels = ['biolink:NamedThing']
-            self._filters.append(" OR ".join([
-                "{1} in labels({0})".format(
-                    self.name,
-                    cypher_prop_string(ci)
-                )
-                for ci in category
-            ]))
+            if dialect == "kuzudb":
+                self._filters.append(" OR ".join([
+                    "{1} = label({0})".format(
+                        self.name,
+                        cypher_prop_string(ci)
+                    )
+                    for ci in category
+                ]))
+            else: # neo4j
+                self.labels = ['biolink:NamedThing']
+                self._filters.append(" OR ".join([
+                    "{1} in labels({0})".format(
+                        self.name,
+                        cypher_prop_string(ci)
+                    )
+                    for ci in category
+                ]))
         elif category is not None:
             # coerce to a string
             self.labels = [str(category)]

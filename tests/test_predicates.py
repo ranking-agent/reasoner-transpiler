@@ -2,15 +2,16 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_neo4j_driver
+from .fixtures import fixture_neo4j_driver, db_fixture
 
 
-def test_symmetric(neo4j_driver):
+def test_symmetric(db_fixture):
     """Test symmetric predicate."""
     qgraph = {
         "nodes": {
-            "n0": {},
+            "n0": { "categories": ["biolink:Disease"] },
             "n1": {
+                "categories": ["biolink:Gene"],
                 "ids": ["NCBIGene:836"]
             },
         },
@@ -22,7 +23,8 @@ def test_symmetric(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    driver, dialect = db_fixture
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 2
 
 

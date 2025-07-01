@@ -8,7 +8,7 @@ def test_primary_source(neo4j_driver):
     qgraph = {
             "nodes": {
                 "n0": {
-                    "categories": ["biolink:ChemicalSubstance"]
+                    "categories": ["biolink:ChemicalEntity"]
                 },
                 "n1": {
                     "categories": ["biolink:Disease"],
