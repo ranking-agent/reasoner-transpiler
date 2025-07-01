@@ -16,7 +16,7 @@ def test_curie_formats(neo4j_driver):
                 "categories": "biolink:Disease",
             },
             "n1": {
-                "categories": "biolink:ChemicalSubstance",
+                "categories": "biolink:ChemicalEntity",
             },
         },
         "edges": {

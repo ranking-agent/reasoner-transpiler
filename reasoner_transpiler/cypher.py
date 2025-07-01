@@ -17,6 +17,7 @@ def nest_op(operator, *args):
 
 def assemble_results(qnodes, qedges, **kwargs):
     """Assemble results into Reasoner format."""
+    dialect = kwargs.get('dialect', 'neo4j')
     clauses = []
 
     for qnode in qnodes.values():
@@ -46,7 +47,10 @@ def assemble_results(qnodes, qedges, **kwargs):
             for qedge_id, qedge in qedges.items()
         ])
         if not edges_assemble:
-            edges_assemble = '[]'
+            if dialect == "kuzudb":
+                edges_assemble = '[null]'
+            else:
+                edges_assemble = '[]'
         assemble_clause = f"WITH {nodes_assemble} AS raw_nodes, " \
                           f"{edges_assemble} AS raw_edges, collect(DISTINCT ["
         if nodes:
@@ -56,10 +60,21 @@ def assemble_results(qnodes, qedges, **kwargs):
         if edges:
             assemble_clause += ', '.join(edges)
         assemble_clause += "]) AS paths "
-        assemble_clause += "CALL { WITH raw_nodes UNWIND raw_nodes AS node RETURN collect(DISTINCT node) AS nodes } "
-        assemble_clause += "CALL { WITH raw_edges UNWIND raw_edges AS edge RETURN collect(DISTINCT edge) AS edges } "
+        if dialect == "kuzudb":
+            # These [null]s are in here so that the UNWIND will work and not screw everything up
+            #assemble_clause += "WITH CASE WHEN size(raw_nodes) = 0 THEN cast([null],NODE[]) ELSE raw_nodes END AS raw_nodes, CASE WHEN size(raw_edges) = 0 THEN cast([null],NODE[]) ELSE raw_edges END AS raw_edges, paths "
+            #assemble_clause += "WITH CASE WHEN size(raw_nodes) = 0 THEN [null] ELSE raw_nodes END AS raw_nodes, CASE WHEN size(raw_edges) = 0 THEN [null] ELSE raw_edges END AS raw_edges, paths "
+            #assemble_clause += "UNWIND raw_nodes AS raw_node WITH DISTINCT raw_node AS node, raw_edges, paths WITH collect(node) AS nodes, raw_edges, paths "
+            #assemble_clause += "UNWIND raw_edges AS raw_edge WITH DISTINCT raw_edge AS edge, nodes, paths WITH nodes, collect(edge) AS edges, paths"
+            assemble_clause += "UNWIND ifnull(raw_nodes,[]) AS raw_node WITH DISTINCT raw_node AS node, raw_edges, paths WITH node AS nodes, raw_edges, paths "
+            assemble_clause += "UNWIND ifnull(raw_edges,[]) AS raw_edge WITH DISTINCT raw_edge AS edge, nodes, paths WITH nodes, edge AS edges, paths"
+            #assemble_clause += "WITH deduplicate(raw_nodes) AS nodes, deduplicate(raw_edges) AS edges, paths "
+        else:
+            assemble_clause += "CALL { WITH raw_nodes UNWIND raw_nodes AS node RETURN collect(DISTINCT node) AS nodes } "
+            assemble_clause += "CALL { WITH raw_edges UNWIND raw_edges AS edge RETURN collect(DISTINCT edge) AS edges } "
         clauses.append(assemble_clause)
         return_clause = "RETURN nodes, edges, paths"
+        #return_clause = "RETURN CASE WHEN nodes = [null] THEN [] ELSE nodes END AS nodes, CASE WHEN edges = [null] THEN [] ELSE edges END AS edges, paths"
     else:
         return_clause = 'RETURN [] as nodes, [] as edges, [] as paths'
 
@@ -415,6 +430,7 @@ def convert_jolt_edge_to_dict(jolt_edges, jolt_element_id_lookup):
 
 def unpack_bolt_record(bolt_record):
     return bolt_record['nodes'], bolt_record['edges'], bolt_record['paths']
+    #return bolt_record[0], bolt_record[1], bolt_record[2]
 
 
 def unpack_jolt_result(jolt_response):

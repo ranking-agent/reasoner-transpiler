@@ -2,9 +2,31 @@
 import pytest
 import neo4j
 import asyncio
-
+import kuzu
+from .initialize_kuzudb import load_kuzu
 from reasoner_transpiler.cypher import transform_result
 
+def deduplicate(x):
+    return list(set(x))
+
+@pytest.fixture(name="db_fixture", params=["kuzudb"], scope="session")
+#@pytest.fixture(name="db_fixture", params=["neo4j", "kuzudb"], scope="session")
+def db_fixture(request):
+    if request.param == "neo4j":
+        driver = TranspilerNeo4jBoltDriver()
+        yield driver, "neo4j"
+        driver.close()
+    elif request.param == "kuzudb":
+        driver = KuzuDBDriver()
+        yield driver, "kuzudb"
+        driver.close()
+
+def get_kuzudb():
+    """Pytest fixture for KuzuDB connection."""
+    db = kuzu.Database()
+    conn = kuzu.Connection(db)
+    load_kuzu(conn)
+    return conn
 
 @pytest.fixture(name="neo4j_driver", scope="module")
 def fixture_neo4j_driver():
@@ -12,12 +34,32 @@ def fixture_neo4j_driver():
     yield driver
     driver.close()
 
-
 @pytest.fixture(name="async_neo4j_driver", scope="module")
 def fixture_async_neo4j_driver():
     driver = TranspilerAsyncNeo4jBoltDriver()
     yield driver
 
+
+class KuzuDBDriver:
+    def __init__(self):
+        """Pytest fixture for KuzuDB connection."""
+        self.conn = get_kuzudb()
+
+    def run(self, query, query_parameters: dict = None, convert_to_trapi=False, qgraph=None):
+        if not query_parameters:
+            query_parameters = {}
+        print(query)
+        result = self.conn.execute(query, parameters=query_parameters)
+        while (result.has_next()):
+            print("New result")
+            print(result.get_next())
+            print("-----------------")
+        if convert_to_trapi:
+            return transform_result(result, qgraph)
+        return result
+
+    def close(self):
+        self.conn.close()
 
 class TranspilerNeo4jBoltDriver:
     def __init__(self):

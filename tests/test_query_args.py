@@ -13,7 +13,7 @@ def test_skip_limit(neo4j_driver):
                 "ids": ["MONDO:0005148"],
             },
             "n1": {
-                "categories": "biolink:ChemicalSubstance",
+                "categories": "biolink:ChemicalEntity",
             },
         },
         "edges": {
@@ -55,7 +55,7 @@ def test_max_connectivity(neo4j_driver):
                 "categories": "biolink:Disease",
             },
             "n1": {
-                "categories": "biolink:ChemicalSubstance",
+                "categories": "biolink:ChemicalEntity",
                 "ids": ["CHEBI:6801"],
             },
         },

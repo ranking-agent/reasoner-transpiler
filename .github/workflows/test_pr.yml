@@ -36,7 +36,7 @@ jobs:
 
       - name: Set up Neo4j data
         run: |
-          python tests/initialize_db.py "${GITHUB_SHA}"
+          python tests/initialize_neo4j.py "${GITHUB_SHA}"
 
       - name: Run pytest
         run: |
