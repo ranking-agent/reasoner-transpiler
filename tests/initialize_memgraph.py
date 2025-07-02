@@ -36,29 +36,31 @@ def main(hash: str = None):
     driver = get_driver(url)
     LOGGER.info("Connected to Memgraph. Initializing...")
     if hash is not None:
-        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_csv/nodes.csv"
-        gene_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_csv/gene_nodes.csv"
-        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_csv/edges.csv"
+        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_json/nodes.json"
+        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_json/edges.json"
     else:
         node_file = f"file:///nodes.csv"
         edge_file = f"file:///edges.csv"
     with driver.session() as session:
         session.run("MATCH (m) DETACH DELETE m")
-        print(node_file)
-        result = session.run(f"LOAD CSV FROM \"{node_file}\" WITH HEADER AS row "
-                    "CREATE (a:row.category:`biolink:NamedThing` {id:row.id, name:row.name}); ")
-        result = session.run(f"LOAD CSV FROM \"{gene_file}\" WITH HEADER AS row "
-                             "CREATE (a:row.category:`biolink:NamedThing` {id:row.id, name:row.name, length: toInteger(row.length), chromosome: row.chromosome}); ")
-        print(f'Nodes added')
-        result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
-        result = session.run(f"LOAD CSV FROM \"{edge_file}\" WITH HEADER AS row "
-                    "MATCH (subject {id:row.subject}), (object {id:row.object}) "
-                    "CREATE (subject)-[:row.predicate]->(object);" )
-        print(f'Edges added')
-        result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
-
+        result = session.run(f"CALL json_util.load_from_url(\"{node_file}\") YIELD objects "
+                             "UNWIND objects AS node "
+                             "CREATE (n:`biolink:NamedThing`:node.category {id: node.id, name: node.name, length: node.length, chromosome: node.chromosome});")
+        result = session.run(f"CALL json_util.load_from_url(\"{edge_file}\") YIELD objects "
+                             "UNWIND objects AS edge "
+                             "MATCH (s {id: edge.subject}), (o {id: edge.object}) "
+                             "CREATE (s)-[x:edge.predicate "
+                             "{primary_knowledge_source: edge.primary_knowledge_source, fda_approved: edge.fda_approved,"
+                                "aggregator_knowledge_source: edge.aggregator_knowledge_source, "
+                                "publications: edge.publications, p_value: edge.p_value, "
+                                "non_biolink_attribute: edge.non_biolink_attribute, attributes: edge.attributes, "
+                                "qualified_predicate: edge.qualified_predicate, "
+                                "object_aspect_qualifier: edge.object_aspect_qualifier, "
+                                "object_direction_qualifier: edge.object_direction_qualifier, "
+                                "bogus_knowledge_source: edge.bogus_knowledge_source}] "
+                            "->(o);")
     driver.close()
-    LOGGER.info("Done. Neo4j is ready for testing.")
+    LOGGER.info("Done. Memgraph is ready for testing.")
 
 
 if __name__ == "__main__":
