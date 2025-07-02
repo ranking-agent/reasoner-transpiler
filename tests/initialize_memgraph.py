@@ -36,8 +36,9 @@ def main(hash: str = None):
     driver = get_driver(url)
     LOGGER.info("Connected to Memgraph. Initializing...")
     if hash is not None:
-        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/neo4j_csv/nodes.csv"
-        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/neo4j_csv/edges.csv"
+        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_csv/nodes.csv"
+        gene_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_csv/gene_nodes.csv"
+        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_csv/edges.csv"
     else:
         node_file = f"file:///nodes.csv"
         edge_file = f"file:///edges.csv"
@@ -46,18 +47,14 @@ def main(hash: str = None):
         print(node_file)
         result = session.run(f"LOAD CSV FROM \"{node_file}\" WITH HEADER AS row "
                     "CREATE (a:row.category:`biolink:NamedThing` {id:row.id, name:row.name}); ")
+        result = session.run(f"LOAD CSV FROM \"{gene_file}\" WITH HEADER AS row "
+                             "CREATE (a:row.category:`biolink:NamedThing` {id:row.id, name:row.name, length: toInteger(row.length), chromosome: row.chromosome}); ")
         print(f'Nodes added')
-        return
         result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
-        result = session.run(f"LOAD CSV WITH HEADERS FROM \"{edge_file}\" "
-                    "AS edge "
-                    "MATCH (subject), (object) "
-                    "WHERE subject.id = edge.subject AND object.id = edge.object "
-                    "CALL apoc.create.relationship(subject, edge.predicate, "
-                    "apoc.map.merge({id: edge.id}, "
-                    "apoc.convert.fromJsonMap(edge.props)), object) YIELD rel "
-                    "RETURN count(*)")
-        print(f'Edges added: {result.single()["count(*)"]}')
+        result = session.run(f"LOAD CSV FROM \"{edge_file}\" WITH HEADER AS row "
+                    "MATCH (subject {id:row.subject}), (object {id:row.object}) "
+                    "CREATE (subject)-[:row.predicate]->(object);" )
+        print(f'Edges added')
         result.consume()  # this looks like it doesn't do anything, but it's needed to throw errors if they occur
 
     driver.close()
