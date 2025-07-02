@@ -1,24 +1,40 @@
-#The CSV loader for memgraph needs some help, this isn't idea, but ok for tests
-with open("tests/neo4j_csv/nodes.csv", "r") as infile, open("tests/memgraph_csv/nodes.csv", "w") as outfile, open("tests/memgraph_csv/gene_nodes.csv","w") as outgenes:
-    header = infile.readline()
-    outfile.write(header)
-    geneheader = header.replace("props", "length,chromosome")
-    outgenes.write(geneheader)
-    for line in infile:
-        if 'biolink:Gene' in line:
-            # This is a gene node, we need to extract length and chromosome
-            parts = line.strip().split(',')
-            props = ','.join(parts[3:])[1:-1].replace("\\","")
-            if len(props) == 0:
-                props_dict= {}
-            else:
-                props_dict = eval(props)
-            length = props_dict.get('length', 'null')
-            chromosome = props_dict.get('chromosome', 'null')
-            outline = ','.join(parts[:3]) + f',{length},{chromosome}\n'
-            outgenes.write(outline)
-        else:
-            outfile.write(line)
+import csv
+import json
+
+entities = []
+with open("tests/neo4j_csv/nodes.csv", "r") as infile:
+    csv.register_dialect('mydialect', escapechar="\\")
+    reader = csv.DictReader(infile,dialect='mydialect')
+    for line in reader:
+        node = {"id": line["id"], "category": line["category"], "name": line["name"] }
+        if line["props"] != "":
+            p = line["props"].replace('\\"', "'")
+            props = eval(p)
+            for key, value in props.items():
+                node[key] = value
+        entities.append( node )
+
+with open("tests/memgraph_csv/nodes.json", "w") as outfile:
+    json.dump(entities, outfile)
+
+entities = []
+with open("tests/neo4j_csv/edges.csv", "r") as infile:
+    csv.register_dialect('mydialect', escapechar="\\")
+    reader = csv.DictReader(infile,dialect='mydialect')
+    for line in reader:
+        node = {"subject": line["subject"], "predicate": line["predicate"], "object": line["object"] }
+        if line["props"] != "":
+            p = line["props"].replace('\\"', "'").replace("true", "True").replace("false", "False")
+            props = eval(p)
+            for key, value in props.items():
+                node[key] = value
+        entities.append( node )
+
+with open("tests/memgraph_csv/edges.json", "w") as outfile:
+    json.dump(entities, outfile)
+
+
+exit
 
 # we're going to have a lot of edges with null props this way, which isn't what most graphs will look like but it shouldn't affect the tests
 with open("tests/neo4j_csv/edges.csv", "r") as infile, open("tests/memgraph_csv/edges.csv", "w") as outfile:
