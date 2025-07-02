@@ -1,0 +1,5 @@
+id,category,name,length,chromosome
+NCBIGene:836,biolink:Gene,CASP3,277,4
+NCBIGene:841,biolink:Gene,CASP8,479,2
+NCBIGene:672,biolink:Gene,BRCA1,1863,17
+NCBIGene:283871,biolink:Gene,PGP,null,null
