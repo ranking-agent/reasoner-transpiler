@@ -1,10 +1,10 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_neo4j_driver
+from .fixtures import fixture_db_driver
 
 
-def test_primary_source(neo4j_driver):
+def test_primary_source(db_driver):
     qgraph = {
             "nodes": {
                 "n0": {
@@ -24,7 +24,8 @@ def test_primary_source(neo4j_driver):
                 }
             }
         }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 3
     assert len(output["knowledge_graph"]["edges"]) == 3
 
@@ -49,7 +50,7 @@ def test_primary_source(neo4j_driver):
 
 
 # if there is no primary knowledge source on the edge, provenance will be just the transpiler/plater
-def test_missing_primary_source(neo4j_driver):
+def test_missing_primary_source(db_driver):
     qgraph = {
             "nodes": {
                 "n0": {
@@ -69,6 +70,7 @@ def test_missing_primary_source(neo4j_driver):
                 }
             }
         }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edge_sources = output["knowledge_graph"]["edges"]["invalid_provenance"]["sources"]
     assert edge_sources == [{'resource_id': 'reasoner-transpiler', 'resource_role': 'primary_knowledge_source'}]
