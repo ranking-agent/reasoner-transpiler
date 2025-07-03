@@ -17,6 +17,13 @@ def nest_op(operator, *args):
 
 def assemble_results(qnodes, qedges, **kwargs):
     """Assemble results into Reasoner format."""
+    dialect = kwargs.get('dialect','neo4j')
+    if dialect == 'memgraph':
+        id_function = "id"
+    elif dialect == 'neo4j':
+        id_function = "elementId"
+
+
     clauses = []
 
     for qnode in qnodes.values():
@@ -28,7 +35,7 @@ def assemble_results(qnodes, qedges, **kwargs):
     pagination(**kwargs)
 
     nodes = [f"`{qnode_id}`.id" for qnode_id, qnode in qnodes.items()]
-    edges = [f"elementId(`{qedge_id}`)" if not qedge.get('_subclass', False) else f"[x in `{qedge_id}` | elementId(x)]"
+    edges = [f"{id_function}(`{qedge_id}`)" if not qedge.get('_subclass', False) else f"[x in `{qedge_id}` | {id_function}(x)]"
              for qedge_id, qedge in qedges.items()]
     if nodes or edges:
         nodes_assemble = " + ".join([
@@ -38,10 +45,10 @@ def assemble_results(qnodes, qedges, **kwargs):
         if not nodes_assemble:
             nodes_assemble = '[]'
         edges_assemble = " + ".join([
-            f"collect([elementId(`{qedge_id}`), startNode(`{qedge_id}`).id, "
+            f"collect([{id_function}(`{qedge_id}`), startNode(`{qedge_id}`).id, "
             f"type(`{qedge_id}`), endNode(`{qedge_id}`).id, properties(`{qedge_id}`)])"
             if not qedge.get('_subclass', False) else
-            f"collect([x in `{qedge_id}` | [elementId(x), startNode(x).id, "
+            f"collect([x in `{qedge_id}` | [{id_function}(x), startNode(x).id, "
             f"type(x), endNode(x).id, properties(x)]])"
             for qedge_id, qedge in qedges.items()
         ])
