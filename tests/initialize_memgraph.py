@@ -32,7 +32,7 @@ def get_driver(url):
 
 def main(hash: str = None):
     """Delete any existing data and initialize with dummy data."""
-    url = "bolt://localhost:7687"
+    url = "bolt://localhost:7688"
     driver = get_driver(url)
     LOGGER.info("Connected to Memgraph. Initializing...")
     if hash is not None:

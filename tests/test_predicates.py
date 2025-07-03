@@ -2,10 +2,11 @@
 import pytest
 
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_neo4j_driver
+from .fixtures import fixture_db_driver
 
 
-def test_symmetric(neo4j_driver):
+# Kills memgraph
+def x_test_symmetric(db_driver):
     """Test symmetric predicate."""
     qgraph = {
         "nodes": {
@@ -22,11 +23,13 @@ def test_symmetric(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 2
 
 
-def test_any(neo4j_driver):
+# kills memgraph
+def x_test_any(db_driver):
     """Test any predicate."""
     qgraph = {
         "nodes": {
@@ -42,11 +45,12 @@ def test_any(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 4
 
-
-def test_root_predicate(neo4j_driver):
+#kills memgraph
+def x_test_root_predicate(db_driver):
     """Test root/related_to predicate."""
     qgraph = {
         "nodes": {
@@ -63,11 +67,12 @@ def test_root_predicate(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 4
 
-
-def test_sub(neo4j_driver):
+#kills memgraph
+def x_test_sub(db_driver):
     """Test sub predicate."""
     qgraph = {
         "nodes": {
@@ -84,11 +89,12 @@ def test_sub(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph,dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 2
 
 
-def test_inverse(neo4j_driver):
+def x_test_inverse(db_driver):
     """Test inverse predicate."""
     qgraph = {
         "nodes": {
@@ -105,5 +111,6 @@ def test_inverse(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph,dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1

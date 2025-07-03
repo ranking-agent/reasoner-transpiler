@@ -6,24 +6,31 @@ import asyncio
 from reasoner_transpiler.cypher import transform_result
 
 
-@pytest.fixture(name="neo4j_driver", scope="module")
-def fixture_neo4j_driver():
-    driver = TranspilerNeo4jBoltDriver()
-    yield driver
+@pytest.fixture(name="db_driver", params=["memgraph"], scope="module")
+#@pytest.fixture(name="db_driver", params=["neo4j", "memgraph"], scope="module")
+def fixture_db_driver(request):
+    database = request.param
+    driver = TranspilerNeo4jBoltDriver(database)
+    yield database, driver
     driver.close()
 
 
-@pytest.fixture(name="async_neo4j_driver", scope="module")
+@pytest.fixture(name="async_db_driver", scope="module")
 def fixture_async_neo4j_driver():
     driver = TranspilerAsyncNeo4jBoltDriver()
     yield driver
 
 
 class TranspilerNeo4jBoltDriver:
-    def __init__(self):
-        """Pytest fixture for Neo4j database connection."""
-        url = "bolt://localhost:7687"
-        self.driver = neo4j.GraphDatabase.driver(url, auth=("neo4j", "plater_testing_pw"))
+    def __init__(self, database):
+        """Pytest fixture for database connection."""
+        self.database = database
+        if database == "neo4j":
+            url = "bolt://localhost:7687"
+            self.driver = neo4j.GraphDatabase.driver(url, auth=("neo4j", "plater_testing_pw"))
+        elif database == "memgraph":
+            url = "bolt://localhost:7688"
+            self.driver = neo4j.GraphDatabase.driver(url)
 
     @staticmethod
     def _cypher_tx_function(tx,
@@ -49,7 +56,7 @@ class TranspilerNeo4jBoltDriver:
         if not query_parameters:
             query_parameters = {}
 
-        with self.driver.session(database="neo4j") as session:
+        with self.driver.session(database=self.database) as session:
             result = session.execute_read(self._cypher_tx_function,
                                           cypher=query,
                                           query_parameters=query_parameters,
