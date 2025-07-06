@@ -1,1 +1,182 @@
-[{"subject": "MONDO:0005148", "predicate": "biolink:subclass_of", "object": "MONDO:0000001", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0000001", "predicate": "biolink:subclass_of", "object": "MONDO:0000000", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0014488", "predicate": "biolink:subclass_of", "object": "MONDO:0005148", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0015967", "predicate": "biolink:subclass_of", "object": "MONDO:0000001", "primary_knowledge_source": "infores:test"}, {"subject": "HP:0012592", "predicate": "biolink:subclass_of", "object": "HP:0000118", "primary_knowledge_source": "infores:test"}, {"subject": "CHEBI:136043", "predicate": "biolink:treats", "object": "MONDO:0005148", "fda_approved": false, "primary_knowledge_source": "infores:test2"}, {"subject": "CHEBI:47612", "predicate": "biolink:treats", "object": "MONDO:0005148", "fda_approved": false, "primary_knowledge_source": "infores:test"}, {"subject": "CHEBI:47612", "predicate": "biolink:treats", "object": "MONDO:0011122", "fda_approved": false, "primary_knowledge_source": "infores:test"}, {"subject": "CHEBI:6801", "predicate": "biolink:treats", "object": "MONDO:0005148", "fda_approved": true, "primary_knowledge_source": "infores:test", "aggregator_knowledge_source": ["infores:ctd"]}, {"subject": "CHEBI:6801", "predicate": "biolink:treats", "object": "MONDO:0011122", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0005148", "predicate": "biolink:has_phenotype", "object": "HP:0004324", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0005148", "predicate": "biolink:has_phenotype", "object": "HP:0012592", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0011122", "predicate": "biolink:has_phenotype", "object": "HP:0004324", "primary_knowledge_source": "infores:test"}, {"subject": "NCBIGene:836", "predicate": "biolink:molecularly_interacts_with", "object": "NCBIGene:841", "publications": ["xxx"], "primary_knowledge_source": "infores:test"}, {"subject": "CHEBI:6801", "predicate": "biolink:increases_expression_of", "object": "NCBIGene:841", "primary_knowledge_source": "infores:test"}, {"subject": "CHEBI:6801", "predicate": "biolink:increases_expression_of", "object": "NCBIGene:836", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0005148", "predicate": "biolink:genetically_associated_with", "object": "NCBIGene:841", "p_value": 7e-06, "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0005148", "predicate": "biolink:genetically_associated_with", "object": "NCBIGene:836", "non_biolink_attribute": "xxx123", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0011122", "predicate": "biolink:genetically_associated_with", "object": "NCBIGene:836", "primary_knowledge_source": "infores:test"}, {"subject": "CHEBI:6801", "predicate": "biolink:treats", "object": "MONDO:0004993", "primary_knowledge_source": "infores:test"}, {"subject": "MONDO:0004993", "predicate": "biolink:genetically_associated_with", "object": "NCBIGene:841", "primary_knowledge_source": "infores:test"}, {"subject": "NCBIGene:672", "predicate": "biolink:gene_associated_with_condition", "object": "MONDO:0004993", "primary_knowledge_source": "infores:test", "publications": ["xxx"], "attributes": ["{'attribute_type_id': 'json_attribute_1', 'value': 'json_value_1'}", "{'attribute_type_id': 'json_attribute_2', 'value': 'json_value_2'}", "{'attribute_type_id': 'json_attribute_3', 'value': 'json_value_3', 'attributes': [{'attribute_type_id': 'nested_json_attribute_1', 'value': 'nested_json_value_1'}] }"]}, {"subject": "MONDO:0005148", "predicate": "biolink:invalid_predicate", "object": "HP:0012592", "primary_knowledge_source": "infores:test"}, {"subject": "PUBCHEM.COMPOUND:5460341", "predicate": "biolink:affects", "object": "NCBIGene:283871", "qualified_predicate": "biolink:causes", "primary_knowledge_source": "infores:test"}, {"subject": "PUBCHEM.COMPOUND:5460341", "predicate": "biolink:affects", "object": "NCBIGene:283871", "qualified_predicate": "biolink:causes", "object_aspect_qualifier": "activity", "object_direction_qualifier": "decreased", "primary_knowledge_source": "infores:ctd"}, {"subject": "MESH:D014612", "predicate": "biolink:causes", "object": "MONDO:0005260", "bogus_knowledge_source": "internet"}]
+[
+    {
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0000001",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0000001",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0000000",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0014488",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0005148",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0015967",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0000001",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "HP:0012592",
+        "predicate": "biolink:subclass_of",
+        "object": "HP:0000118",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "CHEBI:136043",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148",
+        "fda_approved": false,
+        "primary_knowledge_source": "infores:test2"
+    },
+    {
+        "subject": "CHEBI:47612",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148",
+        "fda_approved": false,
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "CHEBI:47612",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0011122",
+        "fda_approved": false,
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148",
+        "fda_approved": true,
+        "primary_knowledge_source": "infores:test",
+        "aggregator_knowledge_source": [
+            "infores:ctd"
+        ]
+    },
+    {
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0011122",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:has_phenotype",
+        "object": "HP:0004324",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:has_phenotype",
+        "object": "HP:0012592",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0011122",
+        "predicate": "biolink:has_phenotype",
+        "object": "HP:0004324",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "NCBIGene:836",
+        "predicate": "biolink:molecularly_interacts_with",
+        "object": "NCBIGene:841",
+        "publications": [
+            "xxx"
+        ],
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:increases_expression_of",
+        "object": "NCBIGene:841",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:increases_expression_of",
+        "object": "NCBIGene:836",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:841",
+        "p_value": 7e-06,
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:836",
+        "non_biolink_attribute": "xxx123",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0011122",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:836",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0004993",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "MONDO:0004993",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:841",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "NCBIGene:672",
+        "predicate": "biolink:gene_associated_with_condition",
+        "object": "MONDO:0004993",
+        "primary_knowledge_source": "infores:test",
+        "publications": [
+            "xxx"
+        ],
+        "attributes": [
+            "{\"attribute_type_id\": \"json_attribute_1\", \"value\": \"json_value_1\"}",
+            "{\"attribute_type_id\": \"json_attribute_2\", \"value\": \"json_value_2\"}",
+            "{\"attribute_type_id\": \"json_attribute_3\", \"value\": \"json_value_3\", \"attributes\": [{\"attribute_type_id\": \"nested_json_attribute_1\", \"value\": \"nested_json_value_1\"}] }"
+        ]
+    },
+    {
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:invalid_predicate",
+        "object": "HP:0012592",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "PUBCHEM.COMPOUND:5460341",
+        "predicate": "biolink:affects",
+        "object": "NCBIGene:283871",
+        "qualified_predicate": "biolink:causes",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "subject": "PUBCHEM.COMPOUND:5460341",
+        "predicate": "biolink:affects",
+        "object": "NCBIGene:283871",
+        "qualified_predicate": "biolink:causes",
+        "object_aspect_qualifier": "activity",
+        "object_direction_qualifier": "decreased",
+        "primary_knowledge_source": "infores:ctd"
+    },
+    {
+        "subject": "MESH:D014612",
+        "predicate": "biolink:causes",
+        "object": "MONDO:0005260",
+        "bogus_knowledge_source": "internet"
+    }
+]
