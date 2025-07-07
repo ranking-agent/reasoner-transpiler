@@ -32,6 +32,12 @@ def test_node_subclass(db_driver):
     assert 'MONDO:0015967' not in node_binding_ids
     assert 'MONDO:0005148' not in node_binding_ids
 
+def jsort(j):
+    """Sort JSON object."""
+    isorted = json.loads(json.dumps(j, sort_keys=True))
+    #This takes care of the dicts, but there's still potentially a list of dicts that needs to be sorted by the value of their id
+    isorted["analyses"][0]["edge_bindings"]["e01"]=sorted(isorted["analyses"][0]["edge_bindings"]["e01"],key=lambda x:x["id"])
+    return isorted
 
 def test_onehop_subclass(db_driver):
     """Test one-hop subclass query."""
@@ -51,8 +57,8 @@ def test_onehop_subclass(db_driver):
     output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 12
     assert len(output['auxiliary_graphs']) == 11
-    expected_result = {'analyses': [{'edge_bindings': {'e01': [{'id': 't2d_invalid_predicate_albuminaria_t2d_isa_disease', 'attributes': []}, {'id': 't2d_has_phenotype_albuminaria_t2d_isa_disease', 'attributes': []}]}, 'resource_id': 'reasoner-transpiler'}], 'node_bindings': {'n0': [{'id': 'MONDO:0000001', 'attributes': []}], 'n1': [{'id': 'HP:0012592', 'attributes': []}]}}
-    assert any(expected_result == result for result in output['results'])
+    expected_result = jsort({'analyses': [{'edge_bindings': {'e01': [{'id': 't2d_invalid_predicate_albuminaria_t2d_isa_disease', 'attributes': []}, {'id': 't2d_has_phenotype_albuminaria_t2d_isa_disease', 'attributes': []}]}, 'resource_id': 'reasoner-transpiler'}], 'node_bindings': {'n0': [{'id': 'MONDO:0000001', 'attributes': []}], 'n1': [{'id': 'HP:0012592', 'attributes': []}]}})
+    assert any(expected_result == jsort(result) for result in output['results'])
     assert 'aux_t2d_has_phenotype_albuminaria_t2d_isa_disease' in output['auxiliary_graphs']
     assert 't2d_has_phenotype_albuminaria_t2d_isa_disease' in output['knowledge_graph']['edges']
     assert {"attribute_type_id": "biolink:support_graphs", "value": ["aux_anagliptin_treats_t2d_t2d_isa_disease"]}\
