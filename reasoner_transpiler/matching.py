@@ -73,6 +73,7 @@ class NodeReference:
         Un-reserved properties with other types will be coerced to str.
         """
         max_connectivity = kwargs.get("max_connectivity", -1)
+        self.dialect = kwargs.get("dialect", "neo4j")
         self.anonymous = kwargs.get("anonymous", False)
 
         node = dict(node)  # shallow copy
@@ -116,10 +117,16 @@ class NodeReference:
             props["id"] = str(curie)
 
         if max_connectivity > -1:
-            self._filters.append("COUNT {{ ({0})-[]-() }} < {1} + 1".format(
-                self.name,
-                max_connectivity,
-            ))
+            if self.dialect == "neo4j":
+                self._filters.append("COUNT {{ ({0})-[]-() }} < {1} + 1".format(
+                    self.name,
+                    max_connectivity,
+                ))
+            elif self.dialect == "memgraph":
+                self._filters.append("degree ({0}) < {1} + 1".format(
+                    self.name,
+                    max_connectivity,
+                ))
 
         # the transpiler used to do the following,
         # but now TRAPI QNodes should only have attributes constraints in the "constraints" field
