@@ -19,6 +19,11 @@ jobs:
         ports:
           - '7474:7474'
           - '7687:7687'
+      memgraph:
+        image: memgraph/memgraph-mage:3.3.0
+        ports:
+          - '7444:7444'
+          - '7688:7687'
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -37,6 +42,10 @@ jobs:
       - name: Set up Neo4j data
         run: |
           python tests/initialize_neo4j.py "${GITHUB_SHA}"
+
+      - name: Set up Memgraph data
+        run: |
+          python tests/initialize_memgraph.py "${GITHUB_SHA}"
 
       - name: Run pytest
         run: |
