@@ -6,8 +6,7 @@ import asyncio
 from reasoner_transpiler.cypher import transform_result
 
 
-@pytest.fixture(name="db_driver", params=["memgraph"], scope="module")
-#@pytest.fixture(name="db_driver", params=["neo4j", "memgraph"], scope="module")
+@pytest.fixture(name="db_driver", params=["neo4j", "memgraph"], scope="module")
 def fixture_db_driver(request):
     database = request.param
     driver = TranspilerNeo4jBoltDriver(database)
@@ -15,8 +14,7 @@ def fixture_db_driver(request):
     driver.close()
 
 
-#@pytest.fixture(name="async_db_driver", params=["neo4j","memgraph"], scope="module")
-@pytest.fixture(name="async_db_driver", params=["memgraph"], scope="module")
+@pytest.fixture(name="async_db_driver", params=["neo4j","memgraph"], scope="module")
 def fixture_async_db_driver(request):
     database = request.param
     driver = TranspilerAsyncNeo4jBoltDriver(database)
