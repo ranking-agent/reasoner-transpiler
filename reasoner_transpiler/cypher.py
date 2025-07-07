@@ -35,7 +35,9 @@ def assemble_results(qnodes, qedges, **kwargs):
     pagination(**kwargs)
 
     nodes = [f"`{qnode_id}`.id" for qnode_id, qnode in qnodes.items()]
-    edges = [f"{id_function}(`{qedge_id}`)" if not qedge.get('_subclass', False) else f"[x in `{qedge_id}` | {id_function}(x)]"
+    edges = [f"{id_function}(`{qedge_id}`)" if not qedge.get('_subclass', False)
+             #else f"[x in `{qedge_id}` | {id_function}(x)]"
+             else (f" CASE WHEN size(`{qedge_id}`) = 1 THEN [{id_function}(head(`{qedge_id}`))] ELSE [] END ")
              for qedge_id, qedge in qedges.items()]
     if nodes or edges:
         nodes_assemble = " + ".join([
@@ -48,8 +50,10 @@ def assemble_results(qnodes, qedges, **kwargs):
             f"collect([{id_function}(`{qedge_id}`), startNode(`{qedge_id}`).id, "
             f"type(`{qedge_id}`), endNode(`{qedge_id}`).id, properties(`{qedge_id}`)])"
             if not qedge.get('_subclass', False) else
-            f"collect([x in `{qedge_id}` | [{id_function}(x), startNode(x).id, "
-            f"type(x), endNode(x).id, properties(x)]])"
+            #f"collect([x in `{qedge_id}` | [{id_function}(x), startNode(x).id, "
+            #f"type(x), endNode(x).id, properties(x)]])"
+            f"collect( CASE WHEN size(`{qedge_id}`)= 1 THEN [ [{id_function}(head(`{qedge_id}`)), startNode(head(`{qedge_id}`)).id, "
+            f"type(head(`{qedge_id}`)), endNode(head(`{qedge_id}`)).id, properties(head(`{qedge_id}`))]] ELSE [ ] END)"
             for qedge_id, qedge in qedges.items()
         ])
         if not edges_assemble:

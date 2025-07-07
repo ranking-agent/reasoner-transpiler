@@ -69,11 +69,12 @@ def test_max_connectivity(db_driver):
         },
     }
     dialect, driver = db_driver
-    output = driver.run(get_query(
+    query = get_query(
         qgraph,
         max_connectivity=5,
-        dialect=dialect,
-    ), convert_to_trapi=True, qgraph=qgraph)
+        dialect=dialect)
+    print(query)
+    output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 2
     results = sorted(
         output["knowledge_graph"]["nodes"].values(),
