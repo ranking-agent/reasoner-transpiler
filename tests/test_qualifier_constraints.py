@@ -4,7 +4,7 @@ from reasoner_transpiler.cypher import get_query
 from .fixtures import fixture_db_driver
 
 
-def x_test_single_qualifier(db_driver):
+def test_single_qualifier(db_driver):
     """Test edge satisfying one set of qualifier constraints is returned """
     qgraph = {
         "nodes": {
@@ -45,7 +45,7 @@ def x_test_single_qualifier(db_driver):
     assert "biolink:qualified_predicate" not in output["knowledge_graph"]["edges"]["qualified_edge_multiple_qualifier"]
 
 
-def x_test_multi_qualifier(db_driver):
+def test_multi_qualifier(db_driver):
     """Test if edges satisfying constraints are returned with multiple qualifier sets"""
     qgraph = {
         "nodes": {
