@@ -1,4 +1,4 @@
-from .fixtures import fixture_db_driver, fixture_async_neo4j_driver
+from .fixtures import fixture_db_driver, fixture_async_db_driver
 from reasoner_transpiler.cypher import get_query
 import asyncio
 
