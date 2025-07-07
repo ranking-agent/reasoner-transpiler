@@ -26,6 +26,8 @@ def test_bolt_driver_transform_results(db_driver):
         assert len(result["node_bindings"]) == 2
         assert len(result["analyses"]) == 1
     assert len(output['knowledge_graph']['nodes']) == 13
+    for ag in output['auxiliary_graphs'].keys():
+        print(ag)
     assert len(output['auxiliary_graphs']) == 14
 
 
