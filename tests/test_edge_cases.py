@@ -162,7 +162,7 @@ def test_fancy_key(db_driver):
 
 
 #This one kills memgraph 3.3.0.  See https://github.com/memgraph/memgraph/issues/3080
-def x_test_backwards_predicate(db_driver):
+def test_backwards_predicate(db_driver):
     """Test an extra backwards predicate."""
     qgraph = {
         "nodes": {
@@ -183,7 +183,9 @@ def x_test_backwards_predicate(db_driver):
         }
     }
     dialect, driver = db_driver
-    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
+    query = get_query(qgraph, dialect=dialect)
+    print(query)
+    output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 3
 
 

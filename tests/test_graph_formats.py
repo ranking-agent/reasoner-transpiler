@@ -3,8 +3,7 @@ import pytest
 from reasoner_transpiler.cypher import get_query
 from .fixtures import fixture_db_driver
 
-# kills memgraph
-def x_test_curie_formats(db_driver):
+def test_curie_formats(db_driver):
     """Test unusual curie formats."""
     qgraph = {
         "nodes": {

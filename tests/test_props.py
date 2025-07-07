@@ -98,7 +98,7 @@ def test_bool(db_driver):
         assert result["name"] == expected_nodes[ind]
 
 
-def x_test_publications(db_driver):
+def test_publications(db_driver):
     """Test publications."""
     qgraph = {
         "nodes": {
@@ -129,7 +129,7 @@ def x_test_publications(db_driver):
     } for attribute in attributes])
 
 
-def x_test_empty_constraints(db_driver):
+def test_empty_constraints(db_driver):
     """Test querying with empty 'constraints' property."""
     qgraph = {
         "nodes": {
@@ -150,11 +150,11 @@ def x_test_empty_constraints(db_driver):
         },
     }
     dialect, driver = db_driver
-    output = driver.run(get_query(qgraph, dialect), convert_to_trapi=True, qgraph=qgraph)
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 10
 
 
-def x_test_valid_biolink_attribute_without_mapping(db_driver):
+def test_valid_biolink_attribute_without_mapping(db_driver):
     """publications is included in the default attribute types mapping included in the codebase,
     but here we test that it still gets recognized as being biolink compliant when it's not in the mapping"""
     qgraph = {
@@ -188,7 +188,7 @@ def x_test_valid_biolink_attribute_without_mapping(db_driver):
     reset_custom_attribute_types()
 
 
-def x_test_invalid_biolink_attribute_without_mapping(db_driver):
+def test_invalid_biolink_attribute_without_mapping(db_driver):
     """Test to make sure an attribute that isn't biolink compliant, and isn't custom mapped, returns correctly."""
     qgraph = {
         "nodes": {
@@ -218,7 +218,7 @@ def x_test_invalid_biolink_attribute_without_mapping(db_driver):
     assert any([attribute == expected_attribute for attribute in attributes])
 
 
-def x_test_json_attributes(db_driver):
+def test_json_attributes(db_driver):
     qgraph = {
         "nodes": {
             "n0": {
@@ -260,7 +260,7 @@ def x_test_json_attributes(db_driver):
     assert correct_attributes == 4
 
 
-def x_test_props_customization(db_driver):
+def test_props_customization(db_driver):
     qgraph = {
         "nodes": {
             "n0": {

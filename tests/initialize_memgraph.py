@@ -42,6 +42,7 @@ def main(hash: str = None):
         node_file = f"file:///nodes.csv"
         edge_file = f"file:///edges.csv"
     with driver.session() as session:
+        print(edge_file)
         session.run("MATCH (m) DETACH DELETE m")
         result = session.run(f"CALL json_util.load_from_url(\"{node_file}\") YIELD objects "
                              "UNWIND objects AS node "
@@ -50,7 +51,8 @@ def main(hash: str = None):
                              "UNWIND objects AS edge "
                              "MATCH (s {id: edge.subject}), (o {id: edge.object}) "
                              "CREATE (s)-[x:edge.predicate "
-                             "{primary_knowledge_source: edge.primary_knowledge_source, fda_approved: edge.fda_approved,"
+                             "{ id: edge.id,"
+                                "primary_knowledge_source: edge.primary_knowledge_source, fda_approved: edge.fda_approved,"
                                 "aggregator_knowledge_source: edge.aggregator_knowledge_source, "
                                 "publications: edge.publications, p_value: edge.p_value, "
                                 "non_biolink_attribute: edge.non_biolink_attribute, attributes: edge.attributes, "
