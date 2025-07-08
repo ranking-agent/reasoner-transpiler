@@ -20,7 +20,7 @@ jobs:
           - '7474:7474'
           - '7687:7687'
       memgraph:
-        image: memgraph/memgraph-mage:latest
+        image: memgraph/memgraph-mage:3.3
         ports:
           - '7444:7444'
           - '7688:7687'
