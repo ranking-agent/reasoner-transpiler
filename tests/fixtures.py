@@ -6,8 +6,8 @@ import asyncio
 from reasoner_transpiler.cypher import transform_result
 
 
-#@pytest.fixture(name="db_driver", params=["neo4j", "memgraph"], scope="module")
-@pytest.fixture(name="db_driver", params=["memgraph"], scope="module")
+@pytest.fixture(name="db_driver", params=["neo4j", "memgraph"], scope="module")
+#@pytest.fixture(name="db_driver", params=["memgraph"], scope="module")
 def fixture_db_driver(request):
     database = request.param
     driver = TranspilerNeo4jBoltDriver(database)
