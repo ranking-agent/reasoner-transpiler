@@ -2,6 +2,10 @@ from .fixtures import fixture_db_driver, fixture_async_db_driver
 from reasoner_transpiler.cypher import get_query
 import asyncio
 
+def test_load(db_driver):
+    dialect, driver = db_driver
+    result = driver.run("match (a)-[x]->(b) return count(*)", convert_to_trapi=False)
+    assert result[0]["count(*)"] == 26
 
 def test_bolt_driver_transform_results(db_driver):
     qgraph = {
@@ -20,14 +24,14 @@ def test_bolt_driver_transform_results(db_driver):
         },
     }
     dialect, driver = db_driver
-    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
+    query = get_query(qgraph, dialect=dialect)
+    print(query)
+    output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 15
     for result in output["results"]:
         assert len(result["node_bindings"]) == 2
         assert len(result["analyses"]) == 1
     assert len(output['knowledge_graph']['nodes']) == 13
-    for ag in output['auxiliary_graphs'].keys():
-        print(ag)
     assert len(output['auxiliary_graphs']) == 14
 
 
