@@ -221,14 +221,19 @@ def transform_result(cypher_record,
 
             # skip empty results
             if not path_edge:
+                print('bb1')
                 continue
             # don't return subclass qedges in the edge bindings
             if qedge.get("_subclass", False):
+                print('bb2')
                 continue
 
             # find the knowledge graph edge id for the element id from the path edge
             edge_element_id = path_edge
             graph_edge_id = element_id_to_edge_id[edge_element_id]
+
+            print("  edge_element_id:", edge_element_id, " graph_edge_id:", graph_edge_id)
+            print("  qewatt:",qedges_with_attached_subclass_edges.get(qedge_id, []))
 
             # Check to see if the edge has subclass edges that are connected to it
             subclass_edge_ids = []
