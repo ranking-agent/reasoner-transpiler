@@ -168,7 +168,6 @@ def transform_result(cypher_record,
     # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
     # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
     for path in paths:
-        print(path)
         # Map results/paths to their corresponding qnodes and qedges
         qnode_id_to_results = {qnode_id: (qnode, result_node_id) for (qnode_id, qnode), result_node_id in
                                zip(qgraph_nodes.items(), path[:len(qgraph_nodes)])}
@@ -217,23 +216,16 @@ def transform_result(cypher_record,
         # Create TRAPI edge bindings
         for qedge_id, (qedge, path_edge) in qedge_id_to_results.items():
 
-            print("  ",qedge_id, qedge, path_edge)
-
             # skip empty results
-            if not path_edge:
-                print('bb1')
+            if ((not path_edge) and (not path_edge == 0)):
                 continue
             # don't return subclass qedges in the edge bindings
             if qedge.get("_subclass", False):
-                print('bb2')
                 continue
 
             # find the knowledge graph edge id for the element id from the path edge
             edge_element_id = path_edge
             graph_edge_id = element_id_to_edge_id[edge_element_id]
-
-            print("  edge_element_id:", edge_element_id, " graph_edge_id:", graph_edge_id)
-            print("  qewatt:",qedges_with_attached_subclass_edges.get(qedge_id, []))
 
             # Check to see if the edge has subclass edges that are connected to it
             subclass_edge_ids = []
@@ -241,11 +233,8 @@ def transform_result(cypher_record,
             for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in \
                     qedges_with_attached_subclass_edges.get(qedge_id, []):
                 # If so, check to see if there are results for it
-                print("-",subclass_qedge_id)
                 qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
-                print("--",qedge,subclass_edge_element_ids)
                 qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
-                print("-?-",qedge,subclass_edge_element_ids)
                 if subclass_edge_element_ids:
                     # If path_edge is Truthy, it means the subclass was used in the result.
                     # For subclass edges, path result is a list of element ids, due to being a variable length edge.
@@ -254,14 +243,12 @@ def transform_result(cypher_record,
 
                     qnode, superclass_result_node_id = qnode_id_to_results[superclass_qnode_id]
                     superclass_node_ids[subclass_subject_or_object] = superclass_result_node_id
-                    print("-=-",subclass_edge_ids)
 
             if subclass_edge_ids:
                 # make a composite id with all of their kg edge ids
                 composite_edge_ids = [graph_edge_id] + subclass_edge_ids
                 composite_edge_id = "_".join(composite_edge_ids)
                 aux_graph_id = f"aux_{composite_edge_id}"
-                print("     ",aux_graph_id)
                 if aux_graph_id not in aux_graphs:
                     aux_graphs[aux_graph_id] = {
                         "edges": composite_edge_ids,
