@@ -73,7 +73,6 @@ def test_max_connectivity(db_driver):
         qgraph,
         max_connectivity=5,
         dialect=dialect)
-    print(query)
     output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 2
     results = sorted(
