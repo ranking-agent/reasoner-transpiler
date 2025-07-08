@@ -168,7 +168,7 @@ def transform_result(cypher_record,
     # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
     # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
     for path in paths:
-
+        print(path)
         # Map results/paths to their corresponding qnodes and qedges
         qnode_id_to_results = {qnode_id: (qnode, result_node_id) for (qnode_id, qnode), result_node_id in
                                zip(qgraph_nodes.items(), path[:len(qgraph_nodes)])}
@@ -217,6 +217,8 @@ def transform_result(cypher_record,
         # Create TRAPI edge bindings
         for qedge_id, (qedge, path_edge) in qedge_id_to_results.items():
 
+            print("  ",qedge_id, qedge, path_edge)
+
             # skip empty results
             if not path_edge:
                 continue
@@ -249,6 +251,7 @@ def transform_result(cypher_record,
                 composite_edge_ids = [graph_edge_id] + subclass_edge_ids
                 composite_edge_id = "_".join(composite_edge_ids)
                 aux_graph_id = f"aux_{composite_edge_id}"
+                print("     ",aux_graph_id)
                 if aux_graph_id not in aux_graphs:
                     aux_graphs[aux_graph_id] = {
                         "edges": composite_edge_ids,
