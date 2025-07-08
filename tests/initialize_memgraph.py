@@ -46,7 +46,9 @@ def main(hash: str = None):
         session.run("MATCH (m) DETACH DELETE m")
         result = session.run(f"CALL json_util.load_from_url(\"{node_file}\") YIELD objects "
                              "UNWIND objects AS node "
-                             "CREATE (n:`biolink:NamedThing`:node.category {id: node.id, name: node.name, length: node.length, chromosome: node.chromosome});")
+                             "CREATE (n:`biolink:NamedThing`:node.category {id: node.id, name: node.name, length: node.length, chromosome: node.chromosome})"
+                             "RETURN count(*);")
+        print(f'Nodes added: {result.single()["count(*)"]}')
         result = session.run(f"CALL json_util.load_from_url(\"{edge_file}\") YIELD objects "
                              "UNWIND objects AS edge "
                              "MATCH (s {id: edge.subject}), (o {id: edge.object}) "
@@ -60,7 +62,9 @@ def main(hash: str = None):
                                 "object_aspect_qualifier: edge.object_aspect_qualifier, "
                                 "object_direction_qualifier: edge.object_direction_qualifier, "
                                 "bogus_knowledge_source: edge.bogus_knowledge_source}] "
-                            "->(o);")
+                            "->(o)"
+                             "RETURN count(*);")
+        print(f'Edges added: {result.single()["count(*)"]}')
     driver.close()
     LOGGER.info("Done. Memgraph is ready for testing.")
 

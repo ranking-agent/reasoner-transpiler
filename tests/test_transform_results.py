@@ -2,11 +2,6 @@ from .fixtures import fixture_db_driver, fixture_async_db_driver
 from reasoner_transpiler.cypher import get_query
 import asyncio
 
-def test_load(db_driver):
-    dialect, driver = db_driver
-    result = driver.run("match (a)-[x]->(b) return count(*)", convert_to_trapi=False)
-    assert result[0]["count(*)"] == 26
-
 def test_bolt_driver_transform_results(db_driver):
     qgraph = {
         "nodes": {

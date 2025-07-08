@@ -46,7 +46,7 @@ class TranspilerNeo4jBoltDriver:
         if convert_to_trapi:
             neo4j_record = neo4j_result.single()
             return transform_result(neo4j_record, qgraph)
-        return neo4j_result
+        return list(neo4j_result)
 
     def run(self,
             query,
