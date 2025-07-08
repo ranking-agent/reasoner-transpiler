@@ -45,6 +45,7 @@ class TranspilerNeo4jBoltDriver:
         neo4j_result = tx.run(cypher, parameters=query_parameters)
         if convert_to_trapi:
             neo4j_record = neo4j_result.single()
+            print(neo4j_record)
             return transform_result(neo4j_record, qgraph)
         return list(neo4j_result)
 
