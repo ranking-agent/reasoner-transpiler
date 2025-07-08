@@ -20,8 +20,8 @@ def test_bolt_driver_transform_results(db_driver):
     }
     dialect, driver = db_driver
     query = get_query(qgraph, dialect=dialect)
-    print(query)
     output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
+    assert False
     assert len(output['results']) == 15
     for result in output["results"]:
         assert len(result["node_bindings"]) == 2
