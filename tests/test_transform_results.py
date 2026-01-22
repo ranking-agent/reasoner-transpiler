@@ -1,9 +1,8 @@
-from .fixtures import fixture_neo4j_driver, fixture_async_neo4j_driver
+from .fixtures import fixture_db_driver, fixture_async_db_driver
 from reasoner_transpiler.cypher import get_query
 import asyncio
 
-
-def test_bolt_driver_transform_results(neo4j_driver):
+def test_bolt_driver_transform_results(db_driver):
     qgraph = {
         "nodes": {
             "n0": {"ids": [
@@ -19,7 +18,9 @@ def test_bolt_driver_transform_results(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    query = get_query(qgraph, dialect=dialect)
+    output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 15
     for result in output["results"]:
         assert len(result["node_bindings"]) == 2
@@ -28,7 +29,7 @@ def test_bolt_driver_transform_results(neo4j_driver):
     assert len(output['auxiliary_graphs']) == 14
 
 
-def test_bolt_async_driver_transform_results(async_neo4j_driver):
+def test_bolt_async_driver_transform_results(async_db_driver):
     qgraph = {
         "nodes": {
             "n0": {"ids": [
@@ -44,7 +45,8 @@ def test_bolt_async_driver_transform_results(async_neo4j_driver):
             },
         },
     }
-    output = asyncio.run(async_neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph))
+    dialect, driver = async_db_driver
+    output = asyncio.run(driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph))
     assert len(output['results']) == 15
     for result in output["results"]:
         assert len(result["node_bindings"]) == 2

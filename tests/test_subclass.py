@@ -3,7 +3,7 @@ import copy
 import pytest
 import json
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_neo4j_driver
+from .fixtures import fixture_db_driver
 
 
 def get_node_binding_ids_from_neo4j_driver_output(output):
@@ -12,7 +12,7 @@ def get_node_binding_ids_from_neo4j_driver_output(output):
             for binding in binding_list]
 
 
-def test_node_subclass(neo4j_driver):
+def test_node_subclass(db_driver):
     """Test node-only subclass query."""
     # for queries without edges, we don't include subclasses of the query node or subclass edges
     qgraph = {
@@ -20,9 +20,10 @@ def test_node_subclass(neo4j_driver):
         "edges": dict(),
     }
     original_qgraph = copy.deepcopy(qgraph)
-    query = get_query(qgraph)
+    dialect, driver = db_driver
+    query = get_query(qgraph, dialect=dialect)
     # assert qgraph != original_qgraph  # subclass queries should change the qgraph and add qnodes etc
-    output = neo4j_driver.run(query, convert_to_trapi=True, qgraph=qgraph)
+    output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
     assert len(output['knowledge_graph']['nodes']) == 1
     assert len(output['knowledge_graph']['edges']) == 0
@@ -31,8 +32,14 @@ def test_node_subclass(neo4j_driver):
     assert 'MONDO:0015967' not in node_binding_ids
     assert 'MONDO:0005148' not in node_binding_ids
 
+def jsort(j):
+    """Sort JSON object."""
+    isorted = json.loads(json.dumps(j, sort_keys=True))
+    #This takes care of the dicts, but there's still potentially a list of dicts that needs to be sorted by the value of their id
+    isorted["analyses"][0]["edge_bindings"]["e01"]=sorted(isorted["analyses"][0]["edge_bindings"]["e01"],key=lambda x:x["id"])
+    return isorted
 
-def test_onehop_subclass(neo4j_driver):
+def test_onehop_subclass(db_driver):
     """Test one-hop subclass query."""
     qgraph = {
         "nodes": {
@@ -46,11 +53,12 @@ def test_onehop_subclass(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 12
     assert len(output['auxiliary_graphs']) == 11
-    expected_result = {'analyses': [{'edge_bindings': {'e01': [{'id': 't2d_invalid_predicate_albuminaria_t2d_isa_disease', 'attributes': []}, {'id': 't2d_has_phenotype_albuminaria_t2d_isa_disease', 'attributes': []}]}, 'resource_id': 'reasoner-transpiler'}], 'node_bindings': {'n0': [{'id': 'MONDO:0000001', 'attributes': []}], 'n1': [{'id': 'HP:0012592', 'attributes': []}]}}
-    assert any(expected_result == result for result in output['results'])
+    expected_result = jsort({'analyses': [{'edge_bindings': {'e01': [{'id': 't2d_invalid_predicate_albuminaria_t2d_isa_disease', 'attributes': []}, {'id': 't2d_has_phenotype_albuminaria_t2d_isa_disease', 'attributes': []}]}, 'resource_id': 'reasoner-transpiler'}], 'node_bindings': {'n0': [{'id': 'MONDO:0000001', 'attributes': []}], 'n1': [{'id': 'HP:0012592', 'attributes': []}]}})
+    assert any(expected_result == jsort(result) for result in output['results'])
     assert 'aux_t2d_has_phenotype_albuminaria_t2d_isa_disease' in output['auxiliary_graphs']
     assert 't2d_has_phenotype_albuminaria_t2d_isa_disease' in output['knowledge_graph']['edges']
     assert {"attribute_type_id": "biolink:support_graphs", "value": ["aux_anagliptin_treats_t2d_t2d_isa_disease"]}\
@@ -84,7 +92,7 @@ def test_onehop_subclass_categories():
     assert checked
 
 
-def test_backward_subclass(neo4j_driver):
+def test_backward_subclass(db_driver):
     """Test pinned-object one-hop subclass query."""
     qgraph = {
         "nodes": {
@@ -98,12 +106,13 @@ def test_backward_subclass(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 12
     assert len(output['auxiliary_graphs']) == 11
 
 
-def test_pinned_subclass(neo4j_driver):
+def test_pinned_subclass(db_driver):
     """Test both-pinned subclass query."""
     qgraph = {
         "nodes": {
@@ -117,7 +126,8 @@ def test_pinned_subclass(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
     assert output["results"][0]["node_bindings"] == {
         "n0": [{"id": "MONDO:0000001", "attributes": []}],
@@ -125,7 +135,7 @@ def test_pinned_subclass(neo4j_driver):
     }
 
 
-def test_same_pinned_subclass(neo4j_driver):
+def test_same_pinned_subclass(db_driver):
     """Test both-pinned subclass query."""
     qgraph = {
         "nodes": {
@@ -139,14 +149,15 @@ def test_same_pinned_subclass(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
     assert len(output['knowledge_graph']['nodes']) == 3
     assert len(output['knowledge_graph']['edges']) == 4
     assert len(output['auxiliary_graphs']) == 2
 
 
-def test_multihop_subclass(neo4j_driver):
+def test_multihop_subclass(db_driver):
     """Test multi-hop subclass query."""
     qgraph = {
         "nodes": {
@@ -165,24 +176,26 @@ def test_multihop_subclass(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 35
 
 
-def test_dont_subclass(neo4j_driver):
+def test_dont_subclass(db_driver):
     """Test disallowing subclassing."""
     qgraph = {
         "nodes": {"n0": {"ids": ["MONDO:0000001"]}},
         "edges": dict(),
     }
-    output = neo4j_driver.run(get_query(qgraph, subclass=False), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect, subclass=False), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
     assert output["results"][0]["node_bindings"] == {
         "n0": [{"id": "MONDO:0000001", "attributes": []}],
     }
 
 
-def test_batch_subclass(neo4j_driver):
+def test_batch_subclass(db_driver):
     """Test batched subclass query."""
     qgraph = {
         "nodes": {
@@ -199,14 +212,15 @@ def test_batch_subclass(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 15
     for result in output["results"]:
         for binding in result["node_bindings"]["n0"]:
             assert binding["id"] in ["MONDO:0000001", "HP:0000118"]
 
 
-def test_hierarchy_inference_on_superclass_queries(neo4j_driver):
+def test_hierarchy_inference_on_superclass_queries(db_driver):
     """ Test that subclass edges should not be added to explicit subclass/superclass predicate queries  """
     qgraph = {
         "nodes": {"n0": {"ids": ["MONDO:0000001"]},
@@ -219,7 +233,8 @@ def test_hierarchy_inference_on_superclass_queries(neo4j_driver):
             },
         }
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 2
     node_binding_ids = get_node_binding_ids_from_neo4j_driver_output(output)
     assert "MONDO:0000001" in node_binding_ids
@@ -231,7 +246,7 @@ def test_hierarchy_inference_on_superclass_queries(neo4j_driver):
     assert "MONDO:0014488" not in node_binding_ids
 
 
-def test_hierarchy_inference_on_subclass_queries(neo4j_driver):
+def test_hierarchy_inference_on_subclass_queries(db_driver):
     qgraph = {
         "nodes": {"n0": {"ids": ["MONDO:0005148"]},
                   "n1": {}},
@@ -243,7 +258,8 @@ def test_hierarchy_inference_on_subclass_queries(neo4j_driver):
             },
         }
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
     node_binding_ids = [binding["id"] for binding_list in output["results"][0]["node_bindings"].values() for binding in
                         binding_list]
@@ -252,7 +268,7 @@ def test_hierarchy_inference_on_subclass_queries(neo4j_driver):
     assert "MONDO:0014488" not in node_binding_ids
 
 
-def test_subclass_depth_default(neo4j_driver):
+def test_subclass_depth_default(db_driver):
     """Test one-hop subclass query."""
     qgraph = {
         "nodes": {"n0": {"ids": ["CHEBI:136043"]},
@@ -265,11 +281,12 @@ def test_subclass_depth_default(neo4j_driver):
             },
         }
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 0
 
 
-def test_subclass_depth_2(neo4j_driver):
+def test_subclass_depth_2(db_driver):
     """Test one-hop subclass query."""
     qgraph = {
         "nodes": {"n0": {"ids": ["CHEBI:136043"]},
@@ -282,11 +299,12 @@ def test_subclass_depth_2(neo4j_driver):
             },
         }
     }
-    output = neo4j_driver.run(get_query(qgraph, subclass_depth=2), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, subclass_depth=2, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) == 1
 
 
-def test_invalid_subclass_depth(neo4j_driver):
+def test_invalid_subclass_depth(db_driver):
     qgraph = {
         "nodes": {"n0": {"ids": ["CHEBI:136043"]},
                   "n1": {"ids": ["MONDO:0000000"]}},
@@ -298,7 +316,8 @@ def test_invalid_subclass_depth(neo4j_driver):
             },
         }
     }
+    dialect, driver = db_driver
     with pytest.raises(TypeError):
-        query = get_query(qgraph, subclass_depth="bad_value_type")
+        query = get_query(qgraph, subclass_depth="bad_value_type", dialect=dialect)
     with pytest.raises(ValueError):
-        query = get_query(qgraph, subclass_depth=-1)
+        query = get_query(qgraph, subclass_depth=-1, dialect=dialect)

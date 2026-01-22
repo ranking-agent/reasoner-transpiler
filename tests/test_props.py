@@ -1,12 +1,12 @@
 """Test querying with properties."""
 import pytest
-from .fixtures import fixture_neo4j_driver
+from .fixtures import fixture_db_driver
 from reasoner_transpiler.attributes import set_custom_attribute_types, set_custom_attribute_skip_list, \
     reset_custom_attribute_types, DEFAULT_ATTRIBUTE_TYPE
 from reasoner_transpiler.cypher import get_query
 
 
-def test_numeric(neo4j_driver):
+def test_numeric(db_driver):
     """Test querying with numeric property."""
     qgraph = {
         "nodes": {
@@ -21,7 +21,8 @@ def test_numeric(neo4j_driver):
         },
         "edges": {},
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
 
     node_1 = list(output["knowledge_graph"]["nodes"].values())[0]
@@ -30,7 +31,7 @@ def test_numeric(neo4j_driver):
     assert "element_id" not in node_1
 
 
-def test_string(neo4j_driver):
+def test_string(db_driver):
     """Test querying with string property."""
     qgraph = {
         "nodes": {
@@ -45,7 +46,8 @@ def test_string(neo4j_driver):
         },
         "edges": {},
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
     results = sorted(
         output["knowledge_graph"]["nodes"].values(),
@@ -58,7 +60,7 @@ def test_string(neo4j_driver):
         assert result["name"] == expected_nodes[ind]
 
 
-def test_bool(neo4j_driver):
+def test_bool(db_driver):
     """Test querying with boolean property."""
     qgraph = {
         "nodes": {
@@ -82,7 +84,8 @@ def test_bool(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 1
     results = sorted(
         output["knowledge_graph"]["nodes"].values(),
@@ -95,7 +98,7 @@ def test_bool(neo4j_driver):
         assert result["name"] == expected_nodes[ind]
 
 
-def test_publications(neo4j_driver):
+def test_publications(db_driver):
     """Test publications."""
     qgraph = {
         "nodes": {
@@ -113,7 +116,8 @@ def test_publications(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph,dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     attributes = list(edges.values())[0]["attributes"]
@@ -125,7 +129,7 @@ def test_publications(neo4j_driver):
     } for attribute in attributes])
 
 
-def test_empty_constraints(neo4j_driver):
+def test_empty_constraints(db_driver):
     """Test querying with empty 'constraints' property."""
     qgraph = {
         "nodes": {
@@ -145,11 +149,12 @@ def test_empty_constraints(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 10
 
 
-def test_valid_biolink_attribute_without_mapping(neo4j_driver):
+def test_valid_biolink_attribute_without_mapping(db_driver):
     """publications is included in the default attribute types mapping included in the codebase,
     but here we test that it still gets recognized as being biolink compliant when it's not in the mapping"""
     qgraph = {
@@ -168,7 +173,8 @@ def test_valid_biolink_attribute_without_mapping(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     edge = list(edges.values())[0]
@@ -182,7 +188,7 @@ def test_valid_biolink_attribute_without_mapping(neo4j_driver):
     reset_custom_attribute_types()
 
 
-def test_invalid_biolink_attribute_without_mapping(neo4j_driver):
+def test_invalid_biolink_attribute_without_mapping(db_driver):
     """Test to make sure an attribute that isn't biolink compliant, and isn't custom mapped, returns correctly."""
     qgraph = {
         "nodes": {
@@ -200,7 +206,8 @@ def test_invalid_biolink_attribute_without_mapping(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     attributes = list(edges.values())[0]["attributes"]
     expected_attribute = {
@@ -211,7 +218,7 @@ def test_invalid_biolink_attribute_without_mapping(neo4j_driver):
     assert any([attribute == expected_attribute for attribute in attributes])
 
 
-def test_json_attributes(neo4j_driver):
+def test_json_attributes(db_driver):
     qgraph = {
         "nodes": {
             "n0": {
@@ -229,7 +236,8 @@ def test_json_attributes(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph,dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     correct_attributes = 0
@@ -252,7 +260,7 @@ def test_json_attributes(neo4j_driver):
     assert correct_attributes == 4
 
 
-def test_props_customization(neo4j_driver):
+def test_props_customization(db_driver):
     qgraph = {
         "nodes": {
             "n0": {
@@ -272,7 +280,8 @@ def test_props_customization(neo4j_driver):
 
     # put publications in the skip list and make sure it doesn't get included
     set_custom_attribute_skip_list(['publications'])
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    dialect, driver = db_driver
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     attributes = list(edges.values())[0].get("attributes", [])
@@ -289,7 +298,7 @@ def test_props_customization(neo4j_driver):
             "value_type_id": "transpiler:custom_value_type"
         }
     })
-    output = neo4j_driver.run(get_query(qgraph), convert_to_trapi=True, qgraph=qgraph)
+    output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     edges = output["knowledge_graph"]["edges"]
     assert len(edges) == 1
     attributes = list(edges.values())[0]["attributes"]

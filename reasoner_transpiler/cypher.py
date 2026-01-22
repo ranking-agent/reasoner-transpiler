@@ -17,6 +17,13 @@ def nest_op(operator, *args):
 
 def assemble_results(qnodes, qedges, **kwargs):
     """Assemble results into Reasoner format."""
+    dialect = kwargs.get('dialect','neo4j')
+    if dialect == 'memgraph':
+        id_function = "id"
+    elif dialect == 'neo4j':
+        id_function = "elementId"
+
+
     clauses = []
 
     for qnode in qnodes.values():
@@ -28,7 +35,9 @@ def assemble_results(qnodes, qedges, **kwargs):
     pagination(**kwargs)
 
     nodes = [f"`{qnode_id}`.id" for qnode_id, qnode in qnodes.items()]
-    edges = [f"elementId(`{qedge_id}`)" if not qedge.get('_subclass', False) else f"[x in `{qedge_id}` | elementId(x)]"
+    edges = [f"{id_function}(`{qedge_id}`)" if not qedge.get('_subclass', False)
+             #else f"[x in `{qedge_id}` | {id_function}(x)]"
+             else (f" CASE WHEN size(`{qedge_id}`) = 1 THEN [{id_function}(head(`{qedge_id}`))] ELSE [] END ")
              for qedge_id, qedge in qedges.items()]
     if nodes or edges:
         nodes_assemble = " + ".join([
@@ -38,18 +47,19 @@ def assemble_results(qnodes, qedges, **kwargs):
         if not nodes_assemble:
             nodes_assemble = '[]'
         edges_assemble = " + ".join([
-            f"collect([elementId(`{qedge_id}`), startNode(`{qedge_id}`).id, "
+            f"collect([{id_function}(`{qedge_id}`), startNode(`{qedge_id}`).id, "
             f"type(`{qedge_id}`), endNode(`{qedge_id}`).id, properties(`{qedge_id}`)])"
             if not qedge.get('_subclass', False) else
-            f"collect([x in `{qedge_id}` | [elementId(x), startNode(x).id, "
-            f"type(x), endNode(x).id, properties(x)]])"
+            #f"collect([x in `{qedge_id}` | [{id_function}(x), startNode(x).id, "
+            #f"type(x), endNode(x).id, properties(x)]])"
+            f"collect( CASE WHEN size(`{qedge_id}`)= 1 THEN [ [{id_function}(head(`{qedge_id}`)), startNode(head(`{qedge_id}`)).id, "
+            f"type(head(`{qedge_id}`)), endNode(head(`{qedge_id}`)).id, properties(head(`{qedge_id}`))]] ELSE [ ] END)"
             for qedge_id, qedge in qedges.items()
         ])
         if not edges_assemble:
             edges_assemble = '[]'
-        assemble_clause = f"WITH apoc.coll.toSet({nodes_assemble}) AS nodes, " \
-                          f"apoc.coll.toSet({edges_assemble}) AS edges, collect(DISTINCT ["
-
+        assemble_clause = f"WITH {nodes_assemble} AS raw_nodes, " \
+                          f"{edges_assemble} AS raw_edges, collect(DISTINCT ["
         if nodes:
             assemble_clause += ', '.join(nodes)
             if edges:
@@ -57,6 +67,8 @@ def assemble_results(qnodes, qedges, **kwargs):
         if edges:
             assemble_clause += ', '.join(edges)
         assemble_clause += "]) AS paths "
+        assemble_clause += "CALL { WITH raw_nodes UNWIND raw_nodes AS node RETURN collect(DISTINCT node) AS nodes } "
+        assemble_clause += "CALL { WITH raw_edges UNWIND raw_edges AS edge RETURN collect(DISTINCT edge) AS edges } "
         clauses.append(assemble_clause)
         return_clause = "RETURN nodes, edges, paths"
     else:
@@ -156,7 +168,6 @@ def transform_result(cypher_record,
     # Each path is an array of nodes and edges like [n1, n2, n3, e1, e2, e3],
     # where nodes are node_ids from the graph and edges are element_ids of relationships from the graph.
     for path in paths:
-
         # Map results/paths to their corresponding qnodes and qedges
         qnode_id_to_results = {qnode_id: (qnode, result_node_id) for (qnode_id, qnode), result_node_id in
                                zip(qgraph_nodes.items(), path[:len(qgraph_nodes)])}
@@ -206,7 +217,7 @@ def transform_result(cypher_record,
         for qedge_id, (qedge, path_edge) in qedge_id_to_results.items():
 
             # skip empty results
-            if not path_edge:
+            if ((not path_edge) and (not path_edge == 0)):
                 continue
             # don't return subclass qedges in the edge bindings
             if qedge.get("_subclass", False):
@@ -222,6 +233,7 @@ def transform_result(cypher_record,
             for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in \
                     qedges_with_attached_subclass_edges.get(qedge_id, []):
                 # If so, check to see if there are results for it
+                qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
                 qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
                 if subclass_edge_element_ids:
                     # If path_edge is Truthy, it means the subclass was used in the result.

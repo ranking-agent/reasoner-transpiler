@@ -1,10 +1,10 @@
 """Test query arguments."""
 import pytest
 from reasoner_transpiler.cypher import get_query
-from .fixtures import fixture_neo4j_driver
+from .fixtures import fixture_db_driver
 
 
-def test_skip_limit(neo4j_driver):
+def test_skip_limit(db_driver):
     """Test SKIP and LIMIT."""
     qgraph = {
         "nodes": {
@@ -24,11 +24,12 @@ def test_skip_limit(neo4j_driver):
             },
         },
     }
+    dialect, driver = db_driver
     all_results = []
     with pytest.raises(NotImplementedError):
-        output = neo4j_driver.run(get_query(qgraph, limit=2), convert_to_trapi=True, qgraph=qgraph)
+        output = driver.run(get_query(qgraph, dialect=dialect, limit=2), convert_to_trapi=True, qgraph=qgraph)
     with pytest.raises(NotImplementedError):
-        output = neo4j_driver.run(get_query(qgraph, skip=2), convert_to_trapi=True, qgraph=qgraph)
+        output = driver.run(get_query(qgraph, dialect=dialect,  skip=2), convert_to_trapi=True, qgraph=qgraph)
 
     """
     the following should pass if skip and limit are implemented
@@ -47,7 +48,7 @@ def test_skip_limit(neo4j_driver):
     """
 
 
-def test_max_connectivity(neo4j_driver):
+def test_max_connectivity(db_driver):
     """Test max_connectivity option."""
     qgraph = {
         "nodes": {
@@ -67,10 +68,12 @@ def test_max_connectivity(neo4j_driver):
             },
         },
     }
-    output = neo4j_driver.run(get_query(
+    dialect, driver = db_driver
+    query = get_query(
         qgraph,
         max_connectivity=5,
-    ), convert_to_trapi=True, qgraph=qgraph)
+        dialect=dialect)
+    output = driver.run(query, convert_to_trapi=True, qgraph=qgraph)
     assert len(output["results"]) == 2
     results = sorted(
         output["knowledge_graph"]["nodes"].values(),

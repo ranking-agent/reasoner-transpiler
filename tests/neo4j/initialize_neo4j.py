@@ -39,9 +39,10 @@ def main(hash: str = None):
     driver = get_driver(url)
     LOGGER.info("Connected to Neo4j. Initializing...")
     if hash is not None:
-        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/nodes.csv"
-        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner/{hash}/tests/neo4j_csv/edges.csv"
+        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/neo4j/neo4j_csv/nodes.csv"
+        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/neo4j/neo4j_csv/edges.csv"
     else:
+        # NOTE this path works because it's mounted in the docker container that way
         node_file = f"file:///nodes.csv"
         edge_file = f"file:///edges.csv"
     with driver.session() as session:

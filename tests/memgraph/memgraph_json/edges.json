@@ -1,0 +1,208 @@
+[
+    {
+        "id": "t2d_isa_disease",
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0000001",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "disease_superclass_edge",
+        "subject": "MONDO:0000001",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0000000",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "t2dsubtype_is_a_t2d",
+        "subject": "MONDO:0014488",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0005148",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "monogenic_diabetes_is_a_diabetes",
+        "subject": "MONDO:0015967",
+        "predicate": "biolink:subclass_of",
+        "object": "MONDO:0000001",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "albuminaria_isa_phenotype",
+        "subject": "HP:0012592",
+        "predicate": "biolink:subclass_of",
+        "object": "HP:0000118",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "anagliptin_treats_t2d",
+        "subject": "CHEBI:136043",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148",
+        "fda_approved": false,
+        "primary_knowledge_source": "infores:test2"
+    },
+    {
+        "id": "bezafibrate_treats_t2d",
+        "subject": "CHEBI:47612",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148",
+        "fda_approved": false,
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "bezafibrate_treats_obesity",
+        "subject": "CHEBI:47612",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0011122",
+        "fda_approved": false,
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "metformin_treats_t2d",
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0005148",
+        "fda_approved": true,
+        "primary_knowledge_source": "infores:test",
+        "aggregator_knowledge_source": [
+            "infores:ctd"
+        ]
+    },
+    {
+        "id": "metformin_treats_obesity",
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0011122",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "t2d_has_phenotype_increased_weight",
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:has_phenotype",
+        "object": "HP:0004324",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "t2d_has_phenotype_albuminaria",
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:has_phenotype",
+        "object": "HP:0012592",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "obesity_has_phenotype_increased_weight",
+        "subject": "MONDO:0011122",
+        "predicate": "biolink:has_phenotype",
+        "object": "HP:0004324",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "CASP3_molecularly_interacts_with_CASP8",
+        "subject": "NCBIGene:836",
+        "predicate": "biolink:molecularly_interacts_with",
+        "object": "NCBIGene:841",
+        "publications": [
+            "xxx"
+        ],
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "metformin_increases_expression_of_CASP8",
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:increases_expression_of",
+        "object": "NCBIGene:841",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "metformin_increases_expression_of_CASP3",
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:increases_expression_of",
+        "object": "NCBIGene:836",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "t2d_associated_with_CASP8",
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:841",
+        "p_value": 7e-06,
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "t2d_associated_with_CASP3",
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:836",
+        "non_biolink_attribute": "xxx123",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "obesity_ga_CASP3",
+        "subject": "MONDO:0011122",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:836",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "metformin_treats_carcinoma",
+        "subject": "CHEBI:6801",
+        "predicate": "biolink:treats",
+        "object": "MONDO:0004993",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "carcinoma_associated_with_CASP8",
+        "subject": "MONDO:0004993",
+        "predicate": "biolink:genetically_associated_with",
+        "object": "NCBIGene:841",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "carcinoma_associated_with_BRCA1",
+        "subject": "NCBIGene:672",
+        "predicate": "biolink:gene_associated_with_condition",
+        "object": "MONDO:0004993",
+        "primary_knowledge_source": "infores:test",
+        "publications": [
+            "xxx"
+        ],
+        "attributes": [
+            "{\"attribute_type_id\": \"json_attribute_1\", \"value\": \"json_value_1\"}",
+            "{\"attribute_type_id\": \"json_attribute_2\", \"value\": \"json_value_2\"}",
+            "{\"attribute_type_id\": \"json_attribute_3\", \"value\": \"json_value_3\", \"attributes\": [{\"attribute_type_id\": \"nested_json_attribute_1\", \"value\": \"nested_json_value_1\"}] }"
+        ]
+    },
+    {
+        "id": "t2d_invalid_predicate_albuminaria",
+        "subject": "MONDO:0005148",
+        "predicate": "biolink:invalid_predicate",
+        "object": "HP:0012592",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "qualified_edge_single_qualifier",
+        "subject": "PUBCHEM.COMPOUND:5460341",
+        "predicate": "biolink:affects",
+        "object": "NCBIGene:283871",
+        "qualified_predicate": "biolink:causes",
+        "primary_knowledge_source": "infores:test"
+    },
+    {
+        "id": "qualified_edge_multiple_qualifier",
+        "subject": "PUBCHEM.COMPOUND:5460341",
+        "predicate": "biolink:affects",
+        "object": "NCBIGene:283871",
+        "qualified_predicate": "biolink:causes",
+        "object_aspect_qualifier": "activity",
+        "object_direction_qualifier": "decreased",
+        "primary_knowledge_source": "infores:ctd"
+    },
+    {
+        "id": "invalid_provenance",
+        "subject": "MESH:D014612",
+        "predicate": "biolink:causes",
+        "object": "MONDO:0005260",
+        "bogus_knowledge_source": "internet"
+    }
+]
