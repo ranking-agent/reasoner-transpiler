@@ -17,12 +17,13 @@ def nest_op(operator, *args):
 
 def assemble_results(qnodes, qedges, **kwargs):
     """Assemble results into Reasoner format."""
-    dialect = kwargs.get('dialect','neo4j')
+    dialect = (kwargs.get("dialect") or "neo4j").lower()
     if dialect == 'memgraph':
         id_function = "id"
     elif dialect == 'neo4j':
         id_function = "elementId"
-
+    else:
+        raise ValueError(f"Unknown dialect {dialect}. Only neo4j and memgraph are supported.")
 
     clauses = []
 

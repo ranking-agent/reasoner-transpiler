@@ -73,7 +73,7 @@ class NodeReference:
         Un-reserved properties with other types will be coerced to str.
         """
         max_connectivity = kwargs.get("max_connectivity", -1)
-        self.dialect = kwargs.get("dialect", "neo4j")
+        self.dialect = (kwargs.get("dialect") or "neo4j").lower()
         self.anonymous = kwargs.get("anonymous", False)
 
         node = dict(node)  # shallow copy
@@ -127,6 +127,8 @@ class NodeReference:
                     self.name,
                     max_connectivity,
                 ))
+            else:
+                raise ValueError(f"Unknown dialect {dialect}. Only neo4j and memgraph are supported.")
 
         # the transpiler used to do the following,
         # but now TRAPI QNodes should only have attributes constraints in the "constraints" field
