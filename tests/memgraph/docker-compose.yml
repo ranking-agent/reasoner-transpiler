@@ -1,0 +1,8 @@
+services:
+  memgraph:
+    container_name: memgraph
+    image: memgraph/memgraph-mage:3.3
+    ports:
+      - '7688:7687'
+    volumes:
+      - ./memgraph_json/:/memgraph_json
