@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="reasoner-transpiler",
-    version="2.3.5",
+    version="2.4.0",
     author="Patrick Wang",
     author_email="patrick@covar.com",
     maintainer="Evan Morris",
@@ -15,7 +15,7 @@ setup(
     packages=["reasoner_transpiler"],
     package_data={"reasoner_transpiler": ["attribute_types.json"]},
     install_requires=[
-        "bmt==1.4.4",
+        "bmt==1.4.6",
     ],
     zip_safe=False,
     license="MIT",
