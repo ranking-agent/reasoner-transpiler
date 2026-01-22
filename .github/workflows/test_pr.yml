@@ -41,11 +41,11 @@ jobs:
 
       - name: Set up Neo4j data
         run: |
-          python tests/initialize_neo4j.py "${GITHUB_SHA}"
+          python tests/neo4j/initialize_neo4j.py "${GITHUB_SHA}"
 
       - name: Set up Memgraph data
         run: |
-          python tests/initialize_memgraph.py "${GITHUB_SHA}"
+          python tests/memgraph/initialize_memgraph.py "${GITHUB_SHA}"
 
       - name: Run pytest
         run: |

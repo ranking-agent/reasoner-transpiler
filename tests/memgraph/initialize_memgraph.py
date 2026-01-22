@@ -36,20 +36,23 @@ def main(hash: str = None):
     driver = get_driver(url)
     LOGGER.info("Connected to Memgraph. Initializing...")
     if hash is not None:
-        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_json/nodes.json"
-        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph_json/edges.json"
+        node_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph/memgraph_json/nodes.json"
+        edge_file = f"https://raw.githubusercontent.com/ranking-agent/reasoner-transpiler/{hash}/tests/memgraph/memgraph_json/edges.json"
+        load_technique = "json_util.load_from_url"
     else:
-        node_file = f"file:///nodes.csv"
-        edge_file = f"file:///edges.csv"
+        # NOTE this path works because it's mounted in the docker container that way
+        node_file = f"/memgraph_json/nodes.json"
+        edge_file = f"/memgraph_json/edges.json"
+        load_technique = "json_util.load_from_path"
     with driver.session() as session:
         print(edge_file)
         session.run("MATCH (m) DETACH DELETE m")
-        result = session.run(f"CALL json_util.load_from_url(\"{node_file}\") YIELD objects "
+        result = session.run(f"CALL {load_technique}(\"{node_file}\") YIELD objects "
                              "UNWIND objects AS node "
                              "CREATE (n:`biolink:NamedThing`:node.category {id: node.id, name: node.name, length: node.length, chromosome: node.chromosome})"
                              "RETURN count(*);")
         print(f'Nodes added: {result.single()["count(*)"]}')
-        result = session.run(f"CALL json_util.load_from_url(\"{edge_file}\") YIELD objects "
+        result = session.run(f"CALL {load_technique}(\"{edge_file}\") YIELD objects "
                              "UNWIND objects AS edge "
                              "MATCH (s {id: edge.subject}), (o {id: edge.object}) "
                              "CREATE (s)-[x:edge.predicate "
