@@ -257,6 +257,19 @@ def transform_result(cypher_record,
                     }
                 if composite_edge_id not in kg_edges:
                     real_edge = kg_edges[graph_edge_id]
+                    # Map qgraph subject/object labels to the correct real edge side.
+                    # The qgraph subject/object may not align with the real edge's subject/object
+                    # when the edge was cypher-inverted (e.g. querying with a non-canonical predicate).
+                    # Determine the correct side by checking which side of the real edge the
+                    # non-superclass result node corresponds to.
+                    resolved_superclass_node_ids = {}
+                    for qgraph_side, superclass_id in superclass_node_ids.items():
+                        qnode_id = qedge[qgraph_side]
+                        _, result_node_id = qnode_id_to_results[qnode_id]
+                        if result_node_id == real_edge["subject"]:
+                            resolved_superclass_node_ids["subject"] = superclass_id
+                        elif result_node_id == real_edge["object"]:
+                            resolved_superclass_node_ids["object"] = superclass_id
                     inferred_result_edge = {"subject": real_edge["subject"],
                                             "predicate": real_edge["predicate"],
                                             "object": real_edge["object"],
@@ -280,9 +293,7 @@ def transform_result(cypher_record,
                                                     "resource_role": "primary_knowledge_source"
                                                 }
                                             ],
-                                            # this overwrites subject and/or object with the superclass node ids
-                                            # if they exist
-                                            **superclass_node_ids}
+                                            **resolved_superclass_node_ids}
                     kg_edges[composite_edge_id] = inferred_result_edge
 
                 # make an edge binding with the inferred subclass edge
