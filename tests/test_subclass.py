@@ -326,7 +326,7 @@ def test_inverse_predicate_subclass(db_driver):
             },
         },
     }
-    dialect, driver = db_driverok care
+    dialect, driver = db_driver
     output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) > 0
     assert len(output['auxiliary_graphs']) > 0
