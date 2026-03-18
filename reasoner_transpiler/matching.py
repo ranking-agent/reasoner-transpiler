@@ -440,6 +440,7 @@ def match_edge(
     """Get MATCH clause for edge."""
     eref = EdgeReference(qedge_id, qedge, invert=invert, **kwargs)
     if eref.cypher_invert:
+        qedge["_cypher_inverted"] = True
         source_node = node_references[qedge["object"]]
         target_node = node_references[qedge["subject"]]
     else:

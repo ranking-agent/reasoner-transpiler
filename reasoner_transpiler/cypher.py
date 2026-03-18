@@ -231,10 +231,10 @@ def transform_result(cypher_record,
             # Check to see if the edge has subclass edges that are connected to it
             subclass_edge_ids = []
             superclass_node_ids = {}
+            main_qedge = qedge  # Save before inner loop reassigns qedge
             for (subclass_subject_or_object, subclass_qedge_id, superclass_qnode_id) in \
                     qedges_with_attached_subclass_edges.get(qedge_id, []):
                 # If so, check to see if there are results for it
-                qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
                 qedge, subclass_edge_element_ids = qedge_id_to_results[subclass_qedge_id]
                 if subclass_edge_element_ids:
                     # If path_edge is Truthy, it means the subclass was used in the result.
@@ -257,19 +257,14 @@ def transform_result(cypher_record,
                     }
                 if composite_edge_id not in kg_edges:
                     real_edge = kg_edges[graph_edge_id]
-                    # Map qgraph subject/object labels to the correct real edge side.
-                    # The qgraph subject/object may not align with the real edge's subject/object
-                    # when the edge was cypher-inverted (e.g. querying with a non-canonical predicate).
-                    # Determine the correct side by checking which side of the real edge the
-                    # non-superclass result node corresponds to.
-                    resolved_superclass_node_ids = {}
-                    for qgraph_side, superclass_id in superclass_node_ids.items():
-                        qnode_id = qedge[qgraph_side]
-                        _, result_node_id = qnode_id_to_results[qnode_id]
-                        if result_node_id == real_edge["subject"]:
-                            resolved_superclass_node_ids["subject"] = superclass_id
-                        elif result_node_id == real_edge["object"]:
-                            resolved_superclass_node_ids["object"] = superclass_id
+                    # When the cypher edge was inverted (non-canonical predicate), qgraph
+                    # subject/object are swapped relative to the real edge's subject/object,
+                    # so we need to swap the superclass_node_ids keys to match.
+                    if main_qedge.get("_cypher_inverted", False):
+                        swap = {"subject": "object", "object": "subject"}
+                        resolved_superclass_node_ids = {swap[k]: v for k, v in superclass_node_ids.items()}
+                    else:
+                        resolved_superclass_node_ids = superclass_node_ids
                     inferred_result_edge = {"subject": real_edge["subject"],
                                             "predicate": real_edge["predicate"],
                                             "object": real_edge["object"],
@@ -315,6 +310,10 @@ def transform_result(cypher_record,
                         [new_edge_bind for new_edge_bind in edge_binding_list if new_edge_bind['id'] not in
                          [existing_edge_bind['id'] for existing_edge_bind in
                           results[result_key]['analyses'][0]['edge_bindings'][qedge_id]]])
+
+    # Strip internal flags added during query generation
+    for qedge in qgraph["edges"].values():
+        qedge.pop("_cypher_inverted", None)
 
     knowledge_graph = {
         'nodes': kg_nodes,

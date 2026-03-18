@@ -326,34 +326,41 @@ def test_inverse_predicate_subclass(db_driver):
             },
         },
     }
-    dialect, driver = db_driver
+    dialect, driver = db_driverok care
     output = driver.run(get_query(qgraph, dialect=dialect), convert_to_trapi=True, qgraph=qgraph)
     assert len(output['results']) > 0
     assert len(output['auxiliary_graphs']) > 0
 
-    # Check that all inferred edges have the correct subject/object orientation
+    # Check expected node bindings: n0=HP:0000118 (pinned phenotype), n1=MONDO:0005148 (disease)
+    result_n1_ids = {result['node_bindings']['n1'][0]['id'] for result in output['results']}
+    assert 'MONDO:0005148' in result_n1_ids
+    for result in output['results']:
+        assert result['node_bindings']['n0'][0]['id'] == 'HP:0000118'
+
+    # Check the inferred edge has the expected subject and object:
+    # MONDO:0005148 -[has_phenotype]-> HP:0000118
     for edge_id, edge in output['knowledge_graph']['edges'].items():
         if 'attributes' in edge and any(
             attr.get('attribute_type_id') == 'biolink:knowledge_level' and attr.get('value') == 'logical_entailment'
             for attr in edge['attributes']
         ):
-            # The inferred edge should have the disease as subject and the superclass phenotype as object,
-            # matching the canonical has_phenotype direction
             assert edge['subject'] != 'HP:0000118', \
                 f"Inferred edge {edge_id} has superclass phenotype as subject - subject/object are swapped"
             assert edge['object'] == 'HP:0000118', \
                 f"Inferred edge {edge_id} should have HP:0000118 (queried phenotype) as object"
 
     # Verify node bindings are consistent with inferred edges
+    # The qedge is n0 -[phenotype_of]-> n1, but canonical direction is has_phenotype,
+    # so the real edge subject should be n1's binding and object should be n0's binding
     for result in output['results']:
         n0_id = result['node_bindings']['n0'][0]['id']
         n1_id = result['node_bindings']['n1'][0]['id']
         for edge_binding in result['analyses'][0]['edge_bindings']['e01']:
             bound_edge = output['knowledge_graph']['edges'][edge_binding['id']]
-            # The bound edge should connect the bound nodes
-            assert {bound_edge['subject'], bound_edge['object']} == {n0_id, n1_id}, \
-                f"Edge {edge_binding['id']} connects {bound_edge['subject']} and {bound_edge['object']}, " \
-                f"but node bindings are n0={n0_id}, n1={n1_id}"
+            assert bound_edge['subject'] == n1_id, \
+                f"Edge {edge_binding['id']} subject is {bound_edge['subject']}, expected {n1_id}"
+            assert bound_edge['object'] == n0_id, \
+                f"Edge {edge_binding['id']} object is {bound_edge['object']}, expected {n0_id}"
 
 
 def test_invalid_subclass_depth(db_driver):
